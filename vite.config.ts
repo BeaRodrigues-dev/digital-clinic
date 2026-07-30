@@ -16,9 +16,13 @@ function figmaAssetResolver() {
 }
 
 export default defineConfig({
-  base: "/digital_clinic/",
+  base: "/digital-clinic/",
 
   plugins: [figmaAssetResolver(), react(), tailwindcss()],
+
+  build: {
+    outDir: "docs",
+  },
 
   resolve: {
     alias: {
