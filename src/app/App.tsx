@@ -341,6 +341,9 @@ function ProfileForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState("");
+
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
   const addSpecialty = (s: string) => {
@@ -518,19 +521,25 @@ function ProfileForm({
 
       <div>
         <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-          URL da foto de perfil
+          Foto de perfil
         </label>
         <input
-          type="url"
-          value={form.photo_url ?? ""}
-          onChange={(e) => set("photo_url", e.target.value)}
-          placeholder="https://... (Unsplash, Drive, etc.)"
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+
+            if (file) {
+              setPhotoFile(file);
+              setPhotoPreview(URL.createObjectURL(file));
+            }
+          }}
           className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors"
         />
-        {form.photo_url && (
+        {(photoPreview || form.photo_url) && (
           <div className="mt-3 flex items-center gap-3">
             <img
-              src={form.photo_url}
+              src={photoPreview || form.photo_url}
               alt="Preview"
               className="w-16 h-16 rounded-xl object-cover border border-border bg-muted"
             />
