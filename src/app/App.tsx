@@ -523,9 +523,17 @@ function ProfileForm({
         <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
           Foto de perfil
         </label>
-        <label className="w-full bg-secondary border border-border rounded-lg px-4 py-3 text-sm cursor-pointer hover:bg-muted transition-colors block text-center">
-          Selecionar foto
+
+        <div>
+          <label
+            htmlFor="photo-upload"
+            className="w-full bg-secondary border border-border rounded-lg px-4 py-3 text-sm cursor-pointer hover:bg-muted transition-colors block text-center"
+          >
+            Selecionar foto
+          </label>
+
           <input
+            id="photo-upload"
             type="file"
             accept="image/*"
             className="hidden"
@@ -538,7 +546,7 @@ function ProfileForm({
               }
             }}
           />
-        </label>
+        </div>
         {(photoPreview || form.photo_url) && (
           <div className="mt-3 flex items-center gap-3">
             <img
