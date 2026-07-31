@@ -523,19 +523,22 @@ function ProfileForm({
         <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
           Foto de perfil
         </label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
+        <label className="w-full bg-secondary border border-border rounded-lg px-4 py-3 text-sm cursor-pointer hover:bg-muted transition-colors block text-center">
+          Selecionar foto
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
 
-            if (file) {
-              setPhotoFile(file);
-              setPhotoPreview(URL.createObjectURL(file));
-            }
-          }}
-          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors"
-        />
+              if (file) {
+                setPhotoFile(file);
+                setPhotoPreview(URL.createObjectURL(file));
+              }
+            }}
+          />
+        </label>
         {(photoPreview || form.photo_url) && (
           <div className="mt-3 flex items-center gap-3">
             <img
