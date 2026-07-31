@@ -546,12 +546,6 @@ function ProfileForm({
             <p className="text-xs text-muted-foreground">Preview da foto</p>
           </div>
         )}
-        <p className="text-xs text-muted-foreground mt-1.5">
-          Sugestão Unsplash:{" "}
-          <code className="bg-muted px-1 rounded">
-            https://images.unsplash.com/photo-XXXXXXX?w=500&h=400&fit=crop&auto=format
-          </code>
-        </p>
       </div>
 
       {error && (
