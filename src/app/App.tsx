@@ -8810,25 +8810,43 @@ function AdminClinicsView() {
   const [ownerActionError, setOwnerActionError] = useState<string | null>(
     null,
   );
+  // Fase 27.3 — `profiles.role` é só o papel "principal"; quem acumula mais
+  // de um papel (Fase 17, ex.: admin que também é psicóloga) tem os extras
+  // na tabela `user_roles`, não em `profiles.role`. Filtrar psicólogos e
+  // secretárias direto por `profiles.role` (como esta tela fazia antes)
+  // deixava de fora qualquer pessoa cujo papel principal fosse outro —
+  // exatamente por isso ela não aparecia pra ser selecionada como dona.
+  const [extraRoles, setExtraRoles] = useState<Record<string, UserRole[]>>(
+    {},
+  );
+  const rolesOf = (p: AdminClinicPerson): UserRole[] =>
+    extraRoles[p.id] ?? [p.role];
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(false);
-    const [clinicsRes, peopleRes] = await Promise.all([
+    const [clinicsRes, peopleRes, rolesRes] = await Promise.all([
       supabase
         .from("clinics")
         .select("id, name, plan, owner_id")
         .order("name", { ascending: true }),
-      supabase
-        .from("profiles")
-        .select("id, full_name, email, role, clinic_id")
-        .in("role", ["psychologist", "secretary"]),
+      // Não dá mais pra filtrar por `.in("role", [...])` no banco — precisa
+      // trazer todo mundo e decidir "é psicólogo?"/"é secretária?" no
+      // cliente, cruzando com `user_roles` (ver `rolesOf` acima).
+      supabase.from("profiles").select("id, full_name, email, role, clinic_id"),
+      supabase.from("user_roles").select("user_id, role"),
     ]);
     if (clinicsRes.error || peopleRes.error) {
       setError(true);
     } else {
       setClinics((clinicsRes.data as AdminClinicRow[]) ?? []);
       setPeople((peopleRes.data as AdminClinicPerson[]) ?? []);
+      const roleMap: Record<string, UserRole[]> = {};
+      (rolesRes.data ?? []).forEach((r: any) => {
+        if (!roleMap[r.user_id]) roleMap[r.user_id] = [];
+        roleMap[r.user_id].push(r.role);
+      });
+      setExtraRoles(roleMap);
     }
     setLoading(false);
   }, []);
@@ -8856,10 +8874,17 @@ function AdminClinicsView() {
         .eq("id", newOwnerId);
       if (profileErr) throw profileErr;
 
+      // Upsert em vez de update: quem só ganhou "psicólogo" como papel
+      // extra (Admin → Usuários → conceder papel) pode nunca ter passado
+      // por `switch_active_role` pra esse papel — e é só nesse momento que
+      // o gatilho da Fase 9 cria a linha em `professionals`. Sem o upsert,
+      // um `update` aqui simplesmente não afetaria nenhuma linha.
       const { error: profErr } = await supabase
         .from("professionals")
-        .update({ clinic_id: clinicId })
-        .eq("id", newOwnerId);
+        .upsert(
+          { id: newOwnerId, clinic_id: clinicId },
+          { onConflict: "id" },
+        );
       if (profErr) throw profErr;
 
       const { error: clinicErr } = await supabase
@@ -8916,20 +8941,23 @@ function AdminClinicsView() {
         const owner = people.find((p) => p.id === c.owner_id);
         const otherProfessionals = people.filter(
           (p) =>
-            p.role === "psychologist" &&
+            rolesOf(p).includes("psychologist") &&
             p.clinic_id === c.id &&
             p.id !== c.owner_id,
         );
         const secretaries = people.filter(
-          (p) => p.role === "secretary" && p.clinic_id === c.id,
+          (p) => rolesOf(p).includes("secretary") && p.clinic_id === c.id,
         );
         // Fase 27.2 — a lista é TODO psicólogo do sistema, não só quem já
         // está vinculado a esta clínica: o caso mais comum é justamente o
         // contrário (o profissional certo ainda está preso à clínica
         // pessoal auto-criada pra ele, não a esta). `handleSetOwner` já
         // cuida de mover o vínculo (`clinic_id`) pra cá ao definir o dono.
+        // Fase 27.3 — usa `rolesOf` (papel principal + extras de
+        // `user_roles`), não só `p.role`, senão alguém cujo papel principal
+        // seja outro (ex.: admin que também é psicóloga) nunca aparecia.
         const eligibleForOwner = people.filter(
-          (p) => p.role === "psychologist" && p.id !== c.owner_id,
+          (p) => rolesOf(p).includes("psychologist") && p.id !== c.owner_id,
         );
         return (
           <div
