@@ -1018,6 +1018,16 @@ type SecretaryAppointmentRow = {
 
 function SecretaryAgendaView({ user }: { user: AppUser }) {
   const { t, i18n } = useTranslation();
+  // Fase 27.1 — mesma navegação dia/semana/mês (com grade de calendário)
+  // que já existia só na visão do profissional (`AgendaView`). Antes a
+  // secretária só tinha uma lista corrida das próximas 50 consultas, sem
+  // filtro de data nenhum.
+  const [mode, setMode] = useState<"day" | "week" | "month">("day");
+  const [anchorDate, setAnchorDate] = useState(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
   const [appointments, setAppointments] = useState<SecretaryAppointmentRow[]>(
     [],
   );
@@ -1027,6 +1037,25 @@ function SecretaryAgendaView({ user }: { user: AppUser }) {
   const [view, setView] = useState<"list" | "new">("list");
   const [actionError, setActionError] = useState(false);
 
+  const {
+    gridStart: monthGridStart,
+    gridDays: monthGridDays,
+    gridEnd: monthGridEnd,
+  } = getMonthGridRange(anchorDate);
+
+  const rangeStart =
+    mode === "day"
+      ? anchorDate
+      : mode === "week"
+        ? startOfWeek(anchorDate)
+        : monthGridStart;
+  const rangeEnd =
+    mode === "day"
+      ? addDays(anchorDate, 1)
+      : mode === "week"
+        ? addDays(rangeStart, 7)
+        : monthGridEnd;
+
   const load = useCallback(async () => {
     if (!user.clinicId) {
       setLoading(false);
@@ -1034,15 +1063,14 @@ function SecretaryAgendaView({ user }: { user: AppUser }) {
     }
     setLoading(true);
     setError(false);
-    const now = new Date();
     const [apptRes, patientsRes] = await Promise.all([
       supabase
         .from("appointments")
         .select("id, starts_at, ends_at, status, patients(full_name)")
         .eq("clinic_id", user.clinicId)
-        .gte("starts_at", now.toISOString())
-        .order("starts_at", { ascending: true })
-        .limit(50),
+        .gte("starts_at", rangeStart.toISOString())
+        .lt("starts_at", rangeEnd.toISOString())
+        .order("starts_at", { ascending: true }),
       supabase
         .from("patients")
         .select("id, full_name")
@@ -1053,7 +1081,7 @@ function SecretaryAgendaView({ user }: { user: AppUser }) {
     else setAppointments((apptRes.data as SecretaryAppointmentRow[]) ?? []);
     setPatients((patientsRes.data as PatientOption[]) ?? []);
     setLoading(false);
-  }, [user.clinicId]);
+  }, [user.clinicId, rangeStart.getTime(), rangeEnd.getTime()]);
 
   useEffect(() => {
     load();
@@ -1123,7 +1151,7 @@ function SecretaryAgendaView({ user }: { user: AppUser }) {
         <div className="bg-card border border-border rounded-2xl p-8">
           <AppointmentForm
             patients={patients}
-            defaultDate={new Date()}
+            defaultDate={anchorDate}
             onSave={handleSave}
             onCancel={() => setView("list")}
           />
@@ -1131,6 +1159,100 @@ function SecretaryAgendaView({ user }: { user: AppUser }) {
       </div>
     );
   }
+
+  // Fase 27.1 — mesmo helper de navegação por mês do AgendaView do
+  // profissional: no modo "mês" pula pelo número de meses (sempre cai no
+  // dia 1), nos outros modos soma dias/semanas normalmente.
+  const navigate = (direction: 1 | -1) => {
+    if (mode === "month") {
+      setAnchorDate(
+        new Date(
+          anchorDate.getFullYear(),
+          anchorDate.getMonth() + direction,
+          1,
+        ),
+      );
+    } else {
+      setAnchorDate(
+        addDays(anchorDate, direction * (mode === "day" ? 1 : 7)),
+      );
+    }
+  };
+
+  const dayLabel = (d: Date) =>
+    new Intl.DateTimeFormat(i18n.language, {
+      weekday: "long",
+      day: "2-digit",
+      month: "2-digit",
+    }).format(d);
+
+  const timeLabel = (iso: string) =>
+    new Intl.DateTimeFormat(i18n.language, {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(iso));
+
+  const rangeLabel =
+    mode === "day"
+      ? dayLabel(anchorDate)
+      : mode === "week"
+        ? `${new Intl.DateTimeFormat(i18n.language, { day: "2-digit", month: "2-digit" }).format(rangeStart)} – ${new Intl.DateTimeFormat(i18n.language, { day: "2-digit", month: "2-digit" }).format(addDays(rangeStart, 6))}`
+        : new Intl.DateTimeFormat(i18n.language, {
+            month: "long",
+            year: "numeric",
+          }).format(anchorDate);
+
+  const statusStyles: Record<string, string> = {
+    scheduled: "bg-secondary text-muted-foreground",
+    confirmed: "bg-blue-100 text-blue-700",
+    completed: "bg-green-100 text-green-700",
+    cancelled: "bg-red-100 text-red-700",
+    no_show: "bg-amber-100 text-amber-700",
+  };
+
+  const appointmentCard = (a: SecretaryAppointmentRow) => (
+    <div
+      key={a.id}
+      className="bg-card border border-border rounded-xl p-4 flex items-center justify-between gap-4"
+    >
+      <div className="min-w-0">
+        <p className="font-medium text-foreground text-sm truncate">
+          {a.patients?.full_name ?? t("agenda.unknownPatient")}
+        </p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {new Intl.DateTimeFormat(i18n.language, {
+            dateStyle: "medium",
+            timeStyle: "short",
+          }).format(new Date(a.starts_at))}
+        </p>
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <span
+          className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusStyles[a.status] ?? "bg-secondary text-muted-foreground"}`}
+        >
+          {t(`dashboard.appointmentStatus.${a.status}`)}
+        </span>
+        {a.status !== "confirmed" && a.status !== "completed" && (
+          <button
+            title={t("agenda.actions.confirm")}
+            onClick={() => updateStatus(a.id, "confirmed")}
+            className="p-1.5 rounded-lg border border-border hover:bg-blue-50 hover:border-blue-200 transition-colors text-muted-foreground hover:text-blue-700"
+          >
+            <Check size={13} />
+          </button>
+        )}
+        {a.status !== "cancelled" && (
+          <button
+            title={t("agenda.actions.cancelAppt")}
+            onClick={() => updateStatus(a.id, "cancelled")}
+            className="p-1.5 rounded-lg border border-border hover:bg-red-50 hover:border-red-200 transition-colors text-muted-foreground hover:text-red-600"
+          >
+            <X size={13} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -1149,70 +1271,196 @@ function SecretaryAgendaView({ user }: { user: AppUser }) {
 
   return (
     <div>
-      <div className="flex justify-end mb-6">
-        <button
-          onClick={() => setView("new")}
-          disabled={!user.clinicProfessionalId}
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-full text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
-        >
-          <Plus size={14} /> {t("agenda.newAppointment")}
-        </button>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors text-muted-foreground"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <span className="text-sm font-semibold text-foreground min-w-[160px] text-center capitalize">
+            {rangeLabel}
+          </span>
+          <button
+            onClick={() => navigate(1)}
+            className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors text-muted-foreground rotate-180"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <button
+            onClick={() => {
+              const d = new Date();
+              d.setHours(0, 0, 0, 0);
+              setAnchorDate(d);
+            }}
+            className="text-xs font-medium px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:bg-secondary transition-colors"
+          >
+            {t("agenda.today")}
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-full border border-border overflow-hidden text-xs font-medium">
+            <button
+              onClick={() => setMode("day")}
+              className={`px-3 py-1.5 transition-colors ${mode === "day" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}
+            >
+              {t("agenda.dayView")}
+            </button>
+            <button
+              onClick={() => setMode("week")}
+              className={`px-3 py-1.5 transition-colors ${mode === "week" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}
+            >
+              {t("agenda.weekView")}
+            </button>
+            <button
+              onClick={() => setMode("month")}
+              className={`px-3 py-1.5 transition-colors ${mode === "month" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}
+            >
+              {t("agenda.monthView")}
+            </button>
+          </div>
+          <button
+            onClick={() => setView("new")}
+            disabled={!user.clinicProfessionalId}
+            className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-full text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
+          >
+            <Plus size={14} /> {t("agenda.newAppointment")}
+          </button>
+        </div>
       </div>
+
       {actionError && (
         <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
           {t("secretary.actionError")}
         </p>
       )}
-      {appointments.length === 0 ? (
-        <div className="text-center py-24 border-2 border-dashed border-border rounded-2xl">
-          <p className="text-4xl mb-4">🌿</p>
-          <p className="text-muted-foreground text-sm">
-            {t("secretary.agendaEmpty")}
-          </p>
+
+      {mode === "day" ? (
+        appointments.length === 0 ? (
+          <div className="text-center py-24 border-2 border-dashed border-border rounded-2xl">
+            <p className="text-4xl mb-4">🌿</p>
+            <p className="text-muted-foreground text-sm">
+              {t("secretary.agendaEmpty")}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">{appointments.map(appointmentCard)}</div>
+        )
+      ) : mode === "week" ? (
+        <div className="space-y-6">
+          {Array.from({ length: 7 }).map((_, i) => {
+            const day = addDays(rangeStart, i);
+            const dayAppts = appointments.filter((a) => {
+              const d = new Date(a.starts_at);
+              return (
+                d.getFullYear() === day.getFullYear() &&
+                d.getMonth() === day.getMonth() &&
+                d.getDate() === day.getDate()
+              );
+            });
+            return (
+              <div key={i}>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 capitalize">
+                  {dayLabel(day)}
+                </p>
+                {dayAppts.length === 0 ? (
+                  <p className="text-xs text-muted-foreground/70 pl-1">
+                    {t("agenda.emptyDay")}
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {dayAppts.map(appointmentCard)}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       ) : (
-        <div className="space-y-2">
-          {appointments.map((a) => (
-            <div
-              key={a.id}
-              className="bg-card border border-border rounded-xl p-4 flex items-center justify-between gap-4"
-            >
-              <div className="min-w-0">
-                <p className="font-medium text-foreground text-sm truncate">
-                  {a.patients?.full_name ?? t("agenda.unknownPatient")}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {new Intl.DateTimeFormat(i18n.language, {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  }).format(new Date(a.starts_at))}
-                </p>
+        // Fase 27.1 — mesma grade visual de calendário do AgendaView do
+        // profissional; clicar num dia leva pro modo "dia", onde as ações
+        // de confirmar/cancelar já existem.
+        <div>
+          <div className="grid grid-cols-7 gap-px bg-border border border-border">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-secondary text-center text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground py-2"
+              >
+                {new Intl.DateTimeFormat(i18n.language, {
+                  weekday: "short",
+                }).format(addDays(monthGridStart, i))}
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-secondary text-muted-foreground">
-                  {t(`dashboard.appointmentStatus.${a.status}`)}
-                </span>
-                {a.status !== "confirmed" && a.status !== "completed" && (
-                  <button
-                    title={t("agenda.actions.confirm")}
-                    onClick={() => updateStatus(a.id, "confirmed")}
-                    className="p-1.5 rounded-lg border border-border hover:bg-blue-50 hover:border-blue-200 transition-colors text-muted-foreground hover:text-blue-700"
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-px bg-border border border-t-0 border-border">
+            {Array.from({ length: monthGridDays }).map((_, i) => {
+              const day = addDays(monthGridStart, i);
+              const isCurrentMonth = day.getMonth() === anchorDate.getMonth();
+              const today = new Date();
+              const isToday =
+                day.getFullYear() === today.getFullYear() &&
+                day.getMonth() === today.getMonth() &&
+                day.getDate() === today.getDate();
+              const dayAppts = appointments
+                .filter((a) => {
+                  const d = new Date(a.starts_at);
+                  return (
+                    d.getFullYear() === day.getFullYear() &&
+                    d.getMonth() === day.getMonth() &&
+                    d.getDate() === day.getDate()
+                  );
+                })
+                .sort(
+                  (a, b) =>
+                    new Date(a.starts_at).getTime() -
+                    new Date(b.starts_at).getTime(),
+                );
+              const visible = dayAppts.slice(0, 3);
+              const overflow = dayAppts.length - visible.length;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    setAnchorDate(
+                      new Date(
+                        day.getFullYear(),
+                        day.getMonth(),
+                        day.getDate(),
+                      ),
+                    );
+                    setMode("day");
+                  }}
+                  className={`w-full text-left bg-background p-2 min-h-[92px] flex flex-col gap-1 hover:bg-secondary transition-colors ${!isCurrentMonth ? "opacity-40" : ""}`}
+                >
+                  <span
+                    className={`text-xs font-semibold shrink-0 ${isToday ? "inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground" : "text-foreground"}`}
                   >
-                    <Check size={13} />
-                  </button>
-                )}
-                {a.status !== "cancelled" && (
-                  <button
-                    title={t("agenda.actions.cancelAppt")}
-                    onClick={() => updateStatus(a.id, "cancelled")}
-                    className="p-1.5 rounded-lg border border-border hover:bg-red-50 hover:border-red-200 transition-colors text-muted-foreground hover:text-red-600"
-                  >
-                    <X size={13} />
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
+                    {day.getDate()}
+                  </span>
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    {visible.map((a) => (
+                      <span
+                        key={a.id}
+                        className={`text-[0.65rem] font-medium truncate px-1.5 py-0.5 rounded ${statusStyles[a.status] ?? "bg-secondary text-muted-foreground"}`}
+                      >
+                        {timeLabel(a.starts_at)}{" "}
+                        {a.patients?.full_name ?? "—"}
+                      </span>
+                    ))}
+                    {overflow > 0 && (
+                      <span className="text-[0.65rem] text-muted-foreground px-1.5">
+                        {t("agenda.monthMore", { count: overflow })}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -1234,6 +1482,14 @@ function SecretaryPatientsView({ user }: { user: AppUser }) {
   const [error, setError] = useState(false);
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"list" | "new">("list");
+  // Fase 26 — mesma lista usada pro seletor de "psicólogo responsável" no
+  // formulário. Pra secretária isso importa mais ainda que pro próprio
+  // profissional: com mais de um psicólogo na clínica, ela precisa poder
+  // escolher de quem é cada paciente novo em vez de tudo cair sempre no
+  // mesmo (o antigo comportamento fixo em `user.clinicProfessionalId`).
+  const [clinicProfessionals, setClinicProfessionals] = useState<
+    { id: string; name: string }[]
+  >([]);
 
   const load = useCallback(async () => {
     if (!user.clinicId) {
@@ -1256,13 +1512,35 @@ function SecretaryPatientsView({ user }: { user: AppUser }) {
     load();
   }, [load]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!user.clinicId) return;
+      const { data } = await supabase
+        .from("professionals")
+        .select("id, profiles(full_name)")
+        .eq("clinic_id", user.clinicId)
+        .eq("approved", true);
+      if (cancelled) return;
+      setClinicProfessionals(
+        ((data ?? []) as any[]).map((p) => ({
+          id: p.id,
+          name: p.profiles?.full_name || "—",
+        })),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user.clinicId]);
+
   const handleSave = async (data: Partial<Patient>) => {
     if (!user.clinicProfessionalId || !user.clinicId) {
       throw new Error("no_professional");
     }
     const { error: err } = await supabase.from("patients").insert({
       ...data,
-      professional_id: user.clinicProfessionalId,
+      professional_id: data.professional_id ?? user.clinicProfessionalId,
       clinic_id: user.clinicId,
     });
     if (err) throw err;
@@ -1290,7 +1568,12 @@ function SecretaryPatientsView({ user }: { user: AppUser }) {
           {t("patients.newTitle")}
         </h2>
         <div className="bg-card border border-border rounded-2xl p-8">
-          <PatientForm onSave={handleSave} onCancel={() => setView("list")} />
+          <PatientForm
+            onSave={handleSave}
+            onCancel={() => setView("list")}
+            professionals={clinicProfessionals}
+            defaultProfessionalId={user.clinicProfessionalId ?? undefined}
+          />
         </div>
       </div>
     );
@@ -2221,6 +2504,7 @@ type Patient = {
   status: string;
   created_at: string;
   patient_user_id: string | null;
+  professional_id?: string;
 };
 
 type PatientAppointment = {
@@ -2233,12 +2517,21 @@ function PatientForm({
   initial,
   onSave,
   onCancel,
+  professionals,
+  defaultProfessionalId,
 }: {
   initial?: Patient | null;
   onSave: (data: Partial<Patient>) => Promise<void>;
   onCancel: () => void;
+  // Fase 26 — "psicólogo responsável" só é mostrado (e só é enviado no
+  // save) quando existe mais de um profissional na clínica: no caso comum
+  // de consultório com um psicólogo só, o campo seria sempre a mesma opção
+  // óbvia e só acrescentaria ruído ao formulário.
+  professionals?: { id: string; name: string }[];
+  defaultProfessionalId?: string;
 }) {
   const { t } = useTranslation();
+  const showProfessionalPicker = (professionals?.length ?? 0) > 1;
   const [form, setForm] = useState({
     full_name: initial?.full_name ?? "",
     email: initial?.email ?? "",
@@ -2246,6 +2539,8 @@ function PatientForm({
     notes: initial?.notes ?? "",
     tags: initial?.tags ?? [],
     status: initial?.status ?? "active",
+    professional_id:
+      initial?.professional_id ?? defaultProfessionalId ?? "",
   });
   const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
@@ -2282,6 +2577,9 @@ function PatientForm({
         notes: form.notes.trim() || null,
         tags: form.tags,
         status: form.status,
+        ...(showProfessionalPicker
+          ? { professional_id: form.professional_id }
+          : {}),
       });
     } catch (err: any) {
       // The plan-limit trigger (Fase 10) raises this specific exception
@@ -2330,6 +2628,25 @@ function PatientForm({
           </select>
         </div>
       </div>
+
+      {showProfessionalPicker && (
+        <div>
+          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+            {t("patients.fields.responsibleLabel")}
+          </label>
+          <select
+            value={form.professional_id}
+            onChange={(e) => set("professional_id", e.target.value)}
+            className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+          >
+            {professionals!.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
@@ -2791,7 +3108,9 @@ function LinkAccountModal({
           ? t("linkAccount.patientLimitError")
           : detail === "secretary_requires_business_plan"
             ? t("clinicSettings.secretary.planRequired")
-            : detail || t("linkAccount.genericError"),
+            : detail === "professional_requires_business_plan"
+              ? t("clinicSettings.professionals.planRequired")
+              : detail || t("linkAccount.genericError"),
       );
     } finally {
       setSubmitting(false);
@@ -2860,6 +3179,13 @@ function PatientsView({ user }: { user: AppUser }) {
   const [tagFilter, setTagFilter] = useState<string>("");
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
+  // Fase 26 — lista de profissionais da clínica, pro seletor de "psicólogo
+  // responsável" no formulário (só aparece de verdade quando há mais de um
+  // — ver `PatientForm`). Clínicas com um psicólogo só continuam exatamente
+  // como antes.
+  const [clinicProfessionals, setClinicProfessionals] = useState<
+    { id: string; name: string }[]
+  >([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -2867,7 +3193,7 @@ function PatientsView({ user }: { user: AppUser }) {
     const { data, error: err } = await supabase
       .from("patients")
       .select(
-        "id, full_name, email, phone, notes, tags, status, created_at, patient_user_id",
+        "id, full_name, email, phone, notes, tags, status, created_at, patient_user_id, professional_id",
       )
       .eq("professional_id", user.id)
       .order("full_name", { ascending: true });
@@ -2883,6 +3209,28 @@ function PatientsView({ user }: { user: AppUser }) {
     load();
   }, [load]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!user.clinicId) return;
+      const { data } = await supabase
+        .from("professionals")
+        .select("id, profiles(full_name)")
+        .eq("clinic_id", user.clinicId)
+        .eq("approved", true);
+      if (cancelled) return;
+      setClinicProfessionals(
+        ((data ?? []) as any[]).map((p) => ({
+          id: p.id,
+          name: p.profiles?.full_name || "—",
+        })),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user.clinicId]);
+
   const handleSave = async (data: Partial<Patient>) => {
     if (view === "edit" && selected) {
       const { error: err } = await supabase
@@ -2891,9 +3239,10 @@ function PatientsView({ user }: { user: AppUser }) {
         .eq("id", selected.id);
       if (err) throw err;
     } else {
-      const { error: err } = await supabase
-        .from("patients")
-        .insert({ ...data, professional_id: user.id });
+      const { error: err } = await supabase.from("patients").insert({
+        ...data,
+        professional_id: data.professional_id ?? user.id,
+      });
       if (err) throw err;
     }
     await load();
@@ -2953,7 +3302,7 @@ function PatientsView({ user }: { user: AppUser }) {
           const { data } = await supabase
             .from("patients")
             .select(
-              "id, full_name, email, phone, notes, tags, status, created_at, patient_user_id",
+              "id, full_name, email, phone, notes, tags, status, created_at, patient_user_id, professional_id",
             )
             .eq("id", selected.id)
             .maybeSingle();
@@ -2992,6 +3341,8 @@ function PatientsView({ user }: { user: AppUser }) {
             initial={selected}
             onSave={handleSave}
             onCancel={() => setView(selected ? "detail" : "list")}
+            professionals={clinicProfessionals}
+            defaultProfessionalId={selected?.professional_id ?? user.id}
           />
         </div>
       </div>
@@ -3265,6 +3616,36 @@ const addDays = (d: Date, n: number) => {
   return date;
 };
 
+// Fase 27 — grade de semanas completas ao redor de um mês (segunda a
+// domingo), usada pelo modo "mês" da agenda. Extraída como helper
+// compartilhado porque tanto `AgendaView` (profissional) quanto
+// `SecretaryAgendaView` (Fase 27.1 — mesma visualização pra secretária)
+// precisam do mesmo cálculo, e duplicar essa lógica de datas em dois
+// lugares é como esse tipo de bug de calendário mais fácil escapa (mês com
+// 6 semanas visíveis vs. 5, por exemplo).
+const getMonthGridRange = (anchorDate: Date) => {
+  const monthStart = new Date(
+    anchorDate.getFullYear(),
+    anchorDate.getMonth(),
+    1,
+  );
+  const monthEndExclusive = new Date(
+    anchorDate.getFullYear(),
+    anchorDate.getMonth() + 1,
+    1,
+  );
+  const gridStart = startOfWeek(monthStart);
+  const gridDays =
+    Math.ceil(
+      (monthEndExclusive.getTime() - gridStart.getTime()) /
+        (24 * 60 * 60 * 1000),
+    ) <= 35
+      ? 35
+      : 42;
+  const gridEnd = addDays(gridStart, gridDays);
+  return { gridStart, gridDays, gridEnd };
+};
+
 // Interpreta um valor monetário digitado livremente, aceitando tanto o
 // formato pt-BR ("1.500,00") quanto o formato en-US ("1,500.00") — o app
 // só trocava vírgula por ponto antes (`Number(amount.replace(",", "."))`),
@@ -3499,7 +3880,10 @@ function AppointmentForm({
 
 function AgendaView({ user }: { user: AppUser }) {
   const { t, i18n } = useTranslation();
-  const [mode, setMode] = useState<"day" | "week">("day");
+  // Fase 27 — modo "mês": grade visual de calendário, pedida como
+  // alternativa aos modos "dia"/"semana" (que já existiam, mas só como
+  // lista — nunca em formato de grade tradicional de calendário).
+  const [mode, setMode] = useState<"day" | "week" | "month">("day");
   const [anchorDate, setAnchorDate] = useState(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -3520,10 +3904,28 @@ function AgendaView({ user }: { user: AppUser }) {
   );
   const [actionError, setActionError] = useState(false);
 
+  // A grade do mês mostra semanas completas (segunda a domingo) ao redor do
+  // mês, então o intervalo buscado no banco é maior que só "dia 1 ao dia
+  // 30" — inclui os dias do mês anterior/seguinte que aparecem esmaecidos
+  // pra preencher a grade, senão eles ficariam sem consultas visíveis.
+  const {
+    gridStart: monthGridStart,
+    gridDays: monthGridDays,
+    gridEnd: monthGridEnd,
+  } = getMonthGridRange(anchorDate);
+
   const rangeStart =
-    mode === "day" ? anchorDate : startOfWeek(anchorDate);
+    mode === "day"
+      ? anchorDate
+      : mode === "week"
+        ? startOfWeek(anchorDate)
+        : monthGridStart;
   const rangeEnd =
-    mode === "day" ? addDays(anchorDate, 1) : addDays(rangeStart, 7);
+    mode === "day"
+      ? addDays(anchorDate, 1)
+      : mode === "week"
+        ? addDays(rangeStart, 7)
+        : monthGridEnd;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -3664,7 +4066,12 @@ function AgendaView({ user }: { user: AppUser }) {
   const rangeLabel =
     mode === "day"
       ? dayLabel(anchorDate)
-      : `${new Intl.DateTimeFormat(i18n.language, { day: "2-digit", month: "2-digit" }).format(rangeStart)} – ${new Intl.DateTimeFormat(i18n.language, { day: "2-digit", month: "2-digit" }).format(addDays(rangeStart, 6))}`;
+      : mode === "week"
+        ? `${new Intl.DateTimeFormat(i18n.language, { day: "2-digit", month: "2-digit" }).format(rangeStart)} – ${new Intl.DateTimeFormat(i18n.language, { day: "2-digit", month: "2-digit" }).format(addDays(rangeStart, 6))}`
+        : new Intl.DateTimeFormat(i18n.language, {
+            month: "long",
+            year: "numeric",
+          }).format(anchorDate);
 
   const statusStyles: Record<string, string> = {
     scheduled: "bg-secondary text-muted-foreground",
@@ -3809,12 +4216,26 @@ function AgendaView({ user }: { user: AppUser }) {
     );
   }
 
+  // Navegar por mês pula pelo NÚMERO DE MESES, não por uma contagem fixa de
+  // dias (senão "próximo" a partir de 31/jan iria pra 3/mar em vez de
+  // fevereiro) — sempre pousa no dia 1, já que no modo mês o dia exato
+  // dentro do mês não importa pra grade mostrada.
+  const navigate = (direction: 1 | -1) => {
+    if (mode === "month") {
+      setAnchorDate(
+        new Date(anchorDate.getFullYear(), anchorDate.getMonth() + direction, 1),
+      );
+    } else {
+      setAnchorDate(addDays(anchorDate, direction * (mode === "day" ? 1 : 7)));
+    }
+  };
+
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setAnchorDate(addDays(anchorDate, mode === "day" ? -1 : -7))}
+            onClick={() => navigate(-1)}
             className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors text-muted-foreground"
           >
             <ChevronLeft size={16} />
@@ -3823,7 +4244,7 @@ function AgendaView({ user }: { user: AppUser }) {
             {rangeLabel}
           </span>
           <button
-            onClick={() => setAnchorDate(addDays(anchorDate, mode === "day" ? 1 : 7))}
+            onClick={() => navigate(1)}
             className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors text-muted-foreground rotate-180"
           >
             <ChevronLeft size={16} />
@@ -3853,6 +4274,12 @@ function AgendaView({ user }: { user: AppUser }) {
               className={`px-3 py-1.5 transition-colors ${mode === "week" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}
             >
               {t("agenda.weekView")}
+            </button>
+            <button
+              onClick={() => setMode("month")}
+              className={`px-3 py-1.5 transition-colors ${mode === "month" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}
+            >
+              {t("agenda.monthView")}
             </button>
           </div>
           <button
@@ -3902,7 +4329,7 @@ function AgendaView({ user }: { user: AppUser }) {
         ) : (
           <div className="space-y-3">{appointments.map(appointmentCard)}</div>
         )
-      ) : (
+      ) : mode === "week" ? (
         <div className="space-y-6">
           {Array.from({ length: 7 }).map((_, i) => {
             const day = addDays(rangeStart, i);
@@ -3931,6 +4358,92 @@ function AgendaView({ user }: { user: AppUser }) {
               </div>
             );
           })}
+        </div>
+      ) : (
+        // Fase 27 — grade de calendário do mês. Cada célula é um botão só
+        // (não cada consulta individualmente) porque não cabe a ação
+        // completa (confirmar/concluir/excluir etc.) num espaço tão
+        // pequeno — clicar em qualquer parte do dia leva pro modo "dia",
+        // onde as ações de verdade já existem.
+        <div>
+          <div className="grid grid-cols-7 gap-px bg-border border border-border">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-secondary text-center text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground py-2"
+              >
+                {new Intl.DateTimeFormat(i18n.language, {
+                  weekday: "short",
+                }).format(addDays(monthGridStart, i))}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-px bg-border border border-t-0 border-border">
+            {Array.from({ length: monthGridDays }).map((_, i) => {
+              const day = addDays(monthGridStart, i);
+              const isCurrentMonth = day.getMonth() === anchorDate.getMonth();
+              const today = new Date();
+              const isToday =
+                day.getFullYear() === today.getFullYear() &&
+                day.getMonth() === today.getMonth() &&
+                day.getDate() === today.getDate();
+              const dayAppts = appointments
+                .filter((a) => {
+                  const d = new Date(a.starts_at);
+                  return (
+                    d.getFullYear() === day.getFullYear() &&
+                    d.getMonth() === day.getMonth() &&
+                    d.getDate() === day.getDate()
+                  );
+                })
+                .sort(
+                  (a, b) =>
+                    new Date(a.starts_at).getTime() -
+                    new Date(b.starts_at).getTime(),
+                );
+              const visible = dayAppts.slice(0, 3);
+              const overflow = dayAppts.length - visible.length;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    setAnchorDate(
+                      new Date(
+                        day.getFullYear(),
+                        day.getMonth(),
+                        day.getDate(),
+                      ),
+                    );
+                    setMode("day");
+                  }}
+                  className={`w-full text-left bg-background p-2 min-h-[92px] flex flex-col gap-1 hover:bg-secondary transition-colors ${!isCurrentMonth ? "opacity-40" : ""}`}
+                >
+                  <span
+                    className={`text-xs font-semibold shrink-0 ${isToday ? "inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground" : "text-foreground"}`}
+                  >
+                    {day.getDate()}
+                  </span>
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    {visible.map((a) => (
+                      <span
+                        key={a.id}
+                        className={`text-[0.65rem] font-medium truncate px-1.5 py-0.5 rounded ${statusStyles[a.status] ?? "bg-secondary text-muted-foreground"}`}
+                      >
+                        {timeLabel(a.starts_at)}{" "}
+                        {a.patients?.full_name ?? "—"}
+                      </span>
+                    ))}
+                    {overflow > 0 && (
+                      <span className="text-[0.65rem] text-muted-foreground px-1.5">
+                        {t("agenda.monthMore", { count: overflow })}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -5580,6 +6093,7 @@ type ClinicRow = {
   logo_url: string | null;
   business_hours: Record<string, ClinicHours>;
   plan: PlanTier;
+  owner_id: string | null;
 };
 
 const WEEK_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
@@ -5622,7 +6136,7 @@ function ClinicSettingsView({ user }: { user: AppUser }) {
 
       const { data, error } = await supabase
         .from("clinics")
-        .select("id, name, logo_url, business_hours, plan")
+        .select("id, name, logo_url, business_hours, plan, owner_id")
         .eq("id", user.clinicId)
         .maybeSingle();
 
@@ -5895,7 +6409,220 @@ function ClinicSettingsView({ user }: { user: AppUser }) {
       </div>
     </form>
 
+      <ProfessionalTeamSection
+        clinicId={clinic.id}
+        plan={clinic.plan}
+        ownerId={clinic.owner_id}
+        currentUserId={user.id}
+      />
       <SecretaryTeamSection clinicId={clinic.id} plan={clinic.plan} />
+    </div>
+  );
+}
+
+// ─── Equipe: profissionais (Fase 26 — só no pacote empresarial) ────────────
+// Todo cadastro público de psicólogo ganha uma clínica própria automática
+// (Fase 9) — bom pra quem atua sozinho, mas sem saída nenhuma pra reunir
+// vários psicólogos que já têm conta numa única clínica de verdade (o caso
+// de uma empresa/consultório com equipe). Esta seção fecha essa ponta:
+// mesmo padrão de "vincular conta existente" já usado pra secretária, só
+// que pra outro psicólogo. O dono da clínica nunca aparece com botão de
+// remover (não faz sentido "remover o dono" por aqui — ver comentário no
+// backend).
+type ClinicProfessionalRow = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+};
+
+function ProfessionalTeamSection({
+  clinicId,
+  plan,
+  ownerId,
+  currentUserId,
+}: {
+  clinicId: string;
+  plan: PlanTier;
+  ownerId: string | null;
+  currentUserId: string;
+}) {
+  const { t } = useTranslation();
+  const [professionals, setProfessionals] = useState<ClinicProfessionalRow[]>(
+    [],
+  );
+  const [loading, setLoading] = useState(true);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [removeTarget, setRemoveTarget] =
+    useState<ClinicProfessionalRow | null>(null);
+  const [removeError, setRemoveError] = useState(false);
+
+  const isBusinessPlan = plan === "clinic";
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, full_name, email")
+      .eq("clinic_id", clinicId)
+      .eq("role", "psychologist");
+    setProfessionals((data as ClinicProfessionalRow[]) ?? []);
+    setLoading(false);
+  }, [clinicId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handleRemove = async (id: string) => {
+    setRemovingId(id);
+    setRemoveError(false);
+    try {
+      await apiFetch(`/clinic/professional/${id}`, { method: "DELETE" });
+      setRemoveTarget(null);
+      await load();
+    } catch (err) {
+      console.error("Falha ao remover profissional da clínica:", err);
+      setRemoveError(true);
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-8">
+      <div className="flex items-center justify-between gap-3 mb-1">
+        <h3 className="text-lg font-semibold text-foreground">
+          {t("clinicSettings.professionals.title")}
+        </h3>
+        {!isBusinessPlan ? (
+          <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 shrink-0">
+            {t("clinicSettings.professionals.badge")}
+          </span>
+        ) : (
+          <button
+            onClick={() => setShowLinkModal(true)}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:bg-secondary transition-colors shrink-0"
+          >
+            <LinkIcon size={14} /> {t("linkAccount.professionalButton")}
+          </button>
+        )}
+      </div>
+      <p className="text-muted-foreground text-sm mb-6">
+        {t("clinicSettings.professionals.subtitle")}
+      </p>
+
+      {!isBusinessPlan ? (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg px-4 py-3">
+          {t("clinicSettings.professionals.upsell")}
+        </div>
+      ) : loading ? (
+        <div className="flex items-center justify-center py-8 text-muted-foreground gap-3">
+          <Loader2 size={18} className="animate-spin" />
+        </div>
+      ) : (
+        professionals.length > 0 && (
+          <div className="space-y-2">
+            {professionals.map((p) => {
+              const isOwner = p.id === ownerId;
+              const isSelf = p.id === currentUserId;
+              return (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between gap-3 bg-secondary rounded-lg px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate flex items-center gap-2">
+                      {p.full_name || t("userMenu.noName")}
+                      {isOwner && (
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-accent shrink-0">
+                          {t("clinicSettings.professionals.ownerBadge")}
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {p.email}
+                    </p>
+                  </div>
+                  {!isOwner && !isSelf && (
+                    <button
+                      onClick={() => {
+                        setRemoveError(false);
+                        setRemoveTarget(p);
+                      }}
+                      disabled={removingId === p.id}
+                      className="text-xs font-medium text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-50 shrink-0"
+                    >
+                      {removingId === p.id ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        t("clinicSettings.professionals.remove")
+                      )}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )
+      )}
+
+      {showLinkModal && (
+        <LinkAccountModal
+          title={t("linkAccount.professionalTitle")}
+          subtitle={t("linkAccount.professionalSubtitle")}
+          endpoint="/clinic/professional/link-existing"
+          onLinked={() => {
+            setShowLinkModal(false);
+            load();
+          }}
+          onClose={() => setShowLinkModal(false)}
+        />
+      )}
+
+      {removeTarget && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6"
+          onClick={() => setRemoveTarget(null)}
+        >
+          <div
+            className="bg-card rounded-2xl p-8 max-w-sm w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-semibold text-lg text-foreground mb-2">
+              {t("clinicSettings.professionals.removeConfirmTitle")}
+            </h3>
+            <p className="text-muted-foreground text-sm mb-6">
+              {t("clinicSettings.professionals.removeConfirmBody", {
+                name: removeTarget.full_name || removeTarget.email,
+              })}
+            </p>
+            {removeError && (
+              <p className="text-red-500 text-xs mb-4">
+                {t("clinicSettings.professionals.removeError")}
+              </p>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setRemoveTarget(null)}
+                className="px-5 py-2 rounded-full border border-border text-sm font-medium hover:bg-secondary transition-colors"
+              >
+                {t("admin.cancel")}
+              </button>
+              <button
+                onClick={() => handleRemove(removeTarget.id)}
+                disabled={removingId === removeTarget.id}
+                className="px-5 py-2 rounded-full bg-red-600 text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center gap-2"
+              >
+                {removingId === removeTarget.id && (
+                  <Loader2 size={14} className="animate-spin" />
+                )}
+                {t("clinicSettings.professionals.remove")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -6841,25 +7568,67 @@ function ProfessionalAccountView({
     full_name: string | null;
     created_at: string;
   } | null>(null);
+  // Fase 25 — clínica + dono, direto na tela de Conta: antes essa
+  // informação só existia (parcialmente, sem indicar o dono) em
+  // Configurações da Clínica, então quem só olhava "Conta" não tinha como
+  // confirmar que a clínica auto-criada no cadastro (Fase 9) realmente
+  // existe nem quem é o dono dela.
+  const [clinicInfo, setClinicInfo] = useState<{
+    name: string | null;
+    ownerName: string | null;
+    isOwner: boolean;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name, created_at")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (!cancelled) {
-        setInfo((data as any) ?? null);
-        setLoading(false);
+      const [{ data }, clinicRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("full_name, created_at")
+          .eq("id", user.id)
+          .maybeSingle(),
+        user.clinicId
+          ? supabase
+              .from("clinics")
+              .select("name, owner_id")
+              .eq("id", user.clinicId)
+              .maybeSingle()
+          : Promise.resolve({ data: null } as any),
+      ]);
+      if (cancelled) return;
+      setInfo((data as any) ?? null);
+
+      if (clinicRes?.data) {
+        const clinic = clinicRes.data as { name: string | null; owner_id: string | null };
+        let ownerName: string | null = null;
+        if (clinic.owner_id) {
+          if (clinic.owner_id === user.id) {
+            ownerName = data?.full_name ?? null;
+          } else {
+            const { data: ownerProfile } = await supabase
+              .from("profiles")
+              .select("full_name")
+              .eq("id", clinic.owner_id)
+              .maybeSingle();
+            if (cancelled) return;
+            ownerName = ownerProfile?.full_name ?? null;
+          }
+        }
+        setClinicInfo({
+          name: clinic.name,
+          ownerName,
+          isOwner: clinic.owner_id === user.id,
+        });
       }
+
+      setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [user.id]);
+  }, [user.id, user.clinicId]);
 
   return (
     <div className="max-w-lg space-y-6">
@@ -6911,6 +7680,26 @@ function ProfessionalAccountView({
                 {new Intl.DateTimeFormat(i18n.language, {
                   dateStyle: "medium",
                 }).format(new Date(info.created_at))}
+              </span>
+            </div>
+          )}
+          <div className="px-5 py-4 flex items-center justify-between gap-4">
+            <span className="text-sm text-muted-foreground">
+              {t("settings.account.clinicLabel")}
+            </span>
+            <span className="text-sm font-medium text-foreground text-right">
+              {clinicInfo?.name || t("settings.account.clinicNone")}
+            </span>
+          </div>
+          {clinicInfo && (
+            <div className="px-5 py-4 flex items-center justify-between gap-4">
+              <span className="text-sm text-muted-foreground">
+                {t("settings.account.clinicOwnerLabel")}
+              </span>
+              <span className="text-sm font-medium text-foreground text-right">
+                {clinicInfo.isOwner
+                  ? t("settings.account.clinicOwnerYou")
+                  : clinicInfo.ownerName || t("settings.account.clinicOwnerUnknown")}
               </span>
             </div>
           )}
@@ -7613,6 +8402,9 @@ type AdminUserRow = {
 function AdminUsersView({ currentUserId }: { currentUserId: string }) {
   const { t } = useTranslation();
   const [users, setUsers] = useState<AdminUserRow[]>([]);
+  const [clinicList, setClinicList] = useState<
+    { id: string; name: string | null }[]
+  >([]);
   const [clinicNames, setClinicNames] = useState<Record<string, string>>({});
   const [extraRoles, setExtraRoles] = useState<Record<string, UserRole[]>>({});
   const [loading, setLoading] = useState(true);
@@ -7621,6 +8413,15 @@ function AdminUsersView({ currentUserId }: { currentUserId: string }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [grantRole, setGrantRole] = useState<Record<string, UserRole>>({});
   const [actionError, setActionError] = useState<string | null>(null);
+  // Fase 25 — vincular psicólogo/secretária a uma clínica já cadastrada
+  // (reatribuição administrativa, ex.: juntar um profissional que se
+  // cadastrou sozinho — e por isso ganhou uma clínica própria automática —
+  // dentro da clínica de verdade da equipe dele).
+  const [clinicPick, setClinicPick] = useState<Record<string, string>>({});
+  const [clinicBusyId, setClinicBusyId] = useState<string | null>(null);
+  const [clinicActionError, setClinicActionError] = useState<string | null>(
+    null,
+  );
 
   const ALL_ROLES: UserRole[] = ["admin", "psychologist", "secretary", "patient"];
 
@@ -7648,9 +8449,14 @@ function AdminUsersView({ currentUserId }: { currentUserId: string }) {
 
     setUsers((usersRes.data as AdminUserRow[]) ?? []);
 
+    const clinicsData = (clinicsRes.data ?? []) as {
+      id: string;
+      name: string | null;
+    }[];
+    setClinicList(clinicsData);
     const names: Record<string, string> = {};
-    (clinicsRes.data ?? []).forEach((c: any) => {
-      names[c.id] = c.name;
+    clinicsData.forEach((c) => {
+      names[c.id] = c.name ?? "";
     });
     setClinicNames(names);
 
@@ -7711,6 +8517,56 @@ function AdminUsersView({ currentUserId }: { currentUserId: string }) {
     }
   };
 
+  // Fase 25 — troca a clínica de um psicólogo ou secretária. Atualiza
+  // `profiles.clinic_id` (fonte da verdade pra quem vê o quê) e, quando a
+  // pessoa é psicóloga, também `professionals.clinic_id` — as duas colunas
+  // precisam ficar em sincronia, senão a agenda/pacientes do profissional
+  // continuam presos na clínica antiga mesmo com o perfil já apontando pra
+  // nova. RLS já libera as duas escritas pra admin (policies "profiles:
+  // admin edita tudo" e "professionals: admin gerencia tudo"), então dá pra
+  // fazer direto do navegador, sem rota de backend dedicada.
+  const handleChangeClinic = async (u: AdminUserRow) => {
+    const targetClinicId = clinicPick[u.id];
+    if (!targetClinicId || targetClinicId === u.clinic_id) return;
+    setClinicBusyId(u.id);
+    setClinicActionError(null);
+    try {
+      const { error: profileErr } = await supabase
+        .from("profiles")
+        .update({ clinic_id: targetClinicId })
+        .eq("id", u.id);
+      if (profileErr) throw profileErr;
+
+      const roles = extraRoles[u.id] ?? [u.role];
+      if (roles.includes("psychologist")) {
+        const { error: profErr } = await supabase
+          .from("professionals")
+          .update({ clinic_id: targetClinicId })
+          .eq("id", u.id);
+        if (profErr) throw profErr;
+      }
+
+      setClinicPick((prev) => {
+        const next = { ...prev };
+        delete next[u.id];
+        return next;
+      });
+      await load();
+    } catch (err: any) {
+      // O gatilho `enforce_secretary_plan_gate` recusa vincular uma
+      // secretária a uma clínica fora do plano "Clínica" com essa mensagem
+      // fixa — checar por ela dá um aviso específico em vez do genérico.
+      const raw = String(err?.message ?? "");
+      setClinicActionError(
+        raw.includes("secretary_requires_business_plan")
+          ? t("admin.users.clinicRequiresBusinessPlan")
+          : t("admin.users.clinicUpdateError"),
+      );
+    } finally {
+      setClinicBusyId(null);
+    }
+  };
+
   const filtered = users.filter((u) => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
@@ -7751,6 +8607,11 @@ function AdminUsersView({ currentUserId }: { currentUserId: string }) {
       {actionError && (
         <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
           {actionError}
+        </p>
+      )}
+      {clinicActionError && (
+        <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
+          {clinicActionError}
         </p>
       )}
 
@@ -7854,6 +8715,50 @@ function AdminUsersView({ currentUserId }: { currentUserId: string }) {
                     </div>
                   )}
                 </div>
+
+                {(roles.includes("psychologist") ||
+                  roles.includes("secretary")) && (
+                  <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-border">
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {t("admin.users.clinicLabel")}
+                    </span>
+                    <select
+                      value={clinicPick[u.id] ?? u.clinic_id ?? ""}
+                      onChange={(e) =>
+                        setClinicPick((prev) => ({
+                          ...prev,
+                          [u.id]: e.target.value,
+                        }))
+                      }
+                      className="text-xs px-2.5 py-1.5 rounded-lg border border-border bg-secondary text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer transition-colors max-w-[220px]"
+                    >
+                      <option value="">
+                        {t("admin.users.clinicUnassigned")}
+                      </option>
+                      {clinicList.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name || t("admin.clinics.unnamed")}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => handleChangeClinic(u)}
+                      disabled={
+                        !clinicPick[u.id] ||
+                        clinicPick[u.id] === u.clinic_id ||
+                        clinicBusyId === u.id
+                      }
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-border hover:bg-secondary transition-colors disabled:opacity-50 flex items-center gap-1"
+                    >
+                      {clinicBusyId === u.id ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <LinkIcon size={12} />
+                      )}
+                      {t("admin.users.clinicChangeButton")}
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -7882,6 +8787,7 @@ type AdminClinicRow = {
   id: string;
   name: string | null;
   plan: PlanTier;
+  owner_id: string | null;
 };
 
 function AdminClinicsView() {
@@ -7899,7 +8805,7 @@ function AdminClinicsView() {
       const [clinicsRes, peopleRes] = await Promise.all([
         supabase
           .from("clinics")
-          .select("id, name, plan")
+          .select("id, name, plan, owner_id")
           .order("name", { ascending: true }),
         supabase
           .from("profiles")
@@ -7949,8 +8855,18 @@ function AdminClinicsView() {
   return (
     <div className="space-y-3">
       {clinics.map((c) => {
-        const owner = people.find(
-          (p) => p.role === "psychologist" && p.clinic_id === c.id,
+        // Fase 26 — antes isto pegava QUALQUER psicólogo com clinic_id
+        // batendo (`.find`), o que (a) mostrava um "dono" arbitrário quando
+        // a clínica tinha mais de um profissional (possível desde que
+        // psicólogos podem ser vinculados a uma clínica já existente) e (b)
+        // não distinguia dono de membro comum. Agora compara direto com
+        // `clinics.owner_id`, a fonte da verdade.
+        const owner = people.find((p) => p.id === c.owner_id);
+        const otherProfessionals = people.filter(
+          (p) =>
+            p.role === "psychologist" &&
+            p.clinic_id === c.id &&
+            p.id !== c.owner_id,
         );
         const secretaries = people.filter(
           (p) => p.role === "secretary" && p.clinic_id === c.id,
@@ -7958,21 +8874,22 @@ function AdminClinicsView() {
         return (
           <div
             key={c.id}
-            className={`bg-card border rounded-xl p-5 ${owner ? "border-border" : "border-red-200 bg-red-50/30"}`}
+            className={`bg-card border rounded-xl overflow-hidden ${owner ? "border-border" : "border-l-2 border-l-red-400 border-y-border border-r-border"}`}
           >
-            <div className="flex items-start justify-between gap-4 flex-wrap mb-3">
-              <div className="min-w-0">
-                <span className="font-semibold text-foreground">
-                  {c.name || t("admin.clinics.unnamed")}
-                </span>
-              </div>
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
+            <div className="flex items-start justify-between gap-4 flex-wrap px-5 py-4">
+              <span
+                className="text-lg font-light text-foreground"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                {c.name || t("admin.clinics.unnamed")}
+              </span>
+              <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground shrink-0 pt-1.5">
                 {t(`plans.${c.plan}.name`)}
               </span>
             </div>
 
-            <div className="text-sm">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+            <div className="text-sm px-5 py-3 border-t border-border">
+              <p className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                 {t("admin.clinics.ownerLabel")}
               </p>
               {owner ? (
@@ -7989,8 +8906,30 @@ function AdminClinicsView() {
               )}
             </div>
 
-            <div className="text-sm mt-3 pt-3 border-t border-border">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+            <div className="text-sm px-5 py-3 border-t border-border">
+              <p className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                {t("admin.clinics.professionalsLabel")}
+              </p>
+              {otherProfessionals.length === 0 ? (
+                <p className="text-muted-foreground">
+                  {t("admin.clinics.noOtherProfessionals")}
+                </p>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {otherProfessionals.map((p) => (
+                    <p key={p.id} className="text-foreground">
+                      {p.full_name || t("userMenu.noName")}{" "}
+                      <span className="text-muted-foreground">
+                        · {p.email}
+                      </span>
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="text-sm px-5 py-3 border-t border-border">
+              <p className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                 {t("admin.clinics.secretariesLabel")}
               </p>
               {secretaries.length === 0 ? (
@@ -8013,6 +8952,242 @@ function AdminClinicsView() {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// ─── Painel Admin: Pacientes — vincular a outro psicólogo (Fase 25) ────────
+// Sem esta tela, mudar um paciente de profissional exigia mexer direto no
+// banco: `PatientsView` (a tela normal de pacientes) só existe do ponto de
+// vista de UM profissional logado (RLS restringe a `professional_id =
+// auth.uid()`), então não tem como reatribuir por ali. Aqui o admin já
+// enxerga TODOS os pacientes (policy "patients: admin gerencia tudo") e
+// pode escolher outro psicólogo aprovado pra cada um — a clínica do
+// paciente é atualizada junto, pra continuar coerente com a do novo
+// profissional (senão a secretária da clínica antiga continuaria vendo um
+// paciente que já não é mais dela).
+type AdminPatientRow = {
+  id: string;
+  full_name: string;
+  email: string | null;
+  professional_id: string;
+  clinic_id: string | null;
+  status: string;
+};
+
+type AdminProfessionalOption = {
+  id: string;
+  clinic_id: string | null;
+  name: string | null;
+};
+
+function AdminPatientsView() {
+  const { t } = useTranslation();
+  const [patients, setPatients] = useState<AdminPatientRow[]>([]);
+  const [professionals, setProfessionals] = useState<AdminProfessionalOption[]>(
+    [],
+  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [search, setSearch] = useState("");
+  const [pick, setPick] = useState<Record<string, string>>({});
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    const [patientsRes, professionalsRes] = await Promise.all([
+      supabase
+        .from("patients")
+        .select("id, full_name, email, professional_id, clinic_id, status")
+        .order("full_name", { ascending: true }),
+      supabase
+        .from("professionals")
+        .select("id, clinic_id, profiles(full_name)")
+        .eq("approved", true),
+    ]);
+
+    if (patientsRes.error || professionalsRes.error) {
+      console.error(
+        "Falha ao carregar pacientes (admin):",
+        patientsRes.error || professionalsRes.error,
+      );
+      setError(true);
+      setLoading(false);
+      return;
+    }
+
+    setPatients((patientsRes.data as AdminPatientRow[]) ?? []);
+    setProfessionals(
+      ((professionalsRes.data ?? []) as any[]).map((p) => ({
+        id: p.id,
+        clinic_id: p.clinic_id,
+        name: p.profiles?.full_name ?? null,
+      })),
+    );
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const professionalById = new Map(professionals.map((p) => [p.id, p]));
+
+  const handleReassign = async (patient: AdminPatientRow) => {
+    const targetId = pick[patient.id];
+    if (!targetId || targetId === patient.professional_id) return;
+    const target = professionalById.get(targetId);
+    if (!target) return;
+    setBusyId(patient.id);
+    setActionError(null);
+    try {
+      const { error } = await supabase
+        .from("patients")
+        .update({
+          professional_id: targetId,
+          clinic_id: target.clinic_id,
+        })
+        .eq("id", patient.id);
+      if (error) throw error;
+      setPick((prev) => {
+        const next = { ...prev };
+        delete next[patient.id];
+        return next;
+      });
+      await load();
+    } catch (err: any) {
+      console.error("Falha ao reatribuir paciente:", err);
+      setActionError(t("admin.patients.reassignError"));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const filtered = patients.filter((p) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      p.full_name.toLowerCase().includes(q) ||
+      (p.email ?? "").toLowerCase().includes(q)
+    );
+  });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-24 text-muted-foreground gap-3">
+        <Loader2 size={20} className="animate-spin" />{" "}
+        {t("admin.patients.loading")}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-24 text-muted-foreground text-sm">
+        {t("admin.patients.errorLoading")}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="relative max-w-sm mb-6">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t("admin.patients.searchPlaceholder")}
+          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+        />
+      </div>
+
+      {actionError && (
+        <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
+          {actionError}
+        </p>
+      )}
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-24 border-2 border-dashed border-border rounded-2xl">
+          <p className="text-4xl mb-4">🔍</p>
+          <p className="text-muted-foreground text-sm">
+            {patients.length === 0
+              ? t("admin.patients.empty")
+              : t("admin.patients.noResults")}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((p) => {
+            const current = professionalById.get(p.professional_id);
+            return (
+              <div
+                key={p.id}
+                className="bg-card border border-border rounded-xl overflow-hidden"
+              >
+                <div className="px-5 py-4">
+                  <span
+                    className="text-lg font-light text-foreground"
+                    style={{ fontFamily: "'Fraunces', serif" }}
+                  >
+                    {p.full_name}
+                  </span>
+                  {p.email && (
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      {p.email}
+                    </p>
+                  )}
+                </div>
+
+                <div className="text-sm px-5 py-3 border-t border-border">
+                  <p className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                    {t("admin.patients.currentProfessional")}
+                  </p>
+                  <p className="text-foreground">
+                    {current?.name || t("admin.patients.noProfessional")}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-t border-border">
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {t("admin.patients.reassignLabel")}
+                  </span>
+                  <select
+                    value={pick[p.id] ?? p.professional_id}
+                    onChange={(e) =>
+                      setPick((prev) => ({ ...prev, [p.id]: e.target.value }))
+                    }
+                    className="text-xs px-2.5 py-1.5 rounded-lg border border-border bg-secondary text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer transition-colors max-w-[220px]"
+                  >
+                    {professionals.map((prof) => (
+                      <option key={prof.id} value={prof.id}>
+                        {prof.name || t("userMenu.noName")}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => handleReassign(p)}
+                    disabled={
+                      !pick[p.id] ||
+                      pick[p.id] === p.professional_id ||
+                      busyId === p.id
+                    }
+                    className="text-xs font-semibold px-3 py-1.5 rounded-full border border-foreground text-foreground hover:bg-secondary transition-colors disabled:opacity-50 flex items-center gap-1"
+                  >
+                    {busyId === p.id ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <LinkIcon size={12} />
+                    )}
+                    {t("admin.patients.reassignButton")}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -8239,7 +9414,14 @@ function AdminFinanceView() {
   );
 }
 
-type AdminTab = "overview" | "psychologists" | "users" | "clinics" | "finance" | "settings";
+type AdminTab =
+  | "overview"
+  | "psychologists"
+  | "users"
+  | "clinics"
+  | "patients"
+  | "finance"
+  | "settings";
 
 function AdminPanel({
   user,
@@ -8394,11 +9576,13 @@ function AdminPanel({
                     ? t("admin.users.title")
                     : tab === "clinics"
                       ? t("admin.clinics.title")
-                      : tab === "finance"
-                        ? t("admin.finance.title")
-                        : tab === "settings"
-                          ? t("settings.security.title")
-                          : t("admin.listTitle")}
+                      : tab === "patients"
+                        ? t("admin.patients.title")
+                        : tab === "finance"
+                          ? t("admin.finance.title")
+                          : tab === "settings"
+                            ? t("settings.security.title")
+                            : t("admin.listTitle")}
               </h1>
               <p className="text-muted-foreground text-sm mt-1">
                 {tab === "overview"
@@ -8407,11 +9591,13 @@ function AdminPanel({
                     ? t("admin.users.subtitle")
                     : tab === "clinics"
                       ? t("admin.clinics.subtitle")
-                      : tab === "finance"
-                        ? t("admin.finance.subtitle")
-                        : tab === "settings"
-                          ? t("admin.settingsSubtitle")
-                          : t("admin.listSubtitle")}
+                      : tab === "patients"
+                        ? t("admin.patients.subtitle")
+                        : tab === "finance"
+                          ? t("admin.finance.subtitle")
+                          : tab === "settings"
+                            ? t("admin.settingsSubtitle")
+                            : t("admin.listSubtitle")}
               </p>
             </div>
 
@@ -8441,6 +9627,12 @@ function AdminPanel({
                 <Building2 size={12} /> {t("admin.tabs.clinics")}
               </button>
               <button
+                onClick={() => setTab("patients")}
+                className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${tab === "patients" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
+              >
+                <Users size={12} /> {t("admin.tabs.patients")}
+              </button>
+              <button
                 onClick={() => setTab("finance")}
                 className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${tab === "finance" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
               >
@@ -8459,6 +9651,7 @@ function AdminPanel({
         {tab === "overview" && <AdminOverview />}
         {tab === "users" && <AdminUsersView currentUserId={user.id} />}
         {tab === "clinics" && <AdminClinicsView />}
+        {tab === "patients" && <AdminPatientsView />}
         {tab === "finance" && <AdminFinanceView />}
         {tab === "settings" && <AccountSecurityView onLogout={onLogout} />}
 

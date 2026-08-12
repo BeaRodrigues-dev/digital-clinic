@@ -312,7 +312,8 @@
       "users": "Usuarios",
       "clinics": "Clínicas",
       "finance": "Finanzas",
-      "settings": "Configuración"
+      "settings": "Configuración",
+      "patients": "Pacientes"
     },
     "overview": {
       "title": "Resumen",
@@ -339,7 +340,12 @@
       "grantError": "No fue posible conceder el rol. Inténtalo de nuevo.",
       "revokeError": "No fue posible quitar el rol. Inténtalo de nuevo.",
       "revokeLastError": "No es posible quitar el último rol de una cuenta.",
-      "errorLoading": "No fue posible cargar los usuarios. Intenta de nuevo."
+      "errorLoading": "No fue posible cargar los usuarios. Intenta de nuevo.",
+      "clinicLabel": "Clínica:",
+      "clinicUnassigned": "Sin clínica",
+      "clinicChangeButton": "Vincular",
+      "clinicUpdateError": "No se pudo actualizar la clínica. Inténtalo de nuevo.",
+      "clinicRequiresBusinessPlan": "Esa clínica no está en el plan Clínica — las secretarias solo pueden vincularse a clínicas del paquete empresarial."
     },
     "clinics": {
       "title": "Clínicas",
@@ -351,7 +357,9 @@
       "ownerLabel": "Psicólogo dueño",
       "noOwner": "Ningún psicólogo vinculado a esta clínica.",
       "secretariesLabel": "Secretarias",
-      "noSecretaries": "Ninguna secretaria vinculada."
+      "noSecretaries": "Ninguna secretaria vinculada.",
+      "professionalsLabel": "Otros profesionales",
+      "noOtherProfessionals": "Ningún otro profesional vinculado."
     },
     "finance": {
       "title": "Finanzas",
@@ -367,7 +375,21 @@
       "saveError": "No fue posible guardar el valor. Inténtalo de nuevo.",
       "invalidPrice": "Ingresa un valor numérico válido antes de guardar."
     },
-    "toggleApprovalError": "No fue posible actualizar la aprobación. Intenta de nuevo."
+    "toggleApprovalError": "No fue posible actualizar la aprobación. Intenta de nuevo.",
+    "patients": {
+      "title": "Pacientes",
+      "subtitle": "Todos los pacientes de la plataforma — reasígnalos a otro psicólogo cuando lo necesites.",
+      "loading": "Cargando pacientes...",
+      "errorLoading": "No se pudieron cargar los pacientes ahora. Inténtalo de nuevo.",
+      "searchPlaceholder": "Buscar por nombre o correo...",
+      "empty": "Todavía no hay pacientes registrados.",
+      "noResults": "No se encontró ningún paciente.",
+      "currentProfessional": "Psicólogo actual:",
+      "noProfessional": "ninguno",
+      "reassignLabel": "Vincular a:",
+      "reassignButton": "Vincular",
+      "reassignError": "No se pudo vincular el paciente a ese psicólogo. Inténtalo de nuevo."
+    }
   },
   "profileForm": {
     "nameLabel": "Nombre completo *",
@@ -505,7 +527,8 @@
       "genericSaveError": "Error al guardar. Inténtalo de nuevo.",
       "saveNew": "Registrar paciente",
       "saveEdit": "Guardar cambios",
-      "planLimitError": "Se alcanzó el límite de {{limit}} pacientes activos del plan gratuito. Ve a la pestaña \"Plan\" para actualizar."
+      "planLimitError": "Se alcanzó el límite de {{limit}} pacientes activos del plan gratuito. Ve a la pestaña \"Plan\" para actualizar.",
+      "responsibleLabel": "Psicólogo responsable"
     },
     "detail": {
       "editPatient": "Editar paciente",
@@ -581,7 +604,9 @@
       "recordDone": "Ver / editar historial"
     },
     "actionError": "No fue posible completar la acción. Intenta de nuevo.",
-    "recurrenceOccurrenceHint": "Esta consulta forma parte de una serie recurrente. El cambio afecta solo esta ocurrencia, no toda la serie."
+    "recurrenceOccurrenceHint": "Esta consulta forma parte de una serie recurrente. El cambio afecta solo esta ocurrencia, no toda la serie.",
+    "monthView": "Mes",
+    "monthMore": "+{{count}} más"
   },
   "records": {
     "title": "Historial clínico",
@@ -761,7 +786,19 @@
     },
     "nameRequired": "Ingresa el nombre de la clínica antes de guardar.",
     "logoTooLarge": "La imagen supera el tamaño máximo de 5MB.",
-    "logoSaveError": "El nombre y el horario se guardaron, pero no fue posible subir el logo. Intenta subirlo de nuevo."
+    "logoSaveError": "El nombre y el horario se guardaron, pero no fue posible subir el logo. Intenta subirlo de nuevo.",
+    "professionals": {
+      "title": "Equipo · Profesionales",
+      "subtitle": "Vincula otros psicólogos ya registrados en la plataforma a tu clínica — útil para consultorios con más de un profesional.",
+      "badge": "Paquete empresarial",
+      "upsell": "Tener más de un psicólogo en la misma clínica está disponible en el plan Clínica (paquete empresarial). Actualiza en Configuración → Plan para habilitarlo.",
+      "planRequired": "Vincular otro profesional solo está disponible en el plan Clínica. Actualiza en Configuración → Plan.",
+      "ownerBadge": "Dueño",
+      "remove": "Quitar de la clínica",
+      "removeConfirmTitle": "¿Quitar profesional de la clínica?",
+      "removeConfirmBody": "{{name}} sale de esta clínica y obtiene automáticamente una clínica propia, para seguir con acceso a su propia agenda y pacientes.",
+      "removeError": "No se pudo quitar. Inténtalo de nuevo."
+    }
   },
   "plans": {
     "title": "Plan",
@@ -855,7 +892,12 @@
       "roleLabel": "Tipo de cuenta",
       "roleValuePsychologist": "Profesional",
       "memberSinceLabel": "Cliente desde",
-      "editProfileHint": "Para editar nombre, teléfono, foto y demás datos públicos, usa la pestaña"
+      "editProfileHint": "Para editar nombre, teléfono, foto y demás datos públicos, usa la pestaña",
+      "clinicLabel": "Clínica",
+      "clinicNone": "Ninguna clínica vinculada",
+      "clinicOwnerLabel": "Dueño de la clínica",
+      "clinicOwnerYou": "Tú",
+      "clinicOwnerUnknown": "—"
     },
     "patientAccount": {
       "subtitle": "Tus datos personales y de contacto.",
@@ -1007,7 +1049,10 @@
     "confirm": "Vincular",
     "linking": "Vinculando...",
     "genericError": "No fue posible vincular esa cuenta. Verifica el correo e intenta de nuevo.",
-    "patientLimitError": "Tu plan actual alcanzó el límite de pacientes. Actualiza tu plan para vincular más cuentas."
+    "patientLimitError": "Tu plan actual alcanzó el límite de pacientes. Actualiza tu plan para vincular más cuentas.",
+    "professionalButton": "Vincular cuenta existente",
+    "professionalTitle": "Vincular psicólogo existente",
+    "professionalSubtitle": "Indica el correo de una cuenta de psicólogo ya registrada en la plataforma para vincularla a tu clínica."
   },
   "sessionRecord": {
     "title": "Historial de la sesión",

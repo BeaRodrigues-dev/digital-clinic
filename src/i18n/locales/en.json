@@ -312,7 +312,8 @@
       "users": "Users",
       "clinics": "Clinics",
       "finance": "Finance",
-      "settings": "Settings"
+      "settings": "Settings",
+      "patients": "Patients"
     },
     "overview": {
       "title": "Overview",
@@ -339,7 +340,12 @@
       "grantError": "Couldn't grant the role. Please try again.",
       "revokeError": "Couldn't remove the role. Please try again.",
       "revokeLastError": "Can't remove an account's last remaining role.",
-      "errorLoading": "Couldn't load users. Please try again."
+      "errorLoading": "Couldn't load users. Please try again.",
+      "clinicLabel": "Clinic:",
+      "clinicUnassigned": "No clinic",
+      "clinicChangeButton": "Link",
+      "clinicUpdateError": "Couldn't update the clinic. Please try again.",
+      "clinicRequiresBusinessPlan": "That clinic isn't on the Clinic plan — secretaries can only be linked to clinics on the business package."
     },
     "clinics": {
       "title": "Clinics",
@@ -351,7 +357,9 @@
       "ownerLabel": "Owning psychologist",
       "noOwner": "No psychologist linked to this clinic.",
       "secretariesLabel": "Secretaries",
-      "noSecretaries": "No secretary linked."
+      "noSecretaries": "No secretary linked.",
+      "professionalsLabel": "Other professionals",
+      "noOtherProfessionals": "No other professionals linked."
     },
     "finance": {
       "title": "Finance",
@@ -367,7 +375,21 @@
       "saveError": "Couldn't save the value. Please try again.",
       "invalidPrice": "Enter a valid numeric value before saving."
     },
-    "toggleApprovalError": "Couldn't update the approval. Please try again."
+    "toggleApprovalError": "Couldn't update the approval. Please try again.",
+    "patients": {
+      "title": "Patients",
+      "subtitle": "All patients on the platform — reassign them to another psychologist when needed.",
+      "loading": "Loading patients...",
+      "errorLoading": "Couldn't load patients right now. Please try again.",
+      "searchPlaceholder": "Search by name or email...",
+      "empty": "No patients registered yet.",
+      "noResults": "No patients found.",
+      "currentProfessional": "Current psychologist:",
+      "noProfessional": "none",
+      "reassignLabel": "Link to:",
+      "reassignButton": "Link",
+      "reassignError": "Couldn't link the patient to that psychologist. Please try again."
+    }
   },
   "profileForm": {
     "nameLabel": "Full name *",
@@ -505,7 +527,8 @@
       "genericSaveError": "Error saving. Please try again.",
       "saveNew": "Add patient",
       "saveEdit": "Save changes",
-      "planLimitError": "You've reached the free plan's limit of {{limit}} active patients. Go to the \"Plan\" tab to upgrade."
+      "planLimitError": "You've reached the free plan's limit of {{limit}} active patients. Go to the \"Plan\" tab to upgrade.",
+      "responsibleLabel": "Responsible psychologist"
     },
     "detail": {
       "editPatient": "Edit patient",
@@ -581,7 +604,9 @@
       "recordDone": "View / edit record"
     },
     "actionError": "Couldn't complete the action. Please try again.",
-    "recurrenceOccurrenceHint": "This appointment is part of a recurring series. This change only affects this occurrence, not the whole series."
+    "recurrenceOccurrenceHint": "This appointment is part of a recurring series. This change only affects this occurrence, not the whole series.",
+    "monthView": "Month",
+    "monthMore": "+{{count}} more"
   },
   "records": {
     "title": "Records",
@@ -761,7 +786,19 @@
     },
     "nameRequired": "Enter the clinic name before saving.",
     "logoTooLarge": "The image exceeds the 5MB size limit.",
-    "logoSaveError": "The name and hours were saved, but the logo couldn't be uploaded. Please try uploading it again."
+    "logoSaveError": "The name and hours were saved, but the logo couldn't be uploaded. Please try uploading it again.",
+    "professionals": {
+      "title": "Team · Professionals",
+      "subtitle": "Link other psychologists already registered on the platform to your clinic — useful for practices with more than one professional.",
+      "badge": "Business package",
+      "upsell": "Having more than one psychologist in the same clinic is available on the Clinic plan (business package). Upgrade in Settings → Plan to unlock it.",
+      "planRequired": "Linking another professional is only available on the Clinic plan. Upgrade in Settings → Plan.",
+      "ownerBadge": "Owner",
+      "remove": "Remove from clinic",
+      "removeConfirmTitle": "Remove professional from the clinic?",
+      "removeConfirmBody": "{{name}} leaves this clinic and automatically gets their own clinic, so they keep access to their own schedule and patients.",
+      "removeError": "Couldn't remove them. Please try again."
+    }
   },
   "plans": {
     "title": "Plan",
@@ -855,7 +892,12 @@
       "roleLabel": "Account type",
       "roleValuePsychologist": "Professional",
       "memberSinceLabel": "Member since",
-      "editProfileHint": "To edit your name, phone, photo, and other publicly displayed info, use the"
+      "editProfileHint": "To edit your name, phone, photo, and other publicly displayed info, use the",
+      "clinicLabel": "Clinic",
+      "clinicNone": "No clinic linked",
+      "clinicOwnerLabel": "Clinic owner",
+      "clinicOwnerYou": "You",
+      "clinicOwnerUnknown": "—"
     },
     "patientAccount": {
       "subtitle": "Your personal and contact details.",
@@ -1007,7 +1049,10 @@
     "confirm": "Link",
     "linking": "Linking...",
     "genericError": "This account could not be linked. Check the email and try again.",
-    "patientLimitError": "Your current plan has reached its patient limit. Upgrade your plan to link more accounts."
+    "patientLimitError": "Your current plan has reached its patient limit. Upgrade your plan to link more accounts.",
+    "professionalButton": "Link existing account",
+    "professionalTitle": "Link existing psychologist",
+    "professionalSubtitle": "Enter the email of a psychologist account already registered on the platform to link it to your clinic."
   },
   "sessionRecord": {
     "title": "Session record",

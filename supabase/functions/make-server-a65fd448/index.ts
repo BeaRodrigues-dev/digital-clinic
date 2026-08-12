@@ -1393,4 +1393,239 @@ app.delete(
   },
 );
 
+// ── Vincular um psicólogo já existente à clínica (Fase 26) ────────────────
+// Todo cadastro público de psicólogo (Fase 15) ganha uma clínica própria
+// automática (Fase 9) — o que funciona bem pra quem atua sozinho, mas deixa
+// sem saída quem quer reunir vários psicólogos que JÁ têm conta numa única
+// clínica (consultório com equipe). Mesmo padrão de "Vincular conta
+// existente" já usado pra secretária/paciente (Fase 21): o dono da clínica
+// reivindica a conta pelo e-mail. Igual à secretária, só libera no plano
+// "Clínica" (pacote empresarial) — ter mais de um profissional na mesma
+// clínica é um recurso empresarial, não uma correção de bug.
+app.post(
+  "/make-server-a65fd448/clinic/professional/link-existing",
+  requireRole("psychologist"),
+  async (c) => {
+    try {
+      const user = c.get("user");
+      const body = await c.req.json().catch(() => ({}));
+      const email = String(body?.email ?? "").trim();
+
+      if (!email) {
+        return c.json(
+          { error: "Informe o e-mail da conta a vincular." },
+          400,
+        );
+      }
+      if (!user.clinicId) {
+        return c.json(
+          { error: "Nenhuma clínica vinculada a esta conta." },
+          400,
+        );
+      }
+
+      const { data: clinic } = await supabase
+        .from("clinics")
+        .select("plan")
+        .eq("id", user.clinicId)
+        .maybeSingle();
+
+      if (clinic?.plan !== "clinic") {
+        return c.json({ error: "professional_requires_business_plan" }, 403);
+      }
+
+      const { data: target, error: findErr } = await supabase
+        .from("profiles")
+        .select("id, role, clinic_id, email")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (findErr || !target) {
+        return c.json(
+          { error: "Nenhuma conta encontrada com este e-mail." },
+          404,
+        );
+      }
+      if (target.role !== "psychologist") {
+        return c.json(
+          {
+            error:
+              "Esta conta não tem o papel de psicólogo(a). Peça para um administrador conceder o papel a ela primeiro (Painel Admin → Usuários).",
+          },
+          400,
+        );
+      }
+      if (target.id === user.id) {
+        return c.json(
+          { error: "Você já faz parte desta clínica." },
+          409,
+        );
+      }
+      if (target.clinic_id === user.clinicId) {
+        return c.json(
+          { error: "Esta conta já está vinculada à sua clínica." },
+          409,
+        );
+      }
+
+      const { error: profileErr } = await supabase
+        .from("profiles")
+        .update({ clinic_id: user.clinicId })
+        .eq("id", target.id);
+
+      if (profileErr) {
+        console.error("Failed to link existing professional:", profileErr);
+        return c.json({ error: profileErr.message }, 500);
+      }
+
+      const { error: profErr } = await supabase
+        .from("professionals")
+        .update({ clinic_id: user.clinicId })
+        .eq("id", target.id);
+
+      if (profErr) {
+        console.error(
+          "Failed to sync professionals.clinic_id after linking:",
+          profErr,
+        );
+        return c.json({ error: profErr.message }, 500);
+      }
+
+      return c.json({ success: true, linked_email: target.email ?? email });
+    } catch (err: any) {
+      console.error("Failed to link existing professional:", err);
+      return c.json(
+        { error: err?.message ?? "Erro ao vincular profissional." },
+        500,
+      );
+    }
+  },
+);
+
+// ── Remover um psicólogo da clínica (Fase 26) ──────────────────────────────
+// Diferente de remover secretária (que revoga o papel inteiro — a conta só
+// existia PRA isso), um psicólogo continua sendo psicólogo mesmo fora desta
+// clínica. Em vez de deixar a conta sem clínica nenhuma (quebraria agenda,
+// pacientes, configurações — tudo depende de `clinic_id`), recriamos pra
+// ele uma clínica própria, o mesmo provisionamento automático que roda no
+// cadastro público (Fase 9) — a pessoa sai da equipe, mas continua com um
+// lugar pra trabalhar.
+app.delete(
+  "/make-server-a65fd448/clinic/professional/:id",
+  requireRole("psychologist"),
+  async (c) => {
+    try {
+      const user = c.get("user");
+      const targetId = c.req.param("id");
+
+      if (targetId === user.id) {
+        return c.json(
+          { error: "Você não pode remover a si mesmo por aqui." },
+          400,
+        );
+      }
+      if (!user.clinicId) {
+        return c.json(
+          { error: "Nenhuma clínica vinculada a esta conta." },
+          400,
+        );
+      }
+
+      const { data: clinic } = await supabase
+        .from("clinics")
+        .select("id, owner_id")
+        .eq("id", user.clinicId)
+        .maybeSingle();
+
+      if (!clinic || clinic.owner_id !== user.id) {
+        return c.json(
+          { error: "Só o dono da clínica pode remover profissionais." },
+          403,
+        );
+      }
+      if (clinic.owner_id === targetId) {
+        return c.json(
+          { error: "Não é possível remover o dono da clínica por aqui." },
+          400,
+        );
+      }
+
+      const { data: target } = await supabase
+        .from("profiles")
+        .select("id, full_name, role, clinic_id")
+        .eq("id", targetId)
+        .maybeSingle();
+
+      if (!target || target.role !== "psychologist") {
+        return c.json({ error: "Profissional não encontrado." }, 404);
+      }
+      if (target.clinic_id !== user.clinicId) {
+        return c.json({ error: "Sem permissão para esta conta." }, 403);
+      }
+
+      const { data: newClinic, error: createErr } = await supabase
+        .from("clinics")
+        .insert({
+          name: target.full_name
+            ? `Clínica de ${target.full_name}`
+            : "Minha clínica",
+          owner_id: target.id,
+        })
+        .select("id")
+        .single();
+
+      if (createErr || !newClinic) {
+        console.error(
+          "Failed to provision personal clinic on removal:",
+          createErr,
+        );
+        return c.json(
+          { error: "Não foi possível remover o profissional." },
+          500,
+        );
+      }
+
+      const { error: profileErr } = await supabase
+        .from("profiles")
+        .update({ clinic_id: newClinic.id })
+        .eq("id", targetId);
+
+      if (profileErr) {
+        console.error(
+          "Failed to move profile to new personal clinic:",
+          profileErr,
+        );
+        return c.json(
+          { error: "Não foi possível remover o profissional." },
+          500,
+        );
+      }
+
+      const { error: profErr } = await supabase
+        .from("professionals")
+        .update({ clinic_id: newClinic.id })
+        .eq("id", targetId);
+
+      if (profErr) {
+        console.error(
+          "Failed to move professionals row to new personal clinic:",
+          profErr,
+        );
+        return c.json(
+          { error: "Não foi possível remover o profissional." },
+          500,
+        );
+      }
+
+      return c.json({ success: true });
+    } catch (err: any) {
+      console.error("Failed to remove professional from clinic:", err);
+      return c.json(
+        { error: err?.message ?? "Erro ao remover profissional." },
+        500,
+      );
+    }
+  },
+);
+
 Deno.serve(app.fetch);
