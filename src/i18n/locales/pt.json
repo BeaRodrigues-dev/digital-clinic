@@ -359,7 +359,10 @@
       "secretariesLabel": "Secretárias",
       "noSecretaries": "Nenhuma secretária vinculada.",
       "professionalsLabel": "Outros profissionais",
-      "noOtherProfessionals": "Nenhum outro profissional vinculado."
+      "noOtherProfessionals": "Nenhum outro profissional vinculado.",
+      "setOwnerPlaceholder": "Selecionar profissional",
+      "setOwnerButton": "Definir como dono",
+      "setOwnerError": "Não foi possível definir o dono da clínica. Tente novamente."
     },
     "finance": {
       "title": "Financeiro",

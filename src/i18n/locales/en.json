@@ -359,7 +359,10 @@
       "secretariesLabel": "Secretaries",
       "noSecretaries": "No secretary linked.",
       "professionalsLabel": "Other professionals",
-      "noOtherProfessionals": "No other professionals linked."
+      "noOtherProfessionals": "No other professionals linked.",
+      "setOwnerPlaceholder": "Select professional",
+      "setOwnerButton": "Set as owner",
+      "setOwnerError": "Couldn't set the clinic owner. Please try again."
     },
     "finance": {
       "title": "Finance",

@@ -8796,6 +8796,20 @@ function AdminClinicsView() {
   const [people, setPeople] = useState<AdminClinicPerson[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  // Fase 27.2 — a única forma de corrigir `clinics.owner_id` era direto no
+  // banco. Isso importa porque o auto-provisionamento (gatilho da Fase 9) só
+  // cria a clínica com o dono certo quando `clinic_id` está null no momento
+  // em que o perfil vira "psychologist"; se um admin já vincula o perfil a
+  // um `clinic_id` existente nesse mesmo passo (ex.: criando o profissional
+  // já com uma clínica escolhida), nenhuma clínica nova é criada e o
+  // `owner_id` da clínica apontada nunca passa a ser esse profissional —
+  // mesmo sendo, na prática, "a clínica dele". Este botão deixa o admin
+  // apontar/corrigir o dono manualmente, sem precisar de acesso ao banco.
+  const [ownerPick, setOwnerPick] = useState<Record<string, string>>({});
+  const [ownerBusyId, setOwnerBusyId] = useState<string | null>(null);
+  const [ownerActionError, setOwnerActionError] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -8825,6 +8839,28 @@ function AdminClinicsView() {
       cancelled = true;
     };
   }, []);
+
+  const handleSetOwner = async (clinicId: string) => {
+    const newOwnerId = ownerPick[clinicId];
+    if (!newOwnerId) return;
+    setOwnerBusyId(clinicId);
+    setOwnerActionError(null);
+    const { error: err } = await supabase
+      .from("clinics")
+      .update({ owner_id: newOwnerId })
+      .eq("id", clinicId);
+    if (err) {
+      console.error("Falha ao definir dono da clínica:", err);
+      setOwnerActionError(clinicId);
+      setOwnerBusyId(null);
+      return;
+    }
+    setClinics((prev) =>
+      prev.map((c) => (c.id === clinicId ? { ...c, owner_id: newOwnerId } : c)),
+    );
+    setOwnerPick((prev) => ({ ...prev, [clinicId]: "" }));
+    setOwnerBusyId(null);
+  };
 
   if (loading) {
     return (
@@ -8871,6 +8907,12 @@ function AdminClinicsView() {
         const secretaries = people.filter(
           (p) => p.role === "secretary" && p.clinic_id === c.id,
         );
+        // Fase 27.2 — todo mundo já vinculado à clínica (dono atual incluso)
+        // é candidato a virar dono; o admin pode tanto preencher uma
+        // clínica sem dono quanto corrigir um dono errado.
+        const eligibleForOwner = people.filter(
+          (p) => p.role === "psychologist" && p.clinic_id === c.id,
+        );
         return (
           <div
             key={c.id}
@@ -8902,6 +8944,50 @@ function AdminClinicsView() {
               ) : (
                 <p className="text-red-600 font-medium">
                   {t("admin.clinics.noOwner")}
+                </p>
+              )}
+              {eligibleForOwner.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                  <select
+                    value={ownerPick[c.id] ?? ""}
+                    onChange={(e) =>
+                      setOwnerPick((prev) => ({
+                        ...prev,
+                        [c.id]: e.target.value,
+                      }))
+                    }
+                    className="text-xs px-2.5 py-1.5 rounded-lg border border-border bg-secondary text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer transition-colors max-w-[220px]"
+                  >
+                    <option value="">
+                      {t("admin.clinics.setOwnerPlaceholder")}
+                    </option>
+                    {eligibleForOwner.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.full_name || t("userMenu.noName")}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => handleSetOwner(c.id)}
+                    disabled={
+                      !ownerPick[c.id] ||
+                      ownerPick[c.id] === c.owner_id ||
+                      ownerBusyId === c.id
+                    }
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-border hover:bg-secondary transition-colors disabled:opacity-50 flex items-center gap-1"
+                  >
+                    {ownerBusyId === c.id ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <LinkIcon size={12} />
+                    )}
+                    {t("admin.clinics.setOwnerButton")}
+                  </button>
+                </div>
+              )}
+              {ownerActionError === c.id && (
+                <p className="text-xs text-red-600 mt-1.5">
+                  {t("admin.clinics.setOwnerError")}
                 </p>
               )}
             </div>
