@@ -1,0 +1,1017 @@
+{
+  "roles": {
+    "admin": "Administrador",
+    "psychologist": "Psicólogo(a)",
+    "secretary": "Secretária",
+    "patient": "Paciente"
+  },
+  "userMenu": {
+    "switchRole": "Alternar perfil",
+    "switchError": "Não foi possível trocar de perfil. Tente novamente.",
+    "settings": "Configurações",
+    "logout": "Sair",
+    "noName": "Minha conta"
+  },
+  "nav": {
+    "brand": "Travessia",
+    "brandTag": "Psicologia",
+    "comoFunciona": "Como funciona",
+    "psicologos": "Psicólogos",
+    "perguntas": "Perguntas",
+    "comecar": "Começar",
+    "comecarFull": "Começar minha jornada"
+  },
+  "hero": {
+    "eyebrow": "Psicologia para quem está em travessia",
+    "titleLine1": "Você não precisa",
+    "titleLine2": "atravessar isso",
+    "titleEmphasis": "sozinho.",
+    "subtitle": "Conectamos brasileiros que vivem grandes mudanças — dentro e fora do Brasil — com psicólogos selecionados para sua história.",
+    "ctaPrimary": "Encontrar meu psicólogo",
+    "ctaSecondary": "Como funciona",
+    "statPatients": "pacientes acompanhados",
+    "statCountries": "Brasil · Espanha",
+    "statRating": "avaliação média",
+    "quoteText": "A mudança me tirou tudo que eu conhecia — cidade, trabalho, amigos. Mas também me devolveu a mim mesma.",
+    "quoteAuthor": "Ana Paula, 34",
+    "quoteLocation": "Barcelona, Espanha",
+    "imageAlt": "Vista de Barcelona ao entardecer"
+  },
+  "transitions": {
+    "eyebrow": "Momentos que atendemos",
+    "title": "Toda travessia tem seu próprio peso.",
+    "cta": "Iniciar meu processo",
+    "items": [
+      {
+        "id": "exterior",
+        "emoji": "✈️",
+        "title": "Morar no Exterior",
+        "description": "A saudade do Brasil, o choque cultural, construir uma vida nova longe de tudo que conhecia.",
+        "countries": [
+          "🇪🇸 Espanha",
+          "🇵🇹 Portugal",
+          "🇺🇸 EUA"
+        ]
+      },
+      {
+        "id": "carreira",
+        "emoji": "🔄",
+        "title": "Mudança de Carreira",
+        "description": "Deixar uma identidade profissional para trás. Quem sou eu quando não sou mais aquilo que fazia?",
+        "countries": []
+      },
+      {
+        "id": "relacionamento",
+        "emoji": "💔",
+        "title": "Fim de Relacionamento",
+        "description": "Separação, divórcio, luto afetivo. Reconstruir-se depois que um projeto de vida termina.",
+        "countries": []
+      },
+      {
+        "id": "luto",
+        "emoji": "🕊️",
+        "title": "Luto e Perda",
+        "description": "A morte de alguém amado, ou o fim de algo que você pensava que duraria para sempre.",
+        "countries": []
+      },
+      {
+        "id": "identidade",
+        "emoji": "🌀",
+        "title": "Crise de Identidade",
+        "description": "A sensação de não saber mais quem você é, o que quer, ou onde pertence.",
+        "countries": []
+      },
+      {
+        "id": "maternidade",
+        "emoji": "🌱",
+        "title": "Maternidade e Paternidade",
+        "description": "A chegada de um filho transforma tudo. A identidade, os sonhos, o casal.",
+        "countries": []
+      }
+    ]
+  },
+  "howItWorks": {
+    "eyebrow": "Como funciona",
+    "title": "Um cuidado que começa antes da primeira sessão.",
+    "steps": [
+      {
+        "number": "01",
+        "title": "Conte sua história",
+        "description": "Um questionário cuidadoso — não genérico — para entender seu momento de vida, seus valores e o que você está atravessando agora."
+      },
+      {
+        "number": "02",
+        "title": "Receba seu match",
+        "description": "Nossa curadoria combina você com psicólogos selecionados por especialidade, experiência com sua situação e estilo terapêutico."
+      },
+      {
+        "number": "03",
+        "title": "Sessão experimental",
+        "description": "Uma primeira sessão para sentir a conexão. Sem compromisso longo. Você decide se quer continuar."
+      },
+      {
+        "number": "04",
+        "title": "Seu processo começa",
+        "description": "Sessões semanais online, no seu horário, no seu idioma. Com acompanhamento da nossa equipe durante toda a jornada."
+      }
+    ]
+  },
+  "psychologistsSection": {
+    "eyebrow": "Psicólogos",
+    "title": "Profissionais selecionados para o seu momento.",
+    "subtitle": "Não listamos todos os psicólogos do mundo. Curadoria rigorosa — profissionais com experiência real em transições de vida.",
+    "loading": "Carregando profissionais...",
+    "emptyTitle": "Em breve, novos profissionais",
+    "emptyText": "Nossa curadoria está em andamento. Em breve anunciamos os primeiros psicólogos da plataforma.",
+    "yearsExperience": "anos de experiência",
+    "viewProfile": "Ver perfil",
+    "footerNote": "O seu match é feito com base no seu perfil — você pode ser conectado a profissionais não listados aqui.",
+    "photoAlt": "Foto de {{name}}"
+  },
+  "testimonialsSection": {
+    "eyebrow": "Depoimentos",
+    "title": "Histórias reais de quem atravessou.",
+    "items": [
+      {
+        "name": "Mariana Costa",
+        "location": "Barcelona há 2 anos",
+        "flag": "🇪🇸",
+        "transition": "Expatriada",
+        "text": "Cheguei na Espanha com uma mala e a sensação de que havia perdido quem eu era. A psicóloga foi a primeira pessoa que entendeu de verdade o que é ser imigrante brasileira. Não precisei explicar o que é saudade.",
+        "rating": 5
+      },
+      {
+        "name": "Thiago Lemos",
+        "location": "São Paulo, Brasil",
+        "flag": "🇧🇷",
+        "transition": "Mudança de Carreira",
+        "text": "Larguei a advocacia aos 38 anos. Todo mundo ao redor achava que eu estava em crise. O processo me ajudou a perceber que eu estava, na verdade, acordando.",
+        "rating": 5
+      },
+      {
+        "name": "Renata Figueiredo",
+        "location": "Madrid há 4 anos",
+        "flag": "🇪🇸",
+        "transition": "Maternidade no Exterior",
+        "text": "Ser mãe longe da família é um desafio que não tem manual. A psicóloga me deu ferramentas e, principalmente, me fez sentir menos sozinha nessa jornada.",
+        "rating": 5
+      }
+    ]
+  },
+  "quiz": {
+    "eyebrow": "Começar",
+    "introTitleLine1": "Pronto para",
+    "introTitleLine2": "sua travessia?",
+    "introSubtitle": "Leva menos de 3 minutos. Vamos entender seu momento antes de sugerir qualquer profissional.",
+    "startCta": "Começar o questionário",
+    "back": "← Voltar",
+    "thanksTitle": "Obrigado por compartilhar.",
+    "thanksSubtitle": "Nossa equipe entrará em contato em até 24 horas com suas indicações personalizadas.",
+    "continueLabel": "Continue o cadastro:",
+    "emailPlaceholder": "Seu e-mail",
+    "namePlaceholder": "Seu nome",
+    "submitCta": "Quero encontrar meu psicólogo",
+    "questions": [
+      {
+        "question": "Onde você está agora?",
+        "options": [
+          "No Brasil",
+          "Na Espanha",
+          "Em outro país da Europa",
+          "Em outro lugar do mundo"
+        ]
+      },
+      {
+        "question": "O que melhor descreve seu momento?",
+        "options": [
+          "Passei por uma mudança grande recentemente",
+          "Estou no meio de uma transição",
+          "Sinto que preciso de mudança, mas não sei por onde começar",
+          "Estou bem, mas quero me conhecer melhor"
+        ]
+      },
+      {
+        "question": "O que mais ressoa com você agora?",
+        "options": [
+          "Sinto que perdi minha identidade",
+          "Estou carregando muito peso sozinho/a",
+          "Não me reconheço mais nas minhas escolhas",
+          "Preciso de apoio para atravessar uma fase difícil"
+        ]
+      }
+    ],
+    "leadSavedMessage": "Recebemos seus dados! Em breve entramos em contato com uma sugestão de psicólogo pra você.",
+    "leadError": "Não foi possível enviar agora. Tente novamente em instantes."
+  },
+  "faqSection": {
+    "eyebrow": "Perguntas frequentes",
+    "title": "Dúvidas comuns.",
+    "items": [
+      {
+        "q": "Como funciona o processo de matching?",
+        "a": "Você preenche nosso questionário detalhado sobre sua história, momento de vida e preferências terapêuticas. Nossa equipe — formada por psicólogos — analisa seu perfil e sugere 2 a 3 profissionais compatíveis. Não é um algoritmo: é uma curadoria humana."
+      },
+      {
+        "q": "Os psicólogos atendem em português?",
+        "a": "Sim. Todos os profissionais da nossa plataforma atendem em português brasileiro. Alguns também atendem em espanhol, inglês ou outras línguas."
+      },
+      {
+        "q": "Quanto custa?",
+        "a": "O cadastro e o matching são gratuitos. O valor das sessões varia por profissional, entre R$150 e R$350 (ou equivalente em euros). Não cobramos taxa de plataforma sobre as sessões."
+      },
+      {
+        "q": "E se o match não funcionar?",
+        "a": "Faz parte. Se a conexão com o profissional indicado não fluir na primeira sessão, nossa equipe revisa seu perfil e sugere novas opções sem custo adicional."
+      }
+    ]
+  },
+  "footer": {
+    "blurb": "Psicologia especializada em pessoas que estão passando por grandes mudanças de vida. Brasileiros no Brasil e no mundo.",
+    "badgeBrasil": "🇧🇷 Brasil",
+    "badgeEspanha": "🇪🇸 Espanha",
+    "platformTitle": "Plataforma",
+    "comoFunciona": "Como funciona",
+    "psicologos": "Psicólogos",
+    "sobre": "Sobre",
+    "supportTitle": "Suporte",
+    "perguntasFrequentes": "Perguntas frequentes",
+    "falarComEquipe": "Falar com a equipe",
+    "paraPsicologos": "Para psicólogos",
+    "adminTitle": "Admin",
+    "adminArea": "Área de administração",
+    "privacidade": "Privacidade",
+    "termos": "Termos de uso",
+    "copyright": "© 2025 Travessia Psicologia. Todos os direitos reservados.",
+    "registration": "Plataforma registrada no CFP · CRP regularizado"
+  },
+  "login": {
+    "brand": "Travessia · Acesso",
+    "title": "Área restrita",
+    "subtitle": "Entre com seu e-mail e senha para continuar.",
+    "emailPlaceholder": "E-mail",
+    "passwordPlaceholder": "Senha",
+    "submit": "Entrar",
+    "submitting": "Entrando...",
+    "genericError": "E-mail ou senha incorretos.",
+    "noAccount": "Ainda não tem conta?",
+    "createAccount": "Criar conta"
+  },
+  "signup": {
+    "title": "Criar conta de psicólogo(a)",
+    "subtitle": "Leva menos de um minuto — sem cartão de crédito.",
+    "subtitleWithPlan": "Você escolheu o plano {{plan}}. Leva menos de um minuto — sem cartão de crédito.",
+    "requiredError": "Nome e e-mail são obrigatórios.",
+    "genericError": "Não foi possível criar a conta. Tente novamente.",
+    "submit": "Criar conta",
+    "submitting": "Criando conta...",
+    "hasAccount": "Já tem conta?",
+    "logIn": "Entrar"
+  },
+  "publicPlans": {
+    "title": "Planos para psicólogos",
+    "subtitle": "Escolha o plano ideal para o seu momento — mude quando quiser.",
+    "mostPopular": "Mais popular",
+    "selectPlan": "Escolher esse plano",
+    "billingNote": "Cobrança automática ainda não está ativa — trocar de plano por aqui não gera cobrança neste momento."
+  },
+  "comingSoon": {
+    "welcome": "Bem-vindo(a), {{role}}",
+    "message": "Sua conta está ativa. A área de {{role}} (agenda, pacientes, prontuário, financeiro) chega nas próximas fases do projeto.",
+    "logout": "Sair"
+  },
+  "admin": {
+    "navTitle": "Travessia · Administração",
+    "viewSite": "Ver site",
+    "logout": "Sair",
+    "published": "publicados",
+    "pending": "pendentes",
+    "yearsAbbrev": "anos",
+    "listTitle": "Psicólogos",
+    "listSubtitle": "Gerencie os perfis publicados na plataforma.",
+    "newProfile": "Novo perfil",
+    "backToList": "Voltar à lista",
+    "editTitle": "Editar perfil",
+    "newTitle": "Cadastrar novo psicólogo",
+    "loadingProfiles": "Carregando perfis...",
+    "emptyTitle": "Nenhum perfil cadastrado ainda",
+    "emptyText": "Os perfis aparecem aqui automaticamente assim que um psicólogo se cadastra na plataforma.",
+    "emptyCta": "Cadastrar primeiro perfil",
+    "statusPublished": "Publicado",
+    "statusPending": "Pendente",
+    "publishTooltip": "Publicar",
+    "unpublishTooltip": "Despublicar",
+    "editProfileTooltip": "Editar perfil do profissional",
+    "deleteTitle": "Remover perfil?",
+    "deleteBody": "Esta ação não pode ser desfeita. O perfil será removido permanentemente da plataforma.",
+    "cancel": "Cancelar",
+    "confirmDelete": "Remover",
+    "settingsSubtitle": "Senha e segurança da sua própria conta de administrador.",
+    "tabs": {
+      "overview": "Visão geral",
+      "psychologists": "Psicólogos",
+      "users": "Usuários",
+      "clinics": "Clínicas",
+      "finance": "Financeiro",
+      "settings": "Configurações"
+    },
+    "overview": {
+      "title": "Visão geral",
+      "subtitle": "Números da plataforma inteira, em tempo real.",
+      "loading": "Carregando números...",
+      "clinics": "Clínicas",
+      "professionalsApproved": "Psicólogos publicados",
+      "professionalsPending": "Psicólogos pendentes",
+      "activePatients": "Pacientes ativos",
+      "secretaries": "Secretárias",
+      "planBreakdown": "Clínicas por plano",
+      "errorLoading": "Não foi possível carregar a visão geral. Tente novamente."
+    },
+    "users": {
+      "title": "Usuários",
+      "subtitle": "Todas as contas da plataforma e os papéis que cada uma pode assumir.",
+      "loading": "Carregando usuários...",
+      "searchPlaceholder": "Buscar por nome ou e-mail...",
+      "noResults": "Nenhum usuário encontrado.",
+      "you": "você",
+      "rolesLabel": "Papéis:",
+      "revokeTooltip": "Remover este papel",
+      "addRole": "Conceder papel...",
+      "grantError": "Não foi possível conceder o papel. Tente novamente.",
+      "revokeError": "Não foi possível remover o papel. Tente novamente.",
+      "revokeLastError": "Não é possível remover o último papel de uma conta.",
+      "errorLoading": "Não foi possível carregar os usuários. Tente novamente."
+    },
+    "clinics": {
+      "title": "Clínicas",
+      "subtitle": "Quem está vinculado a cada clínica — psicólogo dono e secretárias.",
+      "loading": "Carregando clínicas...",
+      "errorLoading": "Não foi possível carregar as clínicas agora. Tente novamente.",
+      "empty": "Nenhuma clínica cadastrada ainda.",
+      "unnamed": "Clínica sem nome",
+      "ownerLabel": "Psicólogo dono",
+      "noOwner": "Nenhum psicólogo vinculado a esta clínica.",
+      "secretariesLabel": "Secretárias",
+      "noSecretaries": "Nenhuma secretária vinculada."
+    },
+    "finance": {
+      "title": "Financeiro",
+      "subtitle": "Faturamento estimado com base nos planos das clínicas.",
+      "loading": "Carregando financeiro...",
+      "errorLoading": "Não foi possível carregar o financeiro agora. Tente novamente.",
+      "totalLabel": "Faturamento mensal estimado",
+      "disclaimer": "Cobrança automática ainda não está configurada na plataforma — isso é só uma estimativa com base no valor que você definir abaixo, não uma cobrança real.",
+      "clinicsOnPlan": "{{count}} clínica(s) neste plano",
+      "priceLabel": "Valor mensal por clínica",
+      "saveButton": "Salvar",
+      "saving": "Salvando...",
+      "saveError": "Não foi possível salvar o valor. Tente novamente.",
+      "invalidPrice": "Digite um valor numérico válido antes de salvar."
+    },
+    "toggleApprovalError": "Não foi possível atualizar a aprovação. Tente novamente."
+  },
+  "profileForm": {
+    "nameLabel": "Nome completo *",
+    "namePlaceholder": "Dra. Ana Lima",
+    "phoneLabel": "Telefone",
+    "phonePlaceholder": "+55 11 91234-5678",
+    "titleLabel": "Título / Registro",
+    "titlePlaceholder": "Psicóloga · CRP 06/12345",
+    "crpLabel": "CRP",
+    "crpPlaceholder": "06/12345",
+    "emailLabel": "E-mail",
+    "emailPlaceholder": "ana@email.com",
+    "emailReadOnlyHint": "O e-mail é o login da sua conta e não pode ser alterado aqui.",
+    "sessionPriceLabel": "Valor da sessão (R$)",
+    "sessionPricePlaceholder": "150",
+    "locationLabel": "Localização *",
+    "locationPlaceholder": "Barcelona, Espanha",
+    "flagLabel": "Bandeira",
+    "specialtiesLabel": "Especialidades",
+    "addSpecialtyPlaceholder": "Adicionar especialidade...",
+    "add": "Adicionar",
+    "approachLabel": "Abordagem terapêutica",
+    "approachPlaceholder": "Descreva sua abordagem em 1-2 frases...",
+    "sessionsLabel": "Modalidade de sessão",
+    "sessionsPlaceholder": "Online · Português / Español",
+    "yearsLabel": "Anos de experiência",
+    "photoLabel": "Foto de perfil",
+    "selectPhoto": "Selecionar foto",
+    "previewLabel": "Preview da foto",
+    "requiredError": "Nome e localização são obrigatórios.",
+    "genericSaveError": "Erro ao salvar. Tente novamente.",
+    "cancel": "Cancelar",
+    "saveNew": "Cadastrar perfil",
+    "saveEdit": "Salvar alterações",
+    "specialtySuggestions": [
+      "Expatriados",
+      "Luto Cultural",
+      "Ansiedade",
+      "Depressão",
+      "Identidade",
+      "Relacionamentos",
+      "Carreira",
+      "Saudade",
+      "Maternidade",
+      "Divórcio",
+      "Trauma",
+      "Autoestima"
+    ]
+  },
+  "language": {
+    "label": "Idioma"
+  },
+  "dashboard": {
+    "title": "Painel do profissional",
+    "greeting": "Olá, {{name}}!",
+    "subtitle": "Visão geral da sua prática clínica.",
+    "navOverview": "Painel",
+    "navAgenda": "Agenda",
+    "navPatients": "Pacientes",
+    "navFinance": "Financeiro",
+    "navRecords": "Prontuário",
+    "comingSoonTag": "em breve",
+    "loading": "Carregando painel...",
+    "errorLoading": "Não foi possível carregar os dados agora. Tente novamente.",
+    "kpi": {
+      "activePatients": "Pacientes ativos",
+      "sessionsThisMonth": "Sessões este mês",
+      "noShowRate": "Taxa de não comparecimento",
+      "revenueThisMonth": "Faturamento este mês"
+    },
+    "charts": {
+      "sessionsTitle": "Sessões nos últimos 14 dias",
+      "revenueTitle": "Faturamento nos últimos 6 meses",
+      "noData": "Ainda sem dados suficientes para exibir o gráfico."
+    },
+    "upcoming": {
+      "title": "Próximas consultas",
+      "empty": "Nenhuma consulta agendada ainda.",
+      "emptyHint": "A agenda completa chega na próxima fase do projeto."
+    },
+    "appointmentStatus": {
+      "scheduled": "Agendada",
+      "confirmed": "Confirmada",
+      "completed": "Concluída",
+      "cancelled": "Cancelada",
+      "no_show": "Não compareceu"
+    },
+    "profileHint": "Complete seu perfil profissional para aparecer no diretório público.",
+    "editProfile": "Editar meu perfil",
+    "navProfile": "Meu perfil",
+    "navClinic": "Clínica",
+    "navPlan": "Plano",
+    "navSettings": "Configurações"
+  },
+  "patients": {
+    "title": "Pacientes",
+    "subtitle": "Gerencie o cadastro dos seus pacientes.",
+    "backToDashboard": "Voltar ao painel",
+    "newPatient": "Novo paciente",
+    "searchPlaceholder": "Buscar por nome, e-mail ou telefone...",
+    "filterAll": "Todos",
+    "filterActive": "Ativos",
+    "filterInactive": "Inativos",
+    "tagFilterAll": "Todas as tags",
+    "loading": "Carregando pacientes...",
+    "errorLoading": "Não foi possível carregar os pacientes agora. Tente novamente.",
+    "emptyTitle": "Nenhum paciente cadastrado ainda",
+    "emptyText": "Clique em \"Novo paciente\" para começar.",
+    "emptyCta": "Cadastrar primeiro paciente",
+    "noResultsTitle": "Nenhum paciente encontrado",
+    "noResultsText": "Tente ajustar a busca ou os filtros.",
+    "backToList": "Voltar à lista",
+    "editTitle": "Editar paciente",
+    "newTitle": "Cadastrar novo paciente",
+    "deleteTitle": "Remover paciente?",
+    "deleteBody": "Esta ação não pode ser desfeita. O paciente e seu histórico associado serão removidos permanentemente.",
+    "cancel": "Cancelar",
+    "confirmDelete": "Remover",
+    "statusActive": "Ativo",
+    "statusInactive": "Inativo",
+    "fields": {
+      "nameLabel": "Nome completo *",
+      "namePlaceholder": "Maria Silva",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "maria@email.com",
+      "phoneLabel": "Telefone",
+      "phonePlaceholder": "+55 11 99999-0000",
+      "statusLabel": "Status",
+      "tagsLabel": "Tags",
+      "addTagPlaceholder": "Adicionar tag...",
+      "add": "Adicionar",
+      "notesLabel": "Observações",
+      "notesPlaceholder": "Anotações gerais sobre o paciente (não clínicas)...",
+      "requiredError": "Nome completo é obrigatório.",
+      "genericSaveError": "Erro ao salvar. Tente novamente.",
+      "saveNew": "Cadastrar paciente",
+      "saveEdit": "Salvar alterações",
+      "planLimitError": "Limite de {{limit}} pacientes ativos do plano gratuito atingido. Acesse a aba \"Plano\" para fazer upgrade."
+    },
+    "detail": {
+      "editPatient": "Editar paciente",
+      "historyTitle": "Histórico de consultas",
+      "historyEmpty": "Nenhuma consulta registrada ainda.",
+      "historyEmptyHint": "A agenda completa chega na próxima fase do projeto.",
+      "noContact": "Sem contato cadastrado",
+      "noNotes": "Sem observações registradas."
+    },
+    "access": {
+      "title": "Acesso à área do paciente",
+      "linked": "Este paciente já tem acesso ao portal.",
+      "notLinkedNoEmail": "Cadastre um e-mail para poder convidar este paciente.",
+      "notLinked": "Este paciente ainda não tem acesso.",
+      "inviteButton": "Convidar paciente",
+      "inviting": "Enviando convite...",
+      "inviteSuccess": "Convite enviado! O paciente vai receber um e-mail para criar a senha de acesso.",
+      "inviteError": "Não foi possível enviar o convite. Tente novamente.",
+      "resendHint": "Se o paciente não conseguiu concluir o acesso (por exemplo, o link do convite expirou), você pode reenviar.",
+      "resendButton": "Reenviar acesso",
+      "resendSuccess": "E-mail reenviado! O paciente vai receber um novo link para criar a senha de acesso.",
+      "resendError": "Não foi possível reenviar o acesso. Tente novamente."
+    },
+    "deleteError": "Não foi possível excluir o paciente. Tente novamente."
+  },
+  "agenda": {
+    "title": "Agenda",
+    "subtitle": "Gerencie suas consultas e horários.",
+    "dayView": "Dia",
+    "weekView": "Semana",
+    "today": "Hoje",
+    "newAppointment": "Nova consulta",
+    "loading": "Carregando agenda...",
+    "errorLoading": "Não foi possível carregar a agenda agora. Tente novamente.",
+    "unknownPatient": "Paciente",
+    "emptyDay": "Nenhuma consulta neste dia.",
+    "emptyWeek": "Nenhuma consulta nesta semana.",
+    "noPatientsTitle": "Cadastre um paciente primeiro",
+    "noPatientsText": "Você precisa ter pelo menos um paciente cadastrado para agendar uma consulta.",
+    "noPatientsCta": "Ir para Pacientes",
+    "editTitle": "Editar consulta",
+    "newTitle": "Agendar nova consulta",
+    "backToList": "Voltar à agenda",
+    "deleteTitle": "Excluir consulta?",
+    "deleteBody": "Esta ação não pode ser desfeita.",
+    "cancel": "Cancelar",
+    "confirmDelete": "Excluir",
+    "fields": {
+      "patientLabel": "Paciente *",
+      "selectPatientPlaceholder": "Selecione um paciente",
+      "dateLabel": "Data *",
+      "startTimeLabel": "Início *",
+      "endTimeLabel": "Fim *",
+      "notesLabel": "Observações",
+      "notesPlaceholder": "Notas sobre a consulta (não clínicas)...",
+      "recurrenceLabel": "Repetição",
+      "recurrenceWeekly": "Repetir semanalmente",
+      "recurrenceWeeksLabel": "Quantidade de semanas",
+      "requiredError": "Selecione um paciente e preencha data e horários.",
+      "invalidRangeError": "O horário de término deve ser depois do início.",
+      "genericSaveError": "Erro ao salvar. Tente novamente.",
+      "saveNew": "Agendar",
+      "saveEdit": "Salvar alterações"
+    },
+    "actions": {
+      "confirm": "Confirmar",
+      "complete": "Concluir",
+      "cancelAppt": "Cancelar consulta",
+      "noShow": "Não compareceu",
+      "edit": "Editar / reagendar",
+      "delete": "Excluir",
+      "record": "Prontuário da sessão",
+      "recordDone": "Ver / editar prontuário"
+    },
+    "actionError": "Não foi possível concluir a ação. Tente novamente.",
+    "recurrenceOccurrenceHint": "Esta consulta faz parte de uma série recorrente. A alteração afeta só esta ocorrência, não a série inteira."
+  },
+  "records": {
+    "title": "Prontuário",
+    "subtitle": "Evolução clínica e anotações de sessão.",
+    "newRecord": "Novo registro",
+    "patientFilterAll": "Todos os pacientes",
+    "loading": "Carregando prontuário...",
+    "errorLoading": "Não foi possível carregar o prontuário agora. Tente novamente.",
+    "emptyTitle": "Nenhum registro ainda",
+    "emptyText": "Clique em \"Novo registro\" para começar a documentar suas sessões.",
+    "emptyCta": "Criar primeiro registro",
+    "noPatientsTitle": "Cadastre um paciente primeiro",
+    "noPatientsText": "Você precisa ter pelo menos um paciente cadastrado para criar um registro de prontuário.",
+    "backToList": "Voltar ao prontuário",
+    "editTitle": "Editar registro",
+    "newTitle": "Novo registro de prontuário",
+    "deleteTitle": "Excluir registro?",
+    "deleteBody": "Esta ação não pode ser desfeita.",
+    "cancel": "Cancelar",
+    "confirmDelete": "Excluir",
+    "hasPrivate": "Notas privadas",
+    "hasShared": "Notas compartilháveis",
+    "noNotesYet": "Sem anotações",
+    "fields": {
+      "patientLabel": "Paciente *",
+      "selectPatientPlaceholder": "Selecione um paciente",
+      "appointmentLabel": "Vincular a uma consulta",
+      "selectAppointmentPlaceholder": "Nenhuma consulta vinculada",
+      "sessionDateLabel": "Data da sessão *",
+      "privateNotesLabel": "Notas privadas",
+      "privateNotesHint": "Visíveis apenas para você (e administradores da clínica). Nunca são compartilhadas com o paciente.",
+      "privateNotesPlaceholder": "Evolução clínica, observações, hipóteses...",
+      "sharedNotesLabel": "Notas compartilháveis",
+      "sharedNotesHint": "Podem ser exibidas ao paciente futuramente, na área do paciente. Deixe em branco se não quiser compartilhar nada desta sessão.",
+      "sharedNotesPlaceholder": "Resumo da sessão que pode ser compartilhado com o paciente...",
+      "requiredError": "Selecione um paciente e a data da sessão.",
+      "genericSaveError": "Erro ao salvar. Tente novamente.",
+      "saveNew": "Criar registro",
+      "saveEdit": "Salvar alterações"
+    },
+    "ai": {
+      "summarizeButton": "Resumir com IA",
+      "organizeButton": "Organizar com IA",
+      "disclosure": "Envia o texto da nota pra Groq (não usado pra treinar modelos) para gerar o resultado.",
+      "resultLabel": "Sugestão da IA",
+      "useText": "Usar este texto",
+      "discard": "Descartar",
+      "genericError": "Não foi possível processar com IA agora. Tente novamente.",
+      "requiresPaidPlan": "A IA de resumo/organização de anotações é exclusiva dos planos Profissional e Clínica. Veja em Configurações → Plano."
+    },
+    "deleteError": "Não foi possível excluir o prontuário. Tente novamente."
+  },
+  "finance": {
+    "title": "Financeiro",
+    "subtitle": "Cobranças por sessão e status de pagamento.",
+    "newPayment": "Novo lançamento",
+    "patientFilterAll": "Todos os pacientes",
+    "statusFilterAll": "Todos os status",
+    "loading": "Carregando financeiro...",
+    "errorLoading": "Não foi possível carregar o financeiro agora. Tente novamente.",
+    "emptyTitle": "Nenhum lançamento ainda",
+    "emptyText": "Clique em \"Novo lançamento\" para registrar uma cobrança.",
+    "emptyCta": "Criar primeiro lançamento",
+    "noResultsTitle": "Nenhum lançamento encontrado",
+    "noResultsText": "Tente ajustar os filtros.",
+    "noPatientsTitle": "Cadastre um paciente primeiro",
+    "noPatientsText": "Você precisa ter pelo menos um paciente cadastrado para registrar uma cobrança.",
+    "backToList": "Voltar ao financeiro",
+    "editTitle": "Editar lançamento",
+    "newTitle": "Novo lançamento",
+    "deleteTitle": "Excluir lançamento?",
+    "deleteBody": "Esta ação não pode ser desfeita.",
+    "cancel": "Cancelar",
+    "confirmDelete": "Excluir",
+    "summary": {
+      "receivedThisMonth": "Recebido este mês",
+      "pending": "Pendente",
+      "overdue": "Em atraso"
+    },
+    "status": {
+      "pending": "Pendente",
+      "paid": "Pago",
+      "overdue": "Em atraso"
+    },
+    "markPaid": "Marcar como pago",
+    "fields": {
+      "patientLabel": "Paciente *",
+      "selectPatientPlaceholder": "Selecione um paciente",
+      "appointmentLabel": "Vincular a uma consulta",
+      "selectAppointmentPlaceholder": "Nenhuma consulta vinculada",
+      "amountLabel": "Valor *",
+      "statusLabel": "Status",
+      "paidAtLabel": "Data do pagamento",
+      "requiredError": "Selecione um paciente e informe um valor válido.",
+      "genericSaveError": "Erro ao salvar. Tente novamente.",
+      "saveNew": "Registrar",
+      "saveEdit": "Salvar alterações",
+      "amountPlaceholder": "150,00"
+    },
+    "actionError": "Não foi possível concluir a ação. Tente novamente."
+  },
+  "patientArea": {
+    "title": "Minha área",
+    "subtitle": "Suas consultas e informações.",
+    "loading": "Carregando...",
+    "errorLoading": "Não foi possível carregar seus dados agora. Tente novamente.",
+    "notLinkedTitle": "Sua conta ainda não está vinculada",
+    "notLinkedText": "Fale com seu psicólogo ou clínica para vincular seu acesso ao cadastro correto.",
+    "upcomingTitle": "Próximas consultas",
+    "noUpcoming": "Nenhuma consulta agendada no momento.",
+    "confirm": "Confirmar presença",
+    "cancel": "Cancelar",
+    "actionError": "Não foi possível atualizar a consulta. Tente novamente.",
+    "sharedNotesTitle": "Anotações compartilhadas",
+    "noSharedNotes": "Seu psicólogo ainda não compartilhou nenhuma anotação.",
+    "myInfoTitle": "Meus dados",
+    "nameLabel": "Nome",
+    "emailLabel": "E-mail",
+    "phoneLabel": "Telefone",
+    "noPhone": "Não informado",
+    "infoHint": "Para atualizar essas informações, fale com seu psicólogo ou clínica."
+  },
+  "setPassword": {
+    "title": "Defina sua senha",
+    "subtitleInvite": "Você foi convidado a acessar a área do paciente. Crie uma senha para continuar.",
+    "subtitleRecovery": "Defina uma nova senha para a sua conta.",
+    "passwordPlaceholder": "Nova senha",
+    "confirmPasswordPlaceholder": "Confirme a senha",
+    "submit": "Criar senha",
+    "submitting": "Criando...",
+    "tooShort": "A senha precisa ter pelo menos 8 caracteres.",
+    "mismatch": "As senhas não coincidem.",
+    "genericError": "Não foi possível definir a senha. Tente novamente.",
+    "linkExpiredTitle": "Link inválido ou expirado",
+    "linkExpiredMessage": "Este link de acesso não é mais válido. Peça ao seu psicólogo para reenviar o convite, ou solicite uma nova recuperação de senha.",
+    "backToLogin": "Voltar ao login"
+  },
+  "clinicSettings": {
+    "title": "Configuração da clínica",
+    "subtitle": "Nome, logo e horário de atendimento que aparecem para pacientes e equipe.",
+    "loading": "Carregando configurações da clínica...",
+    "notFound": "Não encontramos uma clínica associada ao seu perfil. Atualize a página — se o problema continuar, entre em contato com o suporte.",
+    "nameLabel": "Nome da clínica",
+    "namePlaceholder": "Ex.: Consultório Dra. Ana Silva",
+    "logoLabel": "Logo",
+    "logoUpload": "Enviar imagem",
+    "hoursLabel": "Horário de atendimento",
+    "hoursTo": "até",
+    "open": "Aberto",
+    "closed": "Fechado",
+    "days": {
+      "mon": "Segunda-feira",
+      "tue": "Terça-feira",
+      "wed": "Quarta-feira",
+      "thu": "Quinta-feira",
+      "fri": "Sexta-feira",
+      "sat": "Sábado",
+      "sun": "Domingo"
+    },
+    "save": "Salvar alterações",
+    "saving": "Salvando...",
+    "saveSuccess": "Configuração da clínica salva com sucesso.",
+    "saveError": "Não foi possível salvar. Tente novamente.",
+    "secretary": {
+      "title": "Equipe · Secretária",
+      "subtitle": "Dê acesso de leitura à agenda e aos pacientes da clínica para sua equipe de recepção.",
+      "badge": "Pacote empresarial",
+      "upsell": "Contas de secretária estão disponíveis no plano Clínica (pacote empresarial). Faça upgrade em Configurações → Plano para liberar.",
+      "planRequired": "Contas de secretária só estão disponíveis no plano Clínica. Faça upgrade em Configurações → Plano.",
+      "inviteError": "Não foi possível enviar o convite. Tente novamente.",
+      "invite": "Convidar",
+      "inviteSuccess": "Convite enviado! A secretária vai receber um e-mail para criar a senha.",
+      "remove": "Remover acesso",
+      "removeConfirmTitle": "Remover secretária?",
+      "removeConfirmBody": "{{name}} perde o acesso à agenda, pacientes e financeiro desta clínica imediatamente.",
+      "removeError": "Não foi possível remover. Tente novamente."
+    },
+    "nameRequired": "Digite o nome da clínica antes de salvar.",
+    "logoTooLarge": "A imagem excede o tamanho máximo de 5MB.",
+    "logoSaveError": "O nome e o horário foram salvos, mas não foi possível enviar o logo. Tente enviá-lo de novo."
+  },
+  "plans": {
+    "title": "Plano",
+    "subtitle": "Acompanhe seu uso e escolha o plano ideal para sua prática.",
+    "loading": "Carregando seu plano...",
+    "notFound": "Não encontramos uma clínica associada ao seu perfil. Atualize a página — se o problema continuar, entre em contato com o suporte.",
+    "currentPlanLabel": "Plano atual",
+    "usageLabel": "Pacientes ativos",
+    "usageValue": "{{count}} de {{limit}}",
+    "usageUnlimited": "{{count}} (ilimitado)",
+    "current": "Plano atual",
+    "select": "Selecionar",
+    "switching": "Trocando...",
+    "switchError": "Não foi possível trocar de plano. Tente novamente.",
+    "billingNote": "Troca de plano sem cobrança por enquanto — a cobrança automática ainda não está ativa.",
+    "startedAtLabel": "Início",
+    "nextBillingLabel": "Próxima cobrança",
+    "nextBillingNotSet": "Não aplicável (cobrança automática ainda não configurada)",
+    "subscriptionStatus": {
+      "active": "Ativa",
+      "trialing": "Em teste",
+      "past_due": "Pagamento pendente",
+      "canceled": "Cancelada",
+      "incomplete": "Incompleta"
+    },
+    "cancelHint": "Cancelar volta seu plano para o Gratuito. Suas funcionalidades pagas ficam disponíveis até o fim do período já pago quando a cobrança estiver ativa.",
+    "cancelSubscription": "Cancelar assinatura",
+    "cancelConfirmTitle": "Cancelar assinatura?",
+    "cancelConfirmBody": "Seu plano volta para o Gratuito. Se isso deixar você acima do limite de pacientes do plano gratuito, você não conseguirá cadastrar novos pacientes até regularizar.",
+    "free": {
+      "name": "Gratuito",
+      "price": "Grátis",
+      "features": [
+        "Até 10 pacientes ativos",
+        "1 profissional",
+        "Agenda, prontuário e financeiro",
+        "Portal do paciente"
+      ]
+    },
+    "professional": {
+      "name": "Profissional",
+      "price": "Fale conosco",
+      "features": [
+        "Pacientes ativos ilimitados",
+        "1 profissional",
+        "Agenda, prontuário e financeiro",
+        "Portal do paciente",
+        "Resumo e organização de anotações com IA"
+      ]
+    },
+    "clinic": {
+      "name": "Clínica",
+      "price": "Fale conosco",
+      "features": [
+        "Pacientes ativos ilimitados",
+        "Vários profissionais (em breve)",
+        "Agenda, prontuário e financeiro",
+        "Portal do paciente",
+        "Resumo e organização de anotações com IA"
+      ]
+    },
+    "downgradeConfirmTitle": "Trocar para o plano {{plan}}?",
+    "downgradeConfirmBody": "Você vai perder acesso aos recursos exclusivos do seu plano atual que não fazem parte do plano {{plan}}. Se isso deixar você acima do limite de pacientes do novo plano, não vai conseguir cadastrar pacientes novos até regularizar.",
+    "downgradeConfirm": "Confirmar troca"
+  },
+  "professionalProfile": {
+    "title": "Meu perfil profissional",
+    "subtitle": "Como pacientes veem você no diretório público — mantenha atualizado.",
+    "loading": "Carregando seu perfil...",
+    "notFound": "Não encontramos seu perfil profissional. Atualize a página — se o problema continuar, entre em contato com o suporte.",
+    "pendingApproval": "Seu perfil ainda está em análise pela nossa equipe. Assim que for aprovado, ele aparece no diretório público.",
+    "saveSuccess": "Perfil atualizado com sucesso."
+  },
+  "settings": {
+    "title": "Configurações",
+    "subtitle": "Sua conta, perfil, preferências e segurança em um só lugar.",
+    "tabs": {
+      "account": "Conta",
+      "profile": "Perfil profissional",
+      "clinic": "Clínica",
+      "plan": "Plano",
+      "preferences": "Preferências",
+      "security": "Segurança"
+    },
+    "account": {
+      "title": "Conta",
+      "subtitle": "Informações básicas da sua conta na plataforma.",
+      "loading": "Carregando dados da conta...",
+      "nameLabel": "Nome",
+      "emailLabel": "E-mail de login",
+      "roleLabel": "Tipo de conta",
+      "roleValuePsychologist": "Profissional",
+      "memberSinceLabel": "Cliente desde",
+      "editProfileHint": "Para editar nome, telefone, foto e demais dados exibidos publicamente, use a aba"
+    },
+    "patientAccount": {
+      "subtitle": "Seus dados pessoais e de contato.",
+      "contactEmailLabel": "E-mail de contato",
+      "contactEmailHint": "É o e-mail que seu psicólogo(a) usa para falar com você — pode ser diferente do e-mail de login.",
+      "loginEmailLabel": "E-mail de login",
+      "loginEmailHint": "Para alterar o e-mail ou a senha de login, use a aba \"Segurança\"."
+    },
+    "security": {
+      "title": "Segurança",
+      "subtitle": "Senha, e-mail de login e encerramento de sessão.",
+      "passwordSectionTitle": "Alterar senha",
+      "newPasswordLabel": "Nova senha",
+      "confirmPasswordLabel": "Confirmar nova senha",
+      "passwordTooShort": "A senha deve ter pelo menos 8 caracteres.",
+      "passwordMismatch": "As senhas não coincidem.",
+      "passwordSuccess": "Senha atualizada com sucesso.",
+      "genericError": "Não foi possível salvar. Tente novamente.",
+      "saving": "Salvando...",
+      "savePassword": "Salvar nova senha",
+      "emailSectionTitle": "Alterar e-mail de login",
+      "emailSectionHint": "Enviaremos um e-mail de confirmação para o novo endereço antes da troca valer.",
+      "newEmailLabel": "Novo e-mail",
+      "newEmailPlaceholder": "novo@email.com",
+      "emailSuccess": "Enviamos um e-mail de confirmação para o novo endereço.",
+      "saveEmail": "Salvar novo e-mail",
+      "logoutSectionTitle": "Encerrar sessão",
+      "logoutSectionHint": "Sai da sua conta neste dispositivo.",
+      "sessionsNote": "Gerenciamento de sessões/dispositivos conectados ainda não está disponível nesta versão."
+    },
+    "preferences": {
+      "title": "Preferências",
+      "subtitle": "Idioma e notificações.",
+      "languageLabel": "Idioma",
+      "languageHint": "Muda o idioma de toda a plataforma.",
+      "notificationsLabel": "Notificações",
+      "notificationsComingSoon": "Preferências de notificação chegam em uma próxima etapa do projeto."
+    }
+  },
+  "infoPages": {
+    "backToHome": "Voltar ao início"
+  },
+  "sobrePage": {
+    "title": "Sobre",
+    "paragraphs": [
+      "A Travessia nasceu para dar a psicólogos e psicólogas que atendem brasileiros no Brasil e no mundo uma forma organizada de administrar o próprio consultório — sem depender de planilhas soltas, agendas de papel ou uma dezena de ferramentas desconectadas.",
+      "A plataforma reúne agenda, prontuário, financeiro e o relacionamento com pacientes em um só lugar, com o cuidado extra que dados de saúde mental exigem: cada informação clínica fica isolada por profissional, e nenhum paciente enxerga o que não é dele.",
+      "Ainda somos uma plataforma em construção ativa — novas funcionalidades chegam com frequência, sempre guiadas pelo que realmente ajuda quem está no consultório todos os dias."
+    ]
+  },
+  "contatoPage": {
+    "title": "Contato",
+    "intro": "Alguma dúvida, sugestão ou problema? Escreva pra gente — respondemos pessoalmente.",
+    "emailLabel": "E-mail",
+    "emailValue": "contato@travessiapsi.com.br",
+    "responseTimeNote": "Normalmente respondemos em até 2 dias úteis."
+  },
+  "termosPage": {
+    "title": "Termos de uso",
+    "draftNotice": "Este é um texto-modelo, ainda não revisado por um advogado. Antes do lançamento comercial da plataforma, recomendamos que ele seja adaptado por um profissional jurídico às leis vigentes e à razão social real da empresa.",
+    "lastUpdated": "Última atualização: agosto de 2026",
+    "sections": [
+      {
+        "heading": "1. Sobre estes termos",
+        "body": "Ao criar uma conta e usar a Travessia, você concorda com estes termos de uso. Eles se aplicam a profissionais de psicologia que usam a plataforma para gerenciar seu consultório e a pacientes que acessam a área do paciente a convite de seu psicólogo ou psicóloga."
+      },
+      {
+        "heading": "2. O que a plataforma oferece",
+        "body": "Ferramentas de agenda, prontuário eletrônico, controle financeiro e comunicação com pacientes, organizadas por planos com diferentes limites de uso — descritos na página de planos."
+      },
+      {
+        "heading": "3. Responsabilidade profissional",
+        "body": "A Travessia é uma ferramenta de gestão administrativa. Ela não substitui o julgamento clínico do profissional nem se responsabiliza pelo conteúdo dos registros inseridos, que são de responsabilidade exclusiva de quem os cria."
+      },
+      {
+        "heading": "4. Conta e acesso",
+        "body": "Cada profissional é responsável por manter sua senha em sigilo e por qualquer atividade realizada em sua conta. O acesso de pacientes é concedido pelo profissional e pode ser revogado a qualquer momento."
+      },
+      {
+        "heading": "5. Cancelamento",
+        "body": "Você pode encerrar sua conta a qualquer momento pelas configurações da plataforma. Ao cancelar um plano pago, o acesso aos recursos correspondentes é mantido até o fim do período já pago."
+      },
+      {
+        "heading": "6. Alterações nestes termos",
+        "body": "Podemos atualizar estes termos periodicamente. Mudanças relevantes serão comunicadas por e-mail ou por aviso na plataforma."
+      }
+    ]
+  },
+  "privacidadePage": {
+    "title": "Política de privacidade",
+    "draftNotice": "Este é um texto-modelo, ainda não revisado por um advogado. Antes do lançamento comercial da plataforma, recomendamos que ele seja adaptado por um profissional jurídico à LGPD e à razão social real da empresa.",
+    "lastUpdated": "Última atualização: agosto de 2026",
+    "sections": [
+      {
+        "heading": "1. Quais dados coletamos",
+        "body": "Dados de conta (nome, e-mail, telefone) de profissionais e pacientes, e dados clínicos inseridos pelo profissional (prontuário, anotações de sessão, agenda e informações financeiras dos atendimentos)."
+      },
+      {
+        "heading": "2. Como os dados são usados",
+        "body": "Exclusivamente para operar a plataforma: autenticar o acesso, exibir a agenda e o prontuário de cada profissional, e permitir que o paciente veja suas próprias consultas e as anotações que o profissional optar por compartilhar."
+      },
+      {
+        "heading": "3. Isolamento entre profissionais e pacientes",
+        "body": "Cada profissional só acessa os dados dos próprios pacientes. Cada paciente só acessa os próprios dados — nunca os de outros pacientes, nem anotações internas que o profissional não tenha marcado explicitamente como compartilháveis. Essas regras são aplicadas diretamente no banco de dados, não apenas na tela."
+      },
+      {
+        "heading": "4. Uso de inteligência artificial",
+        "body": "A funcionalidade opcional de resumir/organizar anotações com IA envia o texto da anotação para um provedor externo de IA (Groq) processar. Escolhemos um provedor cuja política declara não reter nem treinar modelos com os dados enviados via API. Essa funcionalidade só é usada quando o profissional aciona o botão explicitamente."
+      },
+      {
+        "heading": "5. Armazenamento",
+        "body": "Os dados ficam armazenados em infraestrutura do Supabase, com controle de acesso por linha (Row Level Security) no banco de dados."
+      },
+      {
+        "heading": "6. Seus direitos",
+        "body": "Você pode solicitar a correção ou exclusão dos seus dados de conta a qualquer momento pelas configurações da plataforma, ou entrando em contato conosco."
+      }
+    ]
+  },
+  "checkout": {
+    "orderSummary": "Resumo do plano",
+    "noBillingNotice": "A cobrança automática ainda não está configurada nesta plataforma. Seu plano já fica liberado agora, sem custo — você será avisado quando a cobrança automática for habilitada.",
+    "applyError": "Não foi possível aplicar o plano. Tente novamente.",
+    "confirmCta": "Confirmar e ir para o painel",
+    "applying": "Aplicando...",
+    "laterHint": "Você pode mudar de plano a qualquer momento em Configurações → Plano."
+  },
+  "secretary": {
+    "navTitle": "Travessia · Secretaria",
+    "title": "Painel da secretaria",
+    "subtitle": "Agenda e pacientes da clínica.",
+    "agendaEmpty": "Nenhuma consulta futura agendada.",
+    "noContactInfo": "Sem informações de contato.",
+    "financeEmpty": "Nenhum pagamento registrado ainda.",
+    "markPending": "Marcar como pendente",
+    "noProfessionalLinked": "Não encontramos o profissional dono desta clínica — agendar e cadastrar pacientes fica indisponível até isso ser corrigido. Fale com o administrador.",
+    "actionError": "Não foi possível concluir a ação. Tente novamente.",
+    "patientsEmpty": "Nenhum paciente cadastrado nesta clínica ainda."
+  },
+  "linkAccount": {
+    "patientButton": "Vincular conta existente",
+    "secretaryButton": "Vincular conta existente",
+    "patientTitle": "Vincular paciente existente",
+    "patientSubtitle": "Informe o e-mail de uma conta de paciente já cadastrada na plataforma para vinculá-la a você.",
+    "secretaryTitle": "Vincular secretária existente",
+    "secretarySubtitle": "Informe o e-mail de uma conta de secretária já cadastrada na plataforma para vinculá-la à sua clínica.",
+    "emailPlaceholder": "E-mail da conta",
+    "cancel": "Cancelar",
+    "confirm": "Vincular",
+    "linking": "Vinculando...",
+    "genericError": "Não foi possível vincular essa conta. Verifique o e-mail e tente novamente.",
+    "patientLimitError": "Seu plano atual atingiu o limite de pacientes. Faça upgrade para vincular mais contas."
+  },
+  "sessionRecord": {
+    "title": "Prontuário da sessão",
+    "loadError": "Não foi possível carregar o prontuário desta sessão. Tente novamente.",
+    "duplicateError": "Já existe um prontuário para esta sessão. Feche e abra de novo pra editar o que já foi salvo."
+  }
+}
