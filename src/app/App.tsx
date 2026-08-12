@@ -8811,55 +8811,71 @@ function AdminClinicsView() {
     null,
   );
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(false);
-      const [clinicsRes, peopleRes] = await Promise.all([
-        supabase
-          .from("clinics")
-          .select("id, name, plan, owner_id")
-          .order("name", { ascending: true }),
-        supabase
-          .from("profiles")
-          .select("id, full_name, email, role, clinic_id")
-          .in("role", ["psychologist", "secretary"]),
-      ]);
-      if (cancelled) return;
-      if (clinicsRes.error || peopleRes.error) {
-        setError(true);
-      } else {
-        setClinics((clinicsRes.data as AdminClinicRow[]) ?? []);
-        setPeople((peopleRes.data as AdminClinicPerson[]) ?? []);
-      }
-      setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    const [clinicsRes, peopleRes] = await Promise.all([
+      supabase
+        .from("clinics")
+        .select("id, name, plan, owner_id")
+        .order("name", { ascending: true }),
+      supabase
+        .from("profiles")
+        .select("id, full_name, email, role, clinic_id")
+        .in("role", ["psychologist", "secretary"]),
+    ]);
+    if (clinicsRes.error || peopleRes.error) {
+      setError(true);
+    } else {
+      setClinics((clinicsRes.data as AdminClinicRow[]) ?? []);
+      setPeople((peopleRes.data as AdminClinicPerson[]) ?? []);
+    }
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const handleSetOwner = async (clinicId: string) => {
     const newOwnerId = ownerPick[clinicId];
     if (!newOwnerId) return;
     setOwnerBusyId(clinicId);
     setOwnerActionError(null);
-    const { error: err } = await supabase
-      .from("clinics")
-      .update({ owner_id: newOwnerId })
-      .eq("id", clinicId);
-    if (err) {
+    try {
+      // Fase 27.2 — quem o admin escolhe pode não estar (ainda) vinculado a
+      // esta clínica (ex.: hoje é dono de outra clínica auto-criada e o
+      // admin quer consolidar tudo numa só). Por isso este botão não só
+      // marca `owner_id`: também move `profiles.clinic_id` e
+      // `professionals.clinic_id` do profissional escolhido pra cá, do
+      // mesmo jeito que "Vincular clínica" faz em Admin → Usuários — senão
+      // ele viraria "dono" de uma clínica da qual nem é membro.
+      const { error: profileErr } = await supabase
+        .from("profiles")
+        .update({ clinic_id: clinicId })
+        .eq("id", newOwnerId);
+      if (profileErr) throw profileErr;
+
+      const { error: profErr } = await supabase
+        .from("professionals")
+        .update({ clinic_id: clinicId })
+        .eq("id", newOwnerId);
+      if (profErr) throw profErr;
+
+      const { error: clinicErr } = await supabase
+        .from("clinics")
+        .update({ owner_id: newOwnerId })
+        .eq("id", clinicId);
+      if (clinicErr) throw clinicErr;
+
+      setOwnerPick((prev) => ({ ...prev, [clinicId]: "" }));
+      await load();
+    } catch (err) {
       console.error("Falha ao definir dono da clínica:", err);
       setOwnerActionError(clinicId);
+    } finally {
       setOwnerBusyId(null);
-      return;
     }
-    setClinics((prev) =>
-      prev.map((c) => (c.id === clinicId ? { ...c, owner_id: newOwnerId } : c)),
-    );
-    setOwnerPick((prev) => ({ ...prev, [clinicId]: "" }));
-    setOwnerBusyId(null);
   };
 
   if (loading) {
@@ -8907,11 +8923,13 @@ function AdminClinicsView() {
         const secretaries = people.filter(
           (p) => p.role === "secretary" && p.clinic_id === c.id,
         );
-        // Fase 27.2 — todo mundo já vinculado à clínica (dono atual incluso)
-        // é candidato a virar dono; o admin pode tanto preencher uma
-        // clínica sem dono quanto corrigir um dono errado.
+        // Fase 27.2 — a lista é TODO psicólogo do sistema, não só quem já
+        // está vinculado a esta clínica: o caso mais comum é justamente o
+        // contrário (o profissional certo ainda está preso à clínica
+        // pessoal auto-criada pra ele, não a esta). `handleSetOwner` já
+        // cuida de mover o vínculo (`clinic_id`) pra cá ao definir o dono.
         const eligibleForOwner = people.filter(
-          (p) => p.role === "psychologist" && p.clinic_id === c.id,
+          (p) => p.role === "psychologist" && p.id !== c.owner_id,
         );
         return (
           <div
@@ -8963,7 +8981,7 @@ function AdminClinicsView() {
                     </option>
                     {eligibleForOwner.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.full_name || t("userMenu.noName")}
+                        {p.full_name || t("userMenu.noName")} · {p.email}
                       </option>
                     ))}
                   </select>
