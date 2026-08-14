@@ -718,6 +718,12 @@
     "errorLoading": "Não foi possível carregar seus dados agora. Tente novamente.",
     "notLinkedTitle": "Sua conta ainda não está vinculada",
     "notLinkedText": "Fale com seu psicólogo ou clínica para vincular seu acesso ao cadastro correto.",
+    "kpi": {
+      "upcoming": "Próximas consultas",
+      "completed": "Sessões realizadas",
+      "sharedNotes": "Anotações compartilhadas",
+      "chartTitle": "Consultas por mês"
+    },
     "upcomingTitle": "Próximas consultas",
     "noUpcoming": "Nenhuma consulta agendada no momento.",
     "confirm": "Confirmar presença",

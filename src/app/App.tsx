@@ -34,6 +34,7 @@ import {
   Settings,
   Link as LinkIcon,
   FileText,
+  LayoutDashboard,
 } from "lucide-react";
 
 import {
@@ -51,6 +52,33 @@ import {
 import { createClient } from "@supabase/supabase-js";
 import { useTranslation } from "react-i18next";
 import { SUPPORTED_LANGUAGES } from "../i18n";
+
+// Fase 29 — logo oficial (fornecida pelo usuário), duas variantes já
+// recortadas/com fundo transparente: a verde (`logo-mark`) pra fundos claros
+// (cards de login, nav do site) e a clara (`logo-mark-light`) pra fundos na
+// cor primária (sidebars dos painéis internos), onde a versão verde ficaria
+// com contraste baixo demais contra o próprio verde de fundo.
+import logoMark from "../assets/logo-mark.png";
+import logoMarkLight from "../assets/logo-mark-light.png";
+
+function BrandMark({
+  size = 16,
+  light = false,
+  className = "",
+}: {
+  size?: number;
+  light?: boolean;
+  className?: string;
+}) {
+  return (
+    <img
+      src={light ? logoMarkLight : logoMark}
+      alt=""
+      style={{ width: size, height: size }}
+      className={`shrink-0 object-contain ${className}`}
+    />
+  );
+}
 
 const SUPABASE_URL = "https://iicsmwkqjuasbsgehrce.supabase.co";
 const API = `${SUPABASE_URL}/functions/v1/make-server-a65fd448`;
@@ -439,7 +467,7 @@ function LoginForm({ onLogin }: { onLogin: (user: AppUser) => void }) {
       </div>
       <div className="bg-background rounded-2xl p-10 w-full max-w-sm shadow-2xl">
         <div className="flex items-center gap-2 mb-8">
-          <Shield size={20} className="text-accent" />
+          <BrandMark size={20} />
           <span
             className="font-bold text-foreground"
             style={{ fontFamily: "'Fraunces', serif" }}
@@ -584,7 +612,7 @@ function SignupForm({
       </div>
       <div className="bg-background rounded-2xl p-10 w-full max-w-sm shadow-2xl">
         <div className="flex items-center gap-2 mb-8">
-          <Shield size={20} className="text-accent" />
+          <BrandMark size={20} />
           <span
             className="font-bold text-foreground"
             style={{ fontFamily: "'Fraunces', serif" }}
@@ -824,7 +852,7 @@ function SetPasswordScreen({
       </div>
       <div className="bg-background rounded-2xl p-10 w-full max-w-sm shadow-2xl">
         <div className="flex items-center gap-2 mb-8">
-          <Shield size={20} className="text-accent" />
+          <BrandMark size={20} />
           <span
             className="font-bold text-foreground"
             style={{ fontFamily: "'Fraunces', serif" }}
@@ -889,7 +917,7 @@ function InviteLinkExpiredScreen() {
         <LanguageSwitcher compact />
       </div>
       <div className="bg-background rounded-2xl p-10 w-full max-w-sm shadow-2xl text-center">
-        <Shield size={24} className="text-accent mx-auto mb-4" />
+        <BrandMark size={24} className="mx-auto mb-4" />
         <h2
           className="text-2xl font-light mb-2 text-foreground"
           style={{ fontFamily: "'Fraunces', serif" }}
@@ -938,7 +966,7 @@ function ComingSoonArea({
         />
       </div>
       <div className="bg-background rounded-2xl p-10 w-full max-w-md shadow-2xl text-center">
-        <Shield size={24} className="text-accent mx-auto mb-4" />
+        <BrandMark size={24} className="mx-auto mb-4" />
         <h2
           className="text-2xl font-light mb-2 text-foreground"
           style={{ fontFamily: "'Fraunces', serif" }}
@@ -1822,31 +1850,101 @@ function SecretaryDashboard({
   const [view, setView] = useState<
     "agenda" | "patients" | "finance" | "settings"
   >("agenda");
+  // Fase 28 — menu lateral fixo (em vez das abas no topo) nas telas
+  // internas, no mesmo espírito do mockup de referência: sidebar com a
+  // marca no topo, itens de navegação empilhados, e o menu do usuário no
+  // rodapé. Em telas pequenas a sidebar vira uma gaveta (drawer) acionada
+  // pelo botão de menu na barra superior — não existe versão mobile no
+  // mockup de referência pros painéis internos, então segui o padrão mais
+  // comum pra esse tipo de layout.
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  const navItems: {
+    key: "agenda" | "patients" | "finance" | "settings";
+    icon: React.ReactNode;
+    label: string;
+  }[] = [
+    { key: "agenda", icon: <Calendar size={14} />, label: t("dashboard.navAgenda") },
+    { key: "patients", icon: <Users size={14} />, label: t("dashboard.navPatients") },
+    { key: "finance", icon: <Wallet size={14} />, label: t("dashboard.navFinance") },
+    { key: "settings", icon: <Settings size={14} />, label: t("dashboard.navSettings") },
+  ];
+
+  const navItemClass = (active: boolean) =>
+    `flex items-center gap-2.5 pl-2.5 pr-3 py-2.5 rounded-r-lg text-xs font-semibold uppercase tracking-wider border-l-2 transition-colors ${
+      active
+        ? "bg-primary-foreground/10 text-primary-foreground border-accent"
+        : "text-primary-foreground/70 border-transparent hover:bg-primary-foreground/5 hover:text-primary-foreground"
+    }`;
+
+  const sidebarNav = (onNavigate?: () => void) => (
+    <nav className="flex-1 flex flex-col gap-1 px-3 py-4">
+      {navItems.map((item) => (
+        <button
+          key={item.key}
+          onClick={() => {
+            setView(item.key);
+            onNavigate?.();
+          }}
+          className={navItemClass(view === item.key)}
+        >
+          {item.icon} {item.label}
+        </button>
+      ))}
+    </nav>
+  );
 
   return (
     <div
-      className="min-h-screen bg-background"
+      className="min-h-screen bg-background md:flex"
       style={{ fontFamily: "'Nunito', sans-serif" }}
     >
-      <header className="bg-primary text-primary-foreground h-14 flex items-center px-6 gap-4 sticky top-0 z-40">
-        <Shield size={16} className="text-accent" />
+      {/* Sidebar — desktop */}
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground min-h-screen sticky top-0">
+        <div className="flex items-center gap-2 px-6 h-16 shrink-0">
+          <BrandMark size={16} light />
+          <span
+            className="font-bold text-sm"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            {t("secretary.navTitle")}
+          </span>
+        </div>
+        {sidebarNav()}
+        <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3">
+          <button
+            onClick={() => {
+              window.location.hash = "";
+              window.location.reload();
+            }}
+            className="flex items-center gap-2 px-2.5 text-xs text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+          >
+            <Globe size={14} /> {t("admin.viewSite")}
+          </button>
+          <div className="px-2.5">
+            <UserMenu
+              user={user}
+              onLogout={onLogout}
+              onSwitchRole={onSwitchRole}
+              onOpenSettings={() => setView("settings")}
+            />
+          </div>
+        </div>
+      </aside>
+
+      {/* Barra superior + gaveta — mobile */}
+      <header className="md:hidden bg-primary text-primary-foreground h-14 flex items-center px-4 gap-3 sticky top-0 z-40">
+        <button onClick={() => setMobileNavOpen(true)} className="p-1">
+          <Menu size={20} />
+        </button>
+        <BrandMark size={16} light />
         <span
           className="font-bold text-sm"
           style={{ fontFamily: "'Fraunces', serif" }}
         >
           {t("secretary.navTitle")}
         </span>
-        <div className="ml-auto flex items-center gap-2 sm:gap-3 text-xs">
-          <button
-            onClick={() => {
-              window.location.hash = "";
-              window.location.reload();
-            }}
-            className="flex items-center gap-1.5 text-primary-foreground/70 hover:text-primary-foreground transition-colors shrink-0"
-          >
-            <Globe size={14} />{" "}
-            <span className="hidden sm:inline">{t("admin.viewSite")}</span>
-          </button>
+        <div className="ml-auto">
           <UserMenu
             user={user}
             onLogout={onLogout}
@@ -1856,60 +1954,72 @@ function SecretaryDashboard({
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-6 py-10">
-        <div className="mb-8">
-          <h1
-            className="text-3xl font-light text-foreground"
-            style={{ fontFamily: "'Fraunces', serif" }}
-          >
-            {user.fullName
-              ? t("dashboard.greeting", {
-                  name: user.fullName.trim().split(/\s+/)[0],
-                })
-              : t("secretary.title")}
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {t("secretary.subtitle")}
-          </p>
-        </div>
-
-        {!user.clinicProfessionalId && (
-          <div className="mb-8 text-sm bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3">
-            {t("secretary.noProfessionalLinked")}
+      {mobileNavOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div className="w-64 bg-primary text-primary-foreground h-full flex flex-col">
+            <div className="flex items-center justify-between px-4 h-14 shrink-0">
+              <div className="flex items-center gap-2">
+                <BrandMark size={16} light />
+                <span
+                  className="font-bold text-sm"
+                  style={{ fontFamily: "'Fraunces', serif" }}
+                >
+                  {t("secretary.navTitle")}
+                </span>
+              </div>
+              <button onClick={() => setMobileNavOpen(false)} className="p-1">
+                <X size={18} />
+              </button>
+            </div>
+            {sidebarNav(() => setMobileNavOpen(false))}
+            <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  window.location.hash = "";
+                  window.location.reload();
+                }}
+                className="flex items-center gap-2 px-2.5 text-xs text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+              >
+                <Globe size={14} /> {t("admin.viewSite")}
+              </button>
+            </div>
           </div>
-        )}
-
-        <div className="flex flex-wrap gap-6 mb-8 border-b border-border">
-          <button
-            onClick={() => setView("agenda")}
-            className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${view === "agenda" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-          >
-            <Calendar size={12} /> {t("dashboard.navAgenda")}
-          </button>
-          <button
-            onClick={() => setView("patients")}
-            className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${view === "patients" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-          >
-            <Users size={12} /> {t("dashboard.navPatients")}
-          </button>
-          <button
-            onClick={() => setView("finance")}
-            className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${view === "finance" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-          >
-            <Wallet size={12} /> {t("dashboard.navFinance")}
-          </button>
-          <button
-            onClick={() => setView("settings")}
-            className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${view === "settings" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-          >
-            <Settings size={12} /> {t("dashboard.navSettings")}
-          </button>
+          <div
+            className="flex-1 bg-black/40"
+            onClick={() => setMobileNavOpen(false)}
+          />
         </div>
+      )}
 
-        {view === "agenda" && <SecretaryAgendaView user={user} />}
-        {view === "patients" && <SecretaryPatientsView user={user} />}
-        {view === "finance" && <SecretaryFinanceView user={user} />}
-        {view === "settings" && <AccountSecurityView onLogout={onLogout} />}
+      <div className="flex-1 min-w-0">
+        <div className="max-w-5xl mx-auto px-6 py-10">
+          <div className="mb-8">
+            <h1
+              className="text-3xl font-light text-foreground"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              {user.fullName
+                ? t("dashboard.greeting", {
+                    name: user.fullName.trim().split(/\s+/)[0],
+                  })
+                : t("secretary.title")}
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              {t("secretary.subtitle")}
+            </p>
+          </div>
+
+          {!user.clinicProfessionalId && (
+            <div className="mb-8 text-sm bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3">
+              {t("secretary.noProfessionalLinked")}
+            </div>
+          )}
+
+          {view === "agenda" && <SecretaryAgendaView user={user} />}
+          {view === "patients" && <SecretaryPatientsView user={user} />}
+          {view === "finance" && <SecretaryFinanceView user={user} />}
+          {view === "settings" && <AccountSecurityView onLogout={onLogout} />}
+        </div>
       </div>
     </div>
   );
@@ -1928,6 +2038,9 @@ function ProfessionalDashboard({
   const [view, setView] = useState<
     "overview" | "patients" | "agenda" | "records" | "finance" | "settings"
   >("overview");
+  // Fase 28 — sidebar fixa nas telas internas em vez das abas no topo (ver
+  // nota equivalente em `SecretaryDashboard`).
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   // Quando o aviso de perfil incompleto leva direto pra uma aba específica
   // de Configurações (em vez de sempre abrir em "Conta").
   const [settingsTab, setSettingsTab] = useState<SettingsTab | undefined>(
@@ -2157,29 +2270,131 @@ function ProfessionalDashboard({
     </div>
   );
 
+  const proNavItems: {
+    key: "overview" | "agenda" | "patients" | "records" | "finance" | "settings";
+    icon: React.ReactNode;
+    label: string;
+    onClick: () => void;
+  }[] = [
+    {
+      key: "overview",
+      icon: <LayoutDashboard size={14} />,
+      label: t("dashboard.navOverview"),
+      onClick: () => setView("overview"),
+    },
+    {
+      key: "agenda",
+      icon: <Calendar size={14} />,
+      label: t("dashboard.navAgenda"),
+      onClick: () => setView("agenda"),
+    },
+    {
+      key: "patients",
+      icon: <Users size={14} />,
+      label: t("dashboard.navPatients"),
+      onClick: () => setView("patients"),
+    },
+    {
+      key: "records",
+      icon: <Shield size={14} />,
+      label: t("dashboard.navRecords"),
+      onClick: () => setView("records"),
+    },
+    {
+      key: "finance",
+      icon: <Wallet size={14} />,
+      label: t("dashboard.navFinance"),
+      onClick: () => setView("finance"),
+    },
+    {
+      key: "settings",
+      icon: <UserCircle size={14} />,
+      label: t("dashboard.navSettings"),
+      onClick: () => {
+        setSettingsTab(undefined);
+        setView("settings");
+      },
+    },
+  ];
+
+  const proNavItemClass = (active: boolean) =>
+    `flex items-center gap-2.5 pl-2.5 pr-3 py-2.5 rounded-r-lg text-xs font-semibold uppercase tracking-wider border-l-2 transition-colors ${
+      active
+        ? "bg-primary-foreground/10 text-primary-foreground border-accent"
+        : "text-primary-foreground/70 border-transparent hover:bg-primary-foreground/5 hover:text-primary-foreground"
+    }`;
+
+  const proSidebarNav = (onNavigate?: () => void) => (
+    <nav className="flex-1 flex flex-col gap-1 px-3 py-4">
+      {proNavItems.map((item) => (
+        <button
+          key={item.key}
+          onClick={() => {
+            item.onClick();
+            onNavigate?.();
+          }}
+          className={proNavItemClass(view === item.key)}
+        >
+          {item.icon} {item.label}
+        </button>
+      ))}
+    </nav>
+  );
+
   return (
     <div
-      className="min-h-screen bg-background"
+      className="min-h-screen bg-background md:flex"
       style={{ fontFamily: "'Nunito', sans-serif" }}
     >
-      <header className="bg-primary text-primary-foreground h-14 flex items-center px-6 gap-4 sticky top-0 z-40">
-        <Shield size={16} className="text-accent" />
+      {/* Sidebar — desktop */}
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground min-h-screen sticky top-0">
+        <div className="flex items-center gap-2 px-6 h-16 shrink-0">
+          <BrandMark size={16} light />
+          <span
+            className="font-bold text-sm"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            {t("dashboard.title")}
+          </span>
+        </div>
+        {proSidebarNav()}
+        <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3">
+          <button
+            onClick={() => {
+              window.location.hash = "";
+              window.location.reload();
+            }}
+            className="flex items-center gap-2 px-2.5 text-xs text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+          >
+            <Globe size={14} /> {t("admin.viewSite")}
+          </button>
+          <div className="px-2.5">
+            <UserMenu
+              user={user}
+              onLogout={onLogout}
+              onSwitchRole={onSwitchRole}
+              onOpenSettings={() => {
+                setSettingsTab(undefined);
+                setView("settings");
+              }}
+            />
+          </div>
+        </div>
+      </aside>
+
+      {/* Barra superior + gaveta — mobile */}
+      <header className="md:hidden bg-primary text-primary-foreground h-14 flex items-center px-4 gap-3 sticky top-0 z-40">
+        <button onClick={() => setMobileNavOpen(true)} className="p-1">
+          <Menu size={20} />
+        </button>
+        <BrandMark size={16} light />
         <span
           className="font-bold text-sm"
           style={{ fontFamily: "'Fraunces', serif" }}
         >
           {t("dashboard.title")}
         </span>
-        <div className="ml-auto flex items-center gap-2 sm:gap-3 text-xs">
-          <button
-            onClick={() => {
-              window.location.hash = "";
-              window.location.reload();
-            }}
-            className="flex items-center gap-1.5 text-primary-foreground/70 hover:text-primary-foreground transition-colors shrink-0"
-          >
-            <Globe size={14} /> <span className="hidden sm:inline">{t("admin.viewSite")}</span>
-          </button>
+        <div className="ml-auto">
           <UserMenu
             user={user}
             onLogout={onLogout}
@@ -2192,6 +2407,44 @@ function ProfessionalDashboard({
         </div>
       </header>
 
+      {mobileNavOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div className="w-64 bg-primary text-primary-foreground h-full flex flex-col">
+            <div className="flex items-center justify-between px-4 h-14 shrink-0">
+              <div className="flex items-center gap-2">
+                <BrandMark size={16} light />
+                <span
+                  className="font-bold text-sm"
+                  style={{ fontFamily: "'Fraunces', serif" }}
+                >
+                  {t("dashboard.title")}
+                </span>
+              </div>
+              <button onClick={() => setMobileNavOpen(false)} className="p-1">
+                <X size={18} />
+              </button>
+            </div>
+            {proSidebarNav(() => setMobileNavOpen(false))}
+            <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  window.location.hash = "";
+                  window.location.reload();
+                }}
+                className="flex items-center gap-2 px-2.5 text-xs text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+              >
+                <Globe size={14} /> {t("admin.viewSite")}
+              </button>
+            </div>
+          </div>
+          <div
+            className="flex-1 bg-black/40"
+            onClick={() => setMobileNavOpen(false)}
+          />
+        </div>
+      )}
+
+      <div className="flex-1 min-w-0">
       <div className="max-w-6xl mx-auto px-6 py-10">
         <div className="mb-8">
           <h1
@@ -2227,49 +2480,6 @@ function ProfessionalDashboard({
                       ? t("settings.subtitle")
                       : t("dashboard.subtitle")}
           </p>
-        </div>
-
-        {/* Secondary nav — future fases plug in here */}
-        <div className="flex flex-wrap gap-6 mb-8 border-b border-border">
-          <button
-            onClick={() => setView("overview")}
-            className={`text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${view === "overview" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-          >
-            {t("dashboard.navOverview")}
-          </button>
-          <button
-            onClick={() => setView("agenda")}
-            className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${view === "agenda" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-          >
-            <Calendar size={12} /> {t("dashboard.navAgenda")}
-          </button>
-          <button
-            onClick={() => setView("patients")}
-            className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${view === "patients" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-          >
-            <Users size={12} /> {t("dashboard.navPatients")}
-          </button>
-          <button
-            onClick={() => setView("records")}
-            className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${view === "records" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-          >
-            <Shield size={12} /> {t("dashboard.navRecords")}
-          </button>
-          <button
-            onClick={() => setView("finance")}
-            className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${view === "finance" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-          >
-            <Wallet size={12} /> {t("dashboard.navFinance")}
-          </button>
-          <button
-            onClick={() => {
-              setSettingsTab(undefined);
-              setView("settings");
-            }}
-            className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${view === "settings" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-          >
-            <UserCircle size={12} /> {t("dashboard.navSettings")}
-          </button>
         </div>
 
         {view === "patients" ? (
@@ -2481,6 +2691,7 @@ function ProfessionalDashboard({
             ) : null}
           </>
         )}
+      </div>
       </div>
     </div>
   );
@@ -9566,6 +9777,9 @@ function AdminPanel({
 }) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<AdminTab>("overview");
+  // Fase 28 — sidebar fixa nas telas internas em vez das abas no topo (ver
+  // nota equivalente em `SecretaryDashboard`).
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [psychologists, setPsychologists] = useState<ProfessionalProfile[]>(
     [],
   );
@@ -9660,124 +9874,204 @@ function AdminPanel({
 
   const approved = psychologists.filter((p) => p.approved).length;
 
+  const adminNavItems: { key: AdminTab; icon: React.ReactNode; label: string }[] =
+    [
+      {
+        key: "overview",
+        icon: <LayoutDashboard size={14} />,
+        label: t("admin.tabs.overview"),
+      },
+      {
+        key: "psychologists",
+        icon: <UserCircle size={14} />,
+        label: t("admin.tabs.psychologists"),
+      },
+      { key: "users", icon: <Users size={14} />, label: t("admin.tabs.users") },
+      {
+        key: "clinics",
+        icon: <Building2 size={14} />,
+        label: t("admin.tabs.clinics"),
+      },
+      {
+        key: "patients",
+        icon: <Users size={14} />,
+        label: t("admin.tabs.patients"),
+      },
+      {
+        key: "finance",
+        icon: <Wallet size={14} />,
+        label: t("admin.tabs.finance"),
+      },
+      {
+        key: "settings",
+        icon: <Settings size={14} />,
+        label: t("admin.tabs.settings"),
+      },
+    ];
+
+  const adminNavItemClass = (active: boolean) =>
+    `flex items-center gap-2.5 pl-2.5 pr-3 py-2.5 rounded-r-lg text-xs font-semibold uppercase tracking-wider border-l-2 transition-colors ${
+      active
+        ? "bg-primary-foreground/10 text-primary-foreground border-accent"
+        : "text-primary-foreground/70 border-transparent hover:bg-primary-foreground/5 hover:text-primary-foreground"
+    }`;
+
+  const adminSidebarNav = (onNavigate?: () => void) => (
+    <nav className="flex-1 flex flex-col gap-1 px-3 py-4">
+      {adminNavItems.map((item) => (
+        <button
+          key={item.key}
+          onClick={() => {
+            setTab(item.key);
+            onNavigate?.();
+          }}
+          className={adminNavItemClass(tab === item.key)}
+        >
+          {item.icon} {item.label}
+        </button>
+      ))}
+    </nav>
+  );
+
   return (
     <div
-      className="min-h-screen bg-background"
+      className="min-h-screen bg-background md:flex"
       style={{ fontFamily: "'Nunito', sans-serif" }}
     >
-      {/* Admin Nav */}
-      <header className="bg-primary text-primary-foreground h-14 flex items-center px-6 gap-4 sticky top-0 z-40">
-        <Shield size={16} className="text-accent" />
+      {/* Sidebar — desktop. Fica sempre visível, inclusive durante a edição
+          de um perfil (diferente das abas no topo de antes, que sumiam
+          nesse momento — uma sidebar fixa faz mais sentido continuar ali). */}
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground min-h-screen sticky top-0">
+        <div className="flex items-center gap-2 px-6 h-16 shrink-0">
+          <BrandMark size={16} light />
+          <span
+            className="font-bold text-sm"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            {t("admin.navTitle")}
+          </span>
+        </div>
+        <p className="px-6 text-[0.65rem] text-primary-foreground/60">
+          {approved} {t("admin.published")} ·{" "}
+          {psychologists.length - approved} {t("admin.pending")}
+        </p>
+        {adminSidebarNav()}
+        <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3">
+          <button
+            onClick={() => {
+              window.location.hash = "";
+              window.location.reload();
+            }}
+            className="flex items-center gap-2 px-2.5 text-xs text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+          >
+            <Globe size={14} /> {t("admin.viewSite")}
+          </button>
+          <div className="px-2.5">
+            <UserMenu user={user} onLogout={onLogout} onSwitchRole={onSwitchRole} />
+          </div>
+        </div>
+      </aside>
+
+      {/* Barra superior + gaveta — mobile */}
+      <header className="md:hidden bg-primary text-primary-foreground h-14 flex items-center px-4 gap-3 sticky top-0 z-40">
+        <button onClick={() => setMobileNavOpen(true)} className="p-1">
+          <Menu size={20} />
+        </button>
+        <BrandMark size={16} light />
         <span
           className="font-bold text-sm"
           style={{ fontFamily: "'Fraunces', serif" }}
         >
           {t("admin.navTitle")}
         </span>
-        <div className="ml-auto flex items-center gap-2 sm:gap-3 text-xs min-w-0">
-          <span className="text-primary-foreground/60 hidden md:inline shrink-0">
-            {approved} {t("admin.published")} ·{" "}
-            {psychologists.length - approved} {t("admin.pending")}
-          </span>
-          <button
-            onClick={() => {
-              window.location.hash = "";
-              window.location.reload();
-            }}
-            className="flex items-center gap-1.5 text-primary-foreground/70 hover:text-primary-foreground transition-colors shrink-0"
-          >
-            <Globe size={14} /> <span className="hidden sm:inline">{t("admin.viewSite")}</span>
-          </button>
+        <div className="ml-auto">
           <UserMenu user={user} onLogout={onLogout} onSwitchRole={onSwitchRole} />
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-6 py-10">
-        {/* Cabeçalho + navegação por abas — escondidos durante a edição de
-            um perfil (Ponto 4: foco total na tarefa, sem distração ao lado). */}
-        {!(tab === "psychologists" && view === "edit") && (
-          <>
-            <div className="mb-8">
-              <h1
-                className="text-3xl font-light text-foreground"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                {tab === "overview"
-                  ? t("admin.overview.title")
-                  : tab === "users"
-                    ? t("admin.users.title")
-                    : tab === "clinics"
-                      ? t("admin.clinics.title")
-                      : tab === "patients"
-                        ? t("admin.patients.title")
-                        : tab === "finance"
-                          ? t("admin.finance.title")
-                          : tab === "settings"
-                            ? t("settings.security.title")
-                            : t("admin.listTitle")}
-              </h1>
-              <p className="text-muted-foreground text-sm mt-1">
-                {tab === "overview"
-                  ? t("admin.overview.subtitle")
-                  : tab === "users"
-                    ? t("admin.users.subtitle")
-                    : tab === "clinics"
-                      ? t("admin.clinics.subtitle")
-                      : tab === "patients"
-                        ? t("admin.patients.subtitle")
-                        : tab === "finance"
-                          ? t("admin.finance.subtitle")
-                          : tab === "settings"
-                            ? t("admin.settingsSubtitle")
-                            : t("admin.listSubtitle")}
-              </p>
+      {mobileNavOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div className="w-64 bg-primary text-primary-foreground h-full flex flex-col">
+            <div className="flex items-center justify-between px-4 h-14 shrink-0">
+              <div className="flex items-center gap-2">
+                <BrandMark size={16} light />
+                <span
+                  className="font-bold text-sm"
+                  style={{ fontFamily: "'Fraunces', serif" }}
+                >
+                  {t("admin.navTitle")}
+                </span>
+              </div>
+              <button onClick={() => setMobileNavOpen(false)} className="p-1">
+                <X size={18} />
+              </button>
             </div>
+            <p className="px-6 text-[0.65rem] text-primary-foreground/60">
+              {approved} {t("admin.published")} ·{" "}
+              {psychologists.length - approved} {t("admin.pending")}
+            </p>
+            {adminSidebarNav(() => setMobileNavOpen(false))}
+            <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  window.location.hash = "";
+                  window.location.reload();
+                }}
+                className="flex items-center gap-2 px-2.5 text-xs text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+              >
+                <Globe size={14} /> {t("admin.viewSite")}
+              </button>
+            </div>
+          </div>
+          <div
+            className="flex-1 bg-black/40"
+            onClick={() => setMobileNavOpen(false)}
+          />
+        </div>
+      )}
 
-            <div className="flex flex-wrap gap-6 mb-8 border-b border-border">
-              <button
-                onClick={() => setTab("overview")}
-                className={`text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${tab === "overview" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-              >
-                {t("admin.tabs.overview")}
-              </button>
-              <button
-                onClick={() => setTab("psychologists")}
-                className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${tab === "psychologists" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-              >
-                <UserCircle size={12} /> {t("admin.tabs.psychologists")}
-              </button>
-              <button
-                onClick={() => setTab("users")}
-                className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${tab === "users" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-              >
-                <Users size={12} /> {t("admin.tabs.users")}
-              </button>
-              <button
-                onClick={() => setTab("clinics")}
-                className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${tab === "clinics" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-              >
-                <Building2 size={12} /> {t("admin.tabs.clinics")}
-              </button>
-              <button
-                onClick={() => setTab("patients")}
-                className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${tab === "patients" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-              >
-                <Users size={12} /> {t("admin.tabs.patients")}
-              </button>
-              <button
-                onClick={() => setTab("finance")}
-                className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${tab === "finance" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-              >
-                <Wallet size={12} /> {t("admin.tabs.finance")}
-              </button>
-              <button
-                onClick={() => setTab("settings")}
-                className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider pb-3 -mb-px border-b-2 transition-colors ${tab === "settings" ? "text-foreground border-accent" : "text-muted-foreground border-transparent hover:text-foreground"}`}
-              >
-                <Settings size={12} /> {t("admin.tabs.settings")}
-              </button>
-            </div>
-          </>
+      <div className="flex-1 min-w-0">
+      <div className="max-w-5xl mx-auto px-6 py-10">
+        {/* Título/subtítulo — escondidos durante a edição de um perfil
+            (Ponto 4: foco total na tarefa, sem distração ao lado). A
+            navegação em si não some mais junto, já que agora vive na
+            sidebar fixa acima. */}
+        {!(tab === "psychologists" && view === "edit") && (
+          <div className="mb-8">
+            <h1
+              className="text-3xl font-light text-foreground"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              {tab === "overview"
+                ? t("admin.overview.title")
+                : tab === "users"
+                  ? t("admin.users.title")
+                  : tab === "clinics"
+                    ? t("admin.clinics.title")
+                    : tab === "patients"
+                      ? t("admin.patients.title")
+                      : tab === "finance"
+                        ? t("admin.finance.title")
+                        : tab === "settings"
+                          ? t("settings.security.title")
+                          : t("admin.listTitle")}
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              {tab === "overview"
+                ? t("admin.overview.subtitle")
+                : tab === "users"
+                  ? t("admin.users.subtitle")
+                  : tab === "clinics"
+                    ? t("admin.clinics.subtitle")
+                    : tab === "patients"
+                      ? t("admin.patients.subtitle")
+                      : tab === "finance"
+                        ? t("admin.finance.subtitle")
+                        : tab === "settings"
+                          ? t("admin.settingsSubtitle")
+                          : t("admin.listSubtitle")}
+            </p>
+          </div>
         )}
 
         {tab === "overview" && <AdminOverview />}
@@ -9944,6 +10238,7 @@ function AdminPanel({
           </>
         )}
       </div>
+      </div>
     </div>
   );
 }
@@ -10067,7 +10362,8 @@ function Landing() {
       {/* NAV */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <a href="#" className="flex items-center gap-2">
+          <a href="#" className="flex items-center gap-2.5">
+            <BrandMark size={18} />
             <span
               className="text-xl font-light tracking-wide text-foreground"
               style={{ fontFamily: "'Fraunces', serif" }}
@@ -10714,10 +11010,10 @@ function Landing() {
           <div className="grid md:grid-cols-[2fr_1fr_1fr_1fr] gap-12 mb-14">
             <div>
               <p
-                className="text-2xl font-light mb-3"
+                className="text-2xl font-light mb-3 flex items-center gap-2"
                 style={{ fontFamily: "'Fraunces', serif" }}
               >
-                {t("nav.brand")}
+                <BrandMark size={20} light /> {t("nav.brand")}
               </p>
               <p className="text-background/60 text-sm leading-relaxed max-w-xs">
                 {t("footer.blurb")}
@@ -11098,8 +11394,19 @@ function PatientArea({
 }) {
   const { t, i18n } = useTranslation();
   const [view, setView] = useState<"overview" | "settings">("overview");
+  // Fase 29 — sidebar fixa (mesmo padrão das outras 3 telas internas) em vez
+  // dos botões-pílula que existiam antes só pra alternar "Visão geral" /
+  // "Configurações".
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [profile, setProfile] = useState<OwnProfile | null>(null);
-  const [appointments, setAppointments] = useState<OwnAppointment[]>([]);
+  // Fase 29 — antes só buscava consultas FUTURAS (`gte starts_at, agora`).
+  // Pra ter cartões de estatística e o gráfico de consultas por mês (igual
+  // à visão geral do profissional), agora busca o histórico completo do
+  // paciente de uma vez só; a lista de "próximas" é só um filtro client-side
+  // sobre esse mesmo conjunto, não uma query separada.
+  const [allAppointments, setAllAppointments] = useState<OwnAppointment[]>(
+    [],
+  );
   const [records, setRecords] = useState<SharedRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -11129,7 +11436,6 @@ function PatientArea({
           .from("appointments")
           .select("id, starts_at, ends_at, status")
           .eq("patient_id", ownProfile.id)
-          .gte("starts_at", new Date().toISOString())
           .order("starts_at", { ascending: true }),
         supabase
           .from("patient_visible_records")
@@ -11137,11 +11443,41 @@ function PatientArea({
           .not("shared_notes", "is", null)
           .order("session_date", { ascending: false }),
       ]);
-      setAppointments((apptRes.data as OwnAppointment[]) ?? []);
+      setAllAppointments((apptRes.data as OwnAppointment[]) ?? []);
       setRecords((recordsRes.data as SharedRecord[]) ?? []);
     }
     setLoading(false);
   }, [user.id]);
+
+  const now = new Date();
+  const appointments = allAppointments.filter(
+    (a) => new Date(a.starts_at) >= now,
+  );
+  const completedCount = allAppointments.filter(
+    (a) => a.status === "completed",
+  ).length;
+
+  // Últimos 6 meses, mesmo padrão de bucket usado no gráfico de faturamento
+  // do `ProfessionalDashboard` — meses sem nenhuma consulta aparecem com 0
+  // em vez de simplesmente sumirem do gráfico.
+  const sessionsByMonth = (() => {
+    const buckets = new Map<string, number>();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      buckets.set(`${d.getFullYear()}-${d.getMonth()}`, 0);
+    }
+    allAppointments
+      .filter((a) => a.status !== "cancelled")
+      .forEach((a) => {
+        const d = new Date(a.starts_at);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        if (buckets.has(key)) buckets.set(key, (buckets.get(key) ?? 0) + 1);
+      });
+    return Array.from(buckets.entries()).map(([key, count]) => {
+      const [y, m] = key.split("-").map(Number);
+      return { month: new Date(y, m, 1).toISOString(), count };
+    });
+  })();
 
   useEffect(() => {
     load();
@@ -11178,29 +11514,122 @@ function PatientArea({
       year: "numeric",
     }).format(new Date(`${iso}T00:00:00`));
 
+  const monthLabel = (iso: string) =>
+    new Intl.DateTimeFormat(i18n.language, { month: "short" }).format(
+      new Date(iso),
+    );
+
+  const kpiCard = (
+    icon: React.ReactNode,
+    label: string,
+    value: React.ReactNode,
+  ) => (
+    <div className="bg-background flex flex-col items-center text-center gap-1.5 py-6 px-3">
+      <span className="text-accent">{icon}</span>
+      <p
+        className="text-2xl font-light text-foreground"
+        style={{ fontFamily: "'Fraunces', serif" }}
+      >
+        {value}
+      </p>
+      <p className="text-[0.65rem] uppercase tracking-wider font-semibold text-muted-foreground">
+        {label}
+      </p>
+    </div>
+  );
+
+  const patientNavItems: {
+    key: "overview" | "settings";
+    icon: React.ReactNode;
+    label: string;
+  }[] = [
+    {
+      key: "overview",
+      icon: <LayoutDashboard size={14} />,
+      label: t("dashboard.navOverview"),
+    },
+    {
+      key: "settings",
+      icon: <UserCircle size={14} />,
+      label: t("dashboard.navSettings"),
+    },
+  ];
+
+  const patientNavItemClass = (active: boolean) =>
+    `flex items-center gap-2.5 pl-2.5 pr-3 py-2.5 rounded-r-lg text-xs font-semibold uppercase tracking-wider border-l-2 transition-colors ${
+      active
+        ? "bg-primary-foreground/10 text-primary-foreground border-accent"
+        : "text-primary-foreground/70 border-transparent hover:bg-primary-foreground/5 hover:text-primary-foreground"
+    }`;
+
+  const patientSidebarNav = (onNavigate?: () => void) => (
+    <nav className="flex-1 flex flex-col gap-1 px-3 py-4">
+      {patientNavItems.map((item) => (
+        <button
+          key={item.key}
+          onClick={() => {
+            setView(item.key);
+            onNavigate?.();
+          }}
+          className={patientNavItemClass(view === item.key)}
+        >
+          {item.icon} {item.label}
+        </button>
+      ))}
+    </nav>
+  );
+
   return (
     <div
-      className="min-h-screen bg-background"
+      className="min-h-screen bg-background md:flex"
       style={{ fontFamily: "'Nunito', sans-serif" }}
     >
-      <header className="bg-primary text-primary-foreground h-14 flex items-center px-6 gap-4 sticky top-0 z-40">
-        <Shield size={16} className="text-accent" />
+      {/* Sidebar — desktop */}
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground min-h-screen sticky top-0">
+        <div className="flex items-center gap-2 px-6 h-16 shrink-0">
+          <BrandMark size={16} light />
+          <span
+            className="font-bold text-sm"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            {t("patientArea.title")}
+          </span>
+        </div>
+        {patientSidebarNav()}
+        <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3">
+          <button
+            onClick={() => {
+              window.location.hash = "";
+              window.location.reload();
+            }}
+            className="flex items-center gap-2 px-2.5 text-xs text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+          >
+            <Globe size={14} /> {t("admin.viewSite")}
+          </button>
+          <div className="px-2.5">
+            <UserMenu
+              user={user}
+              onLogout={onLogout}
+              onSwitchRole={onSwitchRole}
+              onOpenSettings={() => setView("settings")}
+            />
+          </div>
+        </div>
+      </aside>
+
+      {/* Barra superior + gaveta — mobile */}
+      <header className="md:hidden bg-primary text-primary-foreground h-14 flex items-center px-4 gap-3 sticky top-0 z-40">
+        <button onClick={() => setMobileNavOpen(true)} className="p-1">
+          <Menu size={20} />
+        </button>
+        <BrandMark size={16} light />
         <span
           className="font-bold text-sm"
           style={{ fontFamily: "'Fraunces', serif" }}
         >
           {t("patientArea.title")}
         </span>
-        <div className="ml-auto flex items-center gap-2 sm:gap-3 text-xs">
-          <button
-            onClick={() => {
-              window.location.hash = "";
-              window.location.reload();
-            }}
-            className="flex items-center gap-1.5 text-primary-foreground/70 hover:text-primary-foreground transition-colors shrink-0"
-          >
-            <Globe size={14} /> <span className="hidden sm:inline">{t("admin.viewSite")}</span>
-          </button>
+        <div className="ml-auto">
           <UserMenu
             user={user}
             onLogout={onLogout}
@@ -11210,6 +11639,44 @@ function PatientArea({
         </div>
       </header>
 
+      {mobileNavOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div className="w-64 bg-primary text-primary-foreground h-full flex flex-col">
+            <div className="flex items-center justify-between px-4 h-14 shrink-0">
+              <div className="flex items-center gap-2">
+                <BrandMark size={16} light />
+                <span
+                  className="font-bold text-sm"
+                  style={{ fontFamily: "'Fraunces', serif" }}
+                >
+                  {t("patientArea.title")}
+                </span>
+              </div>
+              <button onClick={() => setMobileNavOpen(false)} className="p-1">
+                <X size={18} />
+              </button>
+            </div>
+            {patientSidebarNav(() => setMobileNavOpen(false))}
+            <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  window.location.hash = "";
+                  window.location.reload();
+                }}
+                className="flex items-center gap-2 px-2.5 text-xs text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+              >
+                <Globe size={14} /> {t("admin.viewSite")}
+              </button>
+            </div>
+          </div>
+          <div
+            className="flex-1 bg-black/40"
+            onClick={() => setMobileNavOpen(false)}
+          />
+        </div>
+      )}
+
+      <div className="flex-1 min-w-0">
       <div className="max-w-3xl mx-auto px-6 py-10">
         <div className="mb-8">
           <h1
@@ -11229,21 +11696,6 @@ function PatientArea({
               ? t("settings.subtitle")
               : t("patientArea.subtitle")}
           </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2 mb-8">
-          <button
-            onClick={() => setView("overview")}
-            className={`text-xs font-semibold px-4 py-2 rounded-full transition-colors ${view === "overview" ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground hover:bg-secondary"}`}
-          >
-            {t("dashboard.navOverview")}
-          </button>
-          <button
-            onClick={() => setView("settings")}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full transition-colors ${view === "settings" ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground hover:bg-secondary"}`}
-          >
-            <UserCircle size={12} /> {t("dashboard.navSettings")}
-          </button>
         </div>
 
         {view === "settings" ? (
@@ -11269,6 +11721,65 @@ function PatientArea({
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Fase 29 — cartões de estatística + gráfico, no mesmo espírito
+                da visão geral do profissional (mesma grade com hairline
+                dividers e o mesmo gráfico de barras por mês). */}
+            <div className="grid sm:grid-cols-3 gap-px bg-border border border-border">
+              {kpiCard(
+                <Calendar size={16} />,
+                t("patientArea.kpi.upcoming"),
+                appointments.length,
+              )}
+              {kpiCard(
+                <Check size={16} />,
+                t("patientArea.kpi.completed"),
+                completedCount,
+              )}
+              {kpiCard(
+                <FileText size={16} />,
+                t("patientArea.kpi.sharedNotes"),
+                records.length,
+              )}
+            </div>
+
+            <div className="bg-card border border-border rounded-2xl p-6">
+              <h3 className="text-sm font-semibold text-foreground mb-1">
+                {t("patientArea.kpi.chartTitle")}
+              </h3>
+              {sessionsByMonth.every((m) => m.count === 0) && (
+                <p className="text-xs text-muted-foreground mb-2">
+                  {t("dashboard.charts.noData")}
+                </p>
+              )}
+              <div className="h-48 mt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={sessionsByMonth}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="var(--border)"
+                    />
+                    <XAxis
+                      dataKey="month"
+                      tickFormatter={monthLabel}
+                      tick={{ fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={28}
+                    />
+                    <RechartsTooltip labelFormatter={(v) => monthLabel(String(v))} />
+                    <Bar dataKey="count" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
             <div className="bg-card border border-border rounded-2xl p-6">
               <h3 className="text-sm font-semibold text-foreground mb-4">
                 {t("patientArea.upcomingTitle")}
@@ -11384,6 +11895,7 @@ function PatientArea({
           </div>
         )}
       </div>
+      </div>
     </div>
   );
 }
@@ -11415,6 +11927,7 @@ function InfoPageShell({
               window.location.hash = "";
             }}
           >
+            <BrandMark size={18} />
             <span
               className="text-xl font-bold text-primary"
               style={{ fontFamily: "'Fraunces', serif" }}
@@ -11571,6 +12084,7 @@ function PublicPlansPage() {
               window.location.hash = "";
             }}
           >
+            <BrandMark size={18} />
             <span
               className="text-xl font-bold text-primary"
               style={{ fontFamily: "'Fraunces', serif" }}

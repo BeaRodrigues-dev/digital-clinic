@@ -718,6 +718,12 @@
     "errorLoading": "Couldn't load your data right now. Please try again.",
     "notLinkedTitle": "Your account isn't linked yet",
     "notLinkedText": "Talk to your psychologist or clinic to link your access to the right record.",
+    "kpi": {
+      "upcoming": "Upcoming appointments",
+      "completed": "Completed sessions",
+      "sharedNotes": "Shared notes",
+      "chartTitle": "Appointments per month"
+    },
     "upcomingTitle": "Upcoming appointments",
     "noUpcoming": "No appointments scheduled right now.",
     "confirm": "Confirm attendance",
