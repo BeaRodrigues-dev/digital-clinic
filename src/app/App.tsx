@@ -3731,9 +3731,6 @@ function PatientsView({ user }: { user: AppUser }) {
                       : t("patients.statusInactive")}
                   </span>
                 </div>
-                <p className="text-sm text-muted-foreground mt-0.5 truncate">
-                  {[p.email, p.phone].filter(Boolean).join(" · ") || "—"}
-                </p>
                 {p.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {p.tags.slice(0, 4).map((tag) => (
@@ -5898,9 +5895,14 @@ function RecordsView({ user }: { user: AppUser }) {
       ) : (
         <div className="space-y-3">
           {filtered.map((r) => (
-            <div
+            <button
               key={r.id}
-              className="bg-card border border-border rounded-xl p-5 flex items-center gap-5 shadow-sm hover:shadow-md transition-shadow"
+              type="button"
+              onClick={() => {
+                setSelected(r);
+                setView("edit");
+              }}
+              className="w-full text-left bg-card border border-border rounded-xl p-5 flex items-center gap-5 shadow-sm hover:shadow-md hover:border-primary/40 transition-all"
             >
               <div className="w-12 h-12 rounded-xl bg-primary/10 overflow-hidden shrink-0 flex items-center justify-center text-lg font-semibold text-primary">
                 {(r.patients?.full_name ?? "?").charAt(0).toUpperCase()}
@@ -5932,24 +5934,19 @@ function RecordsView({ user }: { user: AppUser }) {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-3 shrink-0">
                 <button
-                  onClick={() => {
-                    setSelected(r);
-                    setView("edit");
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteId(r.id);
                   }}
-                  className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
-                >
-                  <Pencil size={14} />
-                </button>
-                <button
-                  onClick={() => setDeleteId(r.id)}
                   className="p-2 rounded-lg border border-border hover:bg-red-50 hover:border-red-200 transition-colors text-muted-foreground hover:text-red-600"
                 >
                   <Trash2 size={14} />
                 </button>
+                <ChevronRight size={18} className="text-muted-foreground/40" />
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}
