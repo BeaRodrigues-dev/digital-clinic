@@ -18,6 +18,7 @@ import {
   Shield,
   Loader2,
   ChevronLeft,
+  ChevronRight,
   ToggleLeft,
   ToggleRight,
   Upload,
@@ -1693,9 +1694,12 @@ function SecretaryPatientsView({ user }: { user: AppUser }) {
           {filtered.map((p) => (
             <div
               key={p.id}
-              className="bg-card border border-border rounded-xl p-4 flex items-center justify-between gap-4"
+              className="bg-card border border-border rounded-xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow"
             >
-              <div className="min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 shrink-0 flex items-center justify-center text-sm font-semibold text-primary">
+                {p.full_name.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
                 <p className="font-medium text-foreground text-sm truncate">
                   {p.full_name}
                 </p>
@@ -1834,8 +1838,11 @@ function SecretaryFinanceView({ user }: { user: AppUser }) {
       {payments.map((p) => (
         <div
           key={p.id}
-          className="bg-card border border-border rounded-xl p-5 flex items-center gap-5"
+          className="bg-card border border-border rounded-xl p-5 flex items-center gap-5 shadow-sm hover:shadow-md transition-shadow"
         >
+          <div className="w-11 h-11 rounded-xl bg-primary/10 shrink-0 flex items-center justify-center text-base font-semibold text-primary">
+            {(p.patients?.full_name ?? "?").charAt(0).toUpperCase()}
+          </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-foreground">
@@ -3706,9 +3713,9 @@ function PatientsView({ user }: { user: AppUser }) {
                 setSelected(p);
                 setView("detail");
               }}
-              className="w-full text-left bg-card border border-border rounded-xl p-5 flex items-center gap-5 hover:border-primary/40 transition-colors"
+              className="w-full text-left bg-card border border-border rounded-xl p-5 flex items-center gap-5 shadow-sm hover:shadow-md hover:border-primary/40 transition-all"
             >
-              <div className="w-12 h-12 rounded-xl bg-muted overflow-hidden shrink-0 border border-border flex items-center justify-center text-lg font-semibold text-muted-foreground">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 overflow-hidden shrink-0 flex items-center justify-center text-lg font-semibold text-primary">
                 {p.full_name.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
@@ -3745,7 +3752,7 @@ function PatientsView({ user }: { user: AppUser }) {
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-3 shrink-0">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -3755,6 +3762,7 @@ function PatientsView({ user }: { user: AppUser }) {
                 >
                   <Trash2 size={14} />
                 </button>
+                <ChevronRight size={18} className="text-muted-foreground/40" />
               </div>
             </button>
           ))}
@@ -5892,9 +5900,9 @@ function RecordsView({ user }: { user: AppUser }) {
           {filtered.map((r) => (
             <div
               key={r.id}
-              className="bg-card border border-border rounded-xl p-5 flex items-center gap-5"
+              className="bg-card border border-border rounded-xl p-5 flex items-center gap-5 shadow-sm hover:shadow-md transition-shadow"
             >
-              <div className="w-12 h-12 rounded-xl bg-muted overflow-hidden shrink-0 border border-border flex items-center justify-center text-lg font-semibold text-muted-foreground">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 overflow-hidden shrink-0 flex items-center justify-center text-lg font-semibold text-primary">
                 {(r.patients?.full_name ?? "?").charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
@@ -6529,9 +6537,9 @@ function FinanceView({ user }: { user: AppUser }) {
           {filtered.map((p) => (
             <div
               key={p.id}
-              className="bg-card border border-border rounded-xl p-5 flex items-center gap-5"
+              className="bg-card border border-border rounded-xl p-5 flex items-center gap-5 shadow-sm hover:shadow-md transition-shadow"
             >
-              <div className="w-12 h-12 rounded-xl bg-muted overflow-hidden shrink-0 border border-border flex items-center justify-center text-lg font-semibold text-muted-foreground">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 overflow-hidden shrink-0 flex items-center justify-center text-lg font-semibold text-primary">
                 {(p.patients?.full_name ?? "?").charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
