@@ -1076,6 +1076,8 @@ function SecretaryAgendaView({ user }: { user: AppUser }) {
   const [error, setError] = useState(false);
   const [view, setView] = useState<"list" | "new">("list");
   const [actionError, setActionError] = useState(false);
+  const [quickViewAppt, setQuickViewAppt] =
+    useState<SecretaryAppointmentRow | null>(null);
 
   const {
     gridStart: monthGridStart,
@@ -1250,50 +1252,6 @@ function SecretaryAgendaView({ user }: { user: AppUser }) {
     no_show: "bg-amber-100 text-amber-700",
   };
 
-  const appointmentCard = (a: SecretaryAppointmentRow) => (
-    <div
-      key={a.id}
-      className="bg-card border border-border rounded-xl p-4 flex items-center justify-between gap-4"
-    >
-      <div className="min-w-0">
-        <p className="font-medium text-foreground text-sm truncate">
-          {a.patients?.full_name ?? t("agenda.unknownPatient")}
-        </p>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          {new Intl.DateTimeFormat(i18n.language, {
-            dateStyle: "medium",
-            timeStyle: "short",
-          }).format(new Date(a.starts_at))}
-        </p>
-      </div>
-      <div className="flex items-center gap-1.5 shrink-0">
-        <span
-          className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusStyles[a.status] ?? "bg-secondary text-muted-foreground"}`}
-        >
-          {t(`dashboard.appointmentStatus.${a.status}`)}
-        </span>
-        {a.status !== "confirmed" && a.status !== "completed" && (
-          <button
-            title={t("agenda.actions.confirm")}
-            onClick={() => updateStatus(a.id, "confirmed")}
-            className="p-1.5 rounded-lg border border-border hover:bg-blue-50 hover:border-blue-200 transition-colors text-muted-foreground hover:text-blue-700"
-          >
-            <Check size={13} />
-          </button>
-        )}
-        {a.status !== "cancelled" && (
-          <button
-            title={t("agenda.actions.cancelAppt")}
-            onClick={() => updateStatus(a.id, "cancelled")}
-            className="p-1.5 rounded-lg border border-border hover:bg-red-50 hover:border-red-200 transition-colors text-muted-foreground hover:text-red-600"
-          >
-            <X size={13} />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24 text-muted-foreground gap-3">
@@ -1404,7 +1362,7 @@ function SecretaryAgendaView({ user }: { user: AppUser }) {
         </p>
       )}
 
-      {mode === "day" ? (
+      {mode === "day" || mode === "week" ? (
         appointments.length === 0 ? (
           <div className="text-center py-24 border-2 border-dashed border-border rounded-2xl">
             <p className="text-4xl mb-4">🌿</p>
@@ -1413,38 +1371,16 @@ function SecretaryAgendaView({ user }: { user: AppUser }) {
             </p>
           </div>
         ) : (
-          <div className="space-y-2">{appointments.map(appointmentCard)}</div>
+          <CalendarGrid
+            days={
+              mode === "day"
+                ? [anchorDate]
+                : Array.from({ length: 7 }, (_, i) => addDays(rangeStart, i))
+            }
+            appointments={appointments}
+            onSelect={(a) => setQuickViewAppt(a)}
+          />
         )
-      ) : mode === "week" ? (
-        <div className="space-y-6">
-          {Array.from({ length: 7 }).map((_, i) => {
-            const day = addDays(rangeStart, i);
-            const dayAppts = appointments.filter((a) => {
-              const d = new Date(a.starts_at);
-              return (
-                d.getFullYear() === day.getFullYear() &&
-                d.getMonth() === day.getMonth() &&
-                d.getDate() === day.getDate()
-              );
-            });
-            return (
-              <div key={i}>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 capitalize">
-                  {dayLabel(day)}
-                </p>
-                {dayAppts.length === 0 ? (
-                  <p className="text-xs text-muted-foreground/70 pl-1">
-                    {t("agenda.emptyDay")}
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {dayAppts.map(appointmentCard)}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
       ) : (
         // Fase 27.1 — mesma grade visual de calendário do AgendaView do
         // profissional; clicar num dia leva pro modo "dia", onde as ações
@@ -1527,6 +1463,69 @@ function SecretaryAgendaView({ user }: { user: AppUser }) {
                 </button>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {quickViewAppt && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6"
+          onClick={() => setQuickViewAppt(null)}
+        >
+          <div
+            className="bg-card rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div className="min-w-0">
+                <p className="font-semibold text-foreground truncate">
+                  {quickViewAppt.patients?.full_name ??
+                    t("agenda.unknownPatient")}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {new Intl.DateTimeFormat(i18n.language, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  }).format(new Date(quickViewAppt.starts_at))}
+                </p>
+              </div>
+              <span
+                className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${statusStyles[quickViewAppt.status] ?? "bg-secondary text-muted-foreground"}`}
+              >
+                {t(`dashboard.appointmentStatus.${quickViewAppt.status}`)}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2 justify-end">
+              {quickViewAppt.status !== "confirmed" &&
+                quickViewAppt.status !== "completed" && (
+                  <button
+                    onClick={async () => {
+                      await updateStatus(quickViewAppt.id, "confirmed");
+                      setQuickViewAppt(null);
+                    }}
+                    className="text-xs font-medium px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+                  >
+                    {t("agenda.actions.confirm")}
+                  </button>
+                )}
+              {quickViewAppt.status !== "cancelled" && (
+                <button
+                  onClick={async () => {
+                    await updateStatus(quickViewAppt.id, "cancelled");
+                    setQuickViewAppt(null);
+                  }}
+                  className="text-xs font-medium px-3 py-1.5 rounded-full border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                >
+                  {t("agenda.actions.cancelAppt")}
+                </button>
+              )}
+              <button
+                onClick={() => setQuickViewAppt(null)}
+                className="text-xs font-medium px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:bg-secondary transition-colors"
+              >
+                {t("agenda.cancel")}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -4002,6 +4001,156 @@ function MiniCalendar({
   );
 }
 
+// Fase 30.1 — grade de horários (estética de calendário tipo Google
+// Calendar/Notion Calendar) pros modos "dia" e "semana" da Agenda, que
+// antes eram só listas de cards empilhados sem noção visual de horário.
+// Cabeçalho dos dias (`sticky top-0`, dentro do próprio contêiner de
+// rolagem) e coluna de horas (`sticky left-0`) ficam sempre visíveis
+// enquanto rola — é o "calendário fixo" pedido. Compartilhada entre
+// `AgendaView` (profissional) e `SecretaryAgendaView`, que usam formatos de
+// consulta ligeiramente diferentes (`Appointment` vs. `SecretaryAppointmentRow`)
+// mas com os mesmos campos de data/status/paciente usados aqui.
+const AGENDA_HOURS = Array.from({ length: 24 }, (_, i) => i);
+const AGENDA_ROW_H = 56;
+const AGENDA_BLOCK_STYLES: Record<string, string> = {
+  scheduled: "bg-secondary text-muted-foreground border-border",
+  confirmed: "bg-blue-50 text-blue-700 border-blue-200",
+  completed: "bg-green-50 text-green-700 border-green-200",
+  cancelled: "bg-red-50 text-red-600 border-red-200 line-through",
+  no_show: "bg-amber-50 text-amber-700 border-amber-200",
+};
+
+const agendaMinutesFromMidnight = (d: Date) => d.getHours() * 60 + d.getMinutes();
+
+function CalendarGrid<
+  T extends {
+    id: string;
+    starts_at: string;
+    ends_at: string;
+    status: string;
+    patients?: { full_name: string } | null;
+  },
+>({
+  days,
+  appointments,
+  onSelect,
+}: {
+  days: Date[];
+  appointments: T[];
+  onSelect: (a: T) => void;
+}) {
+  const { i18n } = useTranslation();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const today = new Date();
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 7 * AGENDA_ROW_H;
+  }, []);
+
+  const timeLabel = (iso: string) =>
+    new Intl.DateTimeFormat(i18n.language, {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(iso));
+
+  return (
+    <div className="border border-border rounded-2xl bg-card overflow-hidden">
+      <div className="flex border-b border-border">
+        <div className="w-14 shrink-0" />
+        {days.map((day, i) => {
+          const isToday = day.toDateString() === today.toDateString();
+          return (
+            <div
+              key={i}
+              className={`flex-1 min-w-0 text-center py-2.5 border-l border-border ${isToday ? "bg-primary/5" : ""}`}
+            >
+              <p className="text-[0.6rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                {new Intl.DateTimeFormat(i18n.language, {
+                  weekday: "short",
+                }).format(day)}
+              </p>
+              <p className="mt-0.5">
+                <span
+                  className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-sm font-semibold ${isToday ? "bg-primary text-primary-foreground" : "text-foreground"}`}
+                >
+                  {day.getDate()}
+                </span>
+              </p>
+            </div>
+          );
+        })}
+      </div>
+      <div ref={scrollRef} className="flex overflow-y-auto max-h-[560px]">
+        <div className="w-14 shrink-0 sticky left-0 bg-card z-10">
+          {AGENDA_HOURS.map((h) => (
+            <div
+              key={h}
+              style={{ height: AGENDA_ROW_H }}
+              className="border-t border-border first:border-t-0 text-[0.6rem] text-muted-foreground px-1.5 pt-1"
+            >
+              {String(h).padStart(2, "0")}:00
+            </div>
+          ))}
+        </div>
+        {days.map((day, i) => {
+          const dayAppts = appointments.filter((a) => {
+            const d = new Date(a.starts_at);
+            return (
+              d.getFullYear() === day.getFullYear() &&
+              d.getMonth() === day.getMonth() &&
+              d.getDate() === day.getDate()
+            );
+          });
+          return (
+            <div
+              key={i}
+              className="flex-1 min-w-0 relative border-l border-border"
+              style={{ height: AGENDA_ROW_H * 24 }}
+            >
+              {AGENDA_HOURS.map((h) => (
+                <div
+                  key={h}
+                  style={{ height: AGENDA_ROW_H }}
+                  className="border-t border-border first:border-t-0"
+                />
+              ))}
+              {dayAppts.map((a) => {
+                const start = new Date(a.starts_at);
+                const end = new Date(a.ends_at);
+                const top =
+                  (agendaMinutesFromMidnight(start) / 60) * AGENDA_ROW_H;
+                const height = Math.max(
+                  ((agendaMinutesFromMidnight(end) -
+                    agendaMinutesFromMidnight(start)) /
+                    60) *
+                    AGENDA_ROW_H,
+                  22,
+                );
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => onSelect(a)}
+                    style={{ top, height }}
+                    className={`absolute left-1 right-1 rounded-md px-1.5 py-0.5 text-left text-[0.65rem] leading-tight font-medium overflow-hidden border hover:brightness-95 transition-[filter] ${AGENDA_BLOCK_STYLES[a.status] ?? "bg-secondary text-muted-foreground border-border"}`}
+                  >
+                    <span className="block truncate font-semibold">
+                      {timeLabel(a.starts_at)}
+                    </span>
+                    <span className="block truncate">
+                      {a.patients?.full_name ?? "—"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // Interpreta um valor monetário digitado livremente, aceitando tanto o
 // formato pt-BR ("1.500,00") quanto o formato en-US ("1,500.00") — o app
 // só trocava vírgula por ponto antes (`Number(amount.replace(",", "."))`),
@@ -4260,6 +4409,7 @@ function AgendaView({ user }: { user: AppUser }) {
     null,
   );
   const [actionError, setActionError] = useState(false);
+  const [quickViewAppt, setQuickViewAppt] = useState<Appointment | null>(null);
 
   // A grade do mês mostra semanas completas (segunda a domingo) ao redor do
   // mês, então o intervalo buscado no banco é maior que só "dia 1 ao dia
@@ -4438,102 +4588,6 @@ function AgendaView({ user }: { user: AppUser }) {
     no_show: "bg-amber-100 text-amber-700",
   };
 
-  const appointmentCard = (appt: Appointment) => (
-    <div
-      key={appt.id}
-      className="bg-card border border-border rounded-xl p-4 flex items-center gap-4 flex-wrap sm:flex-nowrap"
-    >
-      <div className="text-sm font-semibold text-foreground w-24 shrink-0">
-        {timeLabel(appt.starts_at)} – {timeLabel(appt.ends_at)}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground truncate">
-          {appt.patients?.full_name ?? "—"}
-        </p>
-        {appt.notes && (
-          <p className="text-xs text-muted-foreground truncate mt-0.5">
-            {appt.notes}
-          </p>
-        )}
-      </div>
-      <span
-        className={`text-xs px-2.5 py-0.5 rounded-full font-medium shrink-0 ${statusStyles[appt.status] ?? "bg-secondary text-muted-foreground"}`}
-      >
-        {t(`dashboard.appointmentStatus.${appt.status}`)}
-      </span>
-      <div className="flex items-center gap-1 shrink-0">
-        <button
-          title={
-            recordedApptIds.has(appt.id)
-              ? t("agenda.actions.recordDone")
-              : t("agenda.actions.record")
-          }
-          onClick={() => setRecordModalAppt(appt)}
-          className={`p-1.5 rounded-lg border transition-colors ${
-            recordedApptIds.has(appt.id)
-              ? "border-primary/40 bg-primary/5 text-primary hover:bg-primary/10"
-              : "border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
-          }`}
-        >
-          <FileText size={13} />
-        </button>
-        {appt.status !== "confirmed" && appt.status !== "completed" && (
-          <button
-            title={t("agenda.actions.confirm")}
-            onClick={() => updateStatus(appt.id, "confirmed")}
-            className="p-1.5 rounded-lg border border-border hover:bg-blue-50 hover:border-blue-200 transition-colors text-muted-foreground hover:text-blue-700"
-          >
-            <Check size={13} />
-          </button>
-        )}
-        {appt.status !== "completed" && (
-          <button
-            title={t("agenda.actions.complete")}
-            onClick={() => updateStatus(appt.id, "completed")}
-            className="p-1.5 rounded-lg border border-border hover:bg-green-50 hover:border-green-200 transition-colors text-muted-foreground hover:text-green-700"
-          >
-            <Eye size={13} />
-          </button>
-        )}
-        {appt.status !== "no_show" && (
-          <button
-            title={t("agenda.actions.noShow")}
-            onClick={() => updateStatus(appt.id, "no_show")}
-            className="p-1.5 rounded-lg border border-border hover:bg-amber-50 hover:border-amber-200 transition-colors text-muted-foreground hover:text-amber-700"
-          >
-            <AlertTriangle size={13} />
-          </button>
-        )}
-        {appt.status !== "cancelled" && (
-          <button
-            title={t("agenda.actions.cancelAppt")}
-            onClick={() => updateStatus(appt.id, "cancelled")}
-            className="p-1.5 rounded-lg border border-border hover:bg-red-50 hover:border-red-200 transition-colors text-muted-foreground hover:text-red-600"
-          >
-            <X size={13} />
-          </button>
-        )}
-        <button
-          title={t("agenda.actions.edit")}
-          onClick={() => {
-            setSelected(appt);
-            setView("edit");
-          }}
-          className="p-1.5 rounded-lg border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
-        >
-          <Pencil size={13} />
-        </button>
-        <button
-          title={t("agenda.actions.delete")}
-          onClick={() => setDeleteId(appt.id)}
-          className="p-1.5 rounded-lg border border-border hover:bg-red-50 hover:border-red-200 transition-colors text-muted-foreground hover:text-red-600"
-        >
-          <Trash2 size={13} />
-        </button>
-      </div>
-    </div>
-  );
-
   if (view === "new" || view === "edit") {
     return (
       <div>
@@ -4703,7 +4757,7 @@ function AgendaView({ user }: { user: AppUser }) {
             {t("agenda.noPatientsText")}
           </p>
         </div>
-      ) : mode === "day" ? (
+      ) : mode === "day" || mode === "week" ? (
         appointments.length === 0 ? (
           <div className="text-center py-24 border-2 border-dashed border-border rounded-2xl">
             <p className="text-muted-foreground text-sm">
@@ -4711,38 +4765,16 @@ function AgendaView({ user }: { user: AppUser }) {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">{appointments.map(appointmentCard)}</div>
+          <CalendarGrid
+            days={
+              mode === "day"
+                ? [anchorDate]
+                : Array.from({ length: 7 }, (_, i) => addDays(rangeStart, i))
+            }
+            appointments={appointments}
+            onSelect={(a) => setQuickViewAppt(a)}
+          />
         )
-      ) : mode === "week" ? (
-        <div className="space-y-6">
-          {Array.from({ length: 7 }).map((_, i) => {
-            const day = addDays(rangeStart, i);
-            const dayAppts = appointments.filter((a) => {
-              const d = new Date(a.starts_at);
-              return (
-                d.getFullYear() === day.getFullYear() &&
-                d.getMonth() === day.getMonth() &&
-                d.getDate() === day.getDate()
-              );
-            });
-            return (
-              <div key={i}>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 capitalize">
-                  {dayLabel(day)}
-                </p>
-                {dayAppts.length === 0 ? (
-                  <p className="text-xs text-muted-foreground/70 pl-1">
-                    {t("agenda.emptyDay")}
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {dayAppts.map(appointmentCard)}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
       ) : (
         // Fase 27 — grade de calendário do mês. Cada célula é um botão só
         // (não cada consulta individualmente) porque não cabe a ação
@@ -4827,6 +4859,131 @@ function AgendaView({ user }: { user: AppUser }) {
                 </button>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {quickViewAppt && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6"
+          onClick={() => setQuickViewAppt(null)}
+        >
+          <div
+            className="bg-card rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-semibold text-foreground truncate">
+                  {quickViewAppt.patients?.full_name ?? "—"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {dayLabel(new Date(quickViewAppt.starts_at))} ·{" "}
+                  {timeLabel(quickViewAppt.starts_at)} –{" "}
+                  {timeLabel(quickViewAppt.ends_at)}
+                </p>
+              </div>
+              <span
+                className={`text-xs px-2.5 py-0.5 rounded-full font-medium shrink-0 ${statusStyles[quickViewAppt.status] ?? "bg-secondary text-muted-foreground"}`}
+              >
+                {t(`dashboard.appointmentStatus.${quickViewAppt.status}`)}
+              </span>
+            </div>
+            {quickViewAppt.notes && (
+              <p className="text-xs text-muted-foreground mt-3 bg-secondary rounded-lg px-3 py-2">
+                {quickViewAppt.notes}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2 mt-5">
+              <button
+                onClick={() => {
+                  setRecordModalAppt(quickViewAppt);
+                  setQuickViewAppt(null);
+                }}
+                className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
+                  recordedApptIds.has(quickViewAppt.id)
+                    ? "border-primary/40 bg-primary/5 text-primary hover:bg-primary/10"
+                    : "border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
+                }`}
+              >
+                <FileText size={13} />
+                {recordedApptIds.has(quickViewAppt.id)
+                  ? t("agenda.actions.recordDone")
+                  : t("agenda.actions.record")}
+              </button>
+              {quickViewAppt.status !== "confirmed" &&
+                quickViewAppt.status !== "completed" && (
+                  <button
+                    onClick={async () => {
+                      await updateStatus(quickViewAppt.id, "confirmed");
+                      setQuickViewAppt(null);
+                    }}
+                    className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+                  >
+                    <Check size={13} /> {t("agenda.actions.confirm")}
+                  </button>
+                )}
+              {quickViewAppt.status !== "completed" && (
+                <button
+                  onClick={async () => {
+                    await updateStatus(quickViewAppt.id, "completed");
+                    setQuickViewAppt(null);
+                  }}
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+                >
+                  <Eye size={13} /> {t("agenda.actions.complete")}
+                </button>
+              )}
+              {quickViewAppt.status !== "no_show" && (
+                <button
+                  onClick={async () => {
+                    await updateStatus(quickViewAppt.id, "no_show");
+                    setQuickViewAppt(null);
+                  }}
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
+                >
+                  <AlertTriangle size={13} /> {t("agenda.actions.noShow")}
+                </button>
+              )}
+              {quickViewAppt.status !== "cancelled" && (
+                <button
+                  onClick={async () => {
+                    await updateStatus(quickViewAppt.id, "cancelled");
+                    setQuickViewAppt(null);
+                  }}
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                >
+                  <X size={13} /> {t("agenda.actions.cancelAppt")}
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setSelected(quickViewAppt);
+                  setView("edit");
+                  setQuickViewAppt(null);
+                }}
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              >
+                <Pencil size={13} /> {t("agenda.actions.edit")}
+              </button>
+              <button
+                onClick={() => {
+                  setDeleteId(quickViewAppt.id);
+                  setQuickViewAppt(null);
+                }}
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+              >
+                <Trash2 size={13} /> {t("agenda.actions.delete")}
+              </button>
+            </div>
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={() => setQuickViewAppt(null)}
+                className="text-xs font-medium px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:bg-secondary transition-colors"
+              >
+                {t("agenda.cancel")}
+              </button>
+            </div>
           </div>
         </div>
       )}
