@@ -9186,15 +9186,15 @@ function AdminUsersView({ currentUserId }: { currentUserId: string }) {
             return (
               <div
                 key={u.id}
-                className="bg-card border border-border rounded-xl p-5"
+                className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-foreground">
+                      <span className="text-sm font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary">
                         {u.full_name || t("userMenu.noName")}
                       </span>
-                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground">
                         {t(`roles.${u.role}`)}
                       </span>
                       {isSelf && (
@@ -9203,13 +9203,13 @@ function AdminUsersView({ currentUserId }: { currentUserId: string }) {
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground mt-0.5">
+                    <p className="text-sm text-muted-foreground mt-1.5">
                       {u.email}
                     </p>
                     {u.clinic_id && clinicNames[u.clinic_id] && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <span className="inline-block text-xs font-medium px-2 py-0.5 rounded-md bg-accent/10 text-accent mt-1.5">
                         {clinicNames[u.clinic_id]}
-                      </p>
+                      </span>
                     )}
                   </div>
                 </div>
@@ -9517,11 +9517,11 @@ function AdminClinicsView() {
         return (
           <div
             key={c.id}
-            className={`bg-card border rounded-xl overflow-hidden ${owner ? "border-border" : "border-l-2 border-l-red-400 border-y-border border-r-border"}`}
+            className={`bg-card border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow ${owner ? "border-border" : "border-l-2 border-l-red-400 border-y-border border-r-border"}`}
           >
             <div className="flex items-start justify-between gap-4 flex-wrap px-5 py-4">
               <span
-                className="text-lg font-light text-foreground"
+                className="inline-block text-lg font-light px-3 py-1 rounded-lg bg-accent/10 text-accent"
                 style={{ fontFamily: "'Fraunces', serif" }}
               >
                 {c.name || t("admin.clinics.unnamed")}
@@ -9537,7 +9537,9 @@ function AdminClinicsView() {
               </p>
               {owner ? (
                 <p className="text-foreground">
-                  {owner.full_name || t("userMenu.noName")}{" "}
+                  <span className="text-sm font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary">
+                    {owner.full_name || t("userMenu.noName")}
+                  </span>{" "}
                   <span className="text-muted-foreground">
                     · {owner.email}
                   </span>
@@ -9602,10 +9604,12 @@ function AdminClinicsView() {
                   {t("admin.clinics.noOtherProfessionals")}
                 </p>
               ) : (
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5">
                   {otherProfessionals.map((p) => (
                     <p key={p.id} className="text-foreground">
-                      {p.full_name || t("userMenu.noName")}{" "}
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-primary/10 text-primary">
+                        {p.full_name || t("userMenu.noName")}
+                      </span>{" "}
                       <span className="text-muted-foreground">
                         · {p.email}
                       </span>
@@ -9624,10 +9628,12 @@ function AdminClinicsView() {
                   {t("admin.clinics.noSecretaries")}
                 </p>
               ) : (
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5">
                   {secretaries.map((s) => (
                     <p key={s.id} className="text-foreground">
-                      {s.full_name || t("userMenu.noName")}{" "}
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-primary/10 text-primary">
+                        {s.full_name || t("userMenu.noName")}
+                      </span>{" "}
                       <span className="text-muted-foreground">
                         · {s.email}
                       </span>
@@ -9811,17 +9817,17 @@ function AdminPatientsView() {
             return (
               <div
                 key={p.id}
-                className="bg-card border border-border rounded-xl overflow-hidden"
+                className="bg-card border border-border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
               >
                 <div className="px-5 py-4">
                   <span
-                    className="text-lg font-light text-foreground"
+                    className="inline-block text-lg font-light px-3 py-1 rounded-lg bg-primary/10 text-primary"
                     style={{ fontFamily: "'Fraunces', serif" }}
                   >
                     {p.full_name}
                   </span>
                   {p.email && (
-                    <p className="text-sm text-muted-foreground mt-0.5">
+                    <p className="text-sm text-muted-foreground mt-1.5">
                       {p.email}
                     </p>
                   )}
@@ -10491,7 +10497,7 @@ function AdminPanel({
                     {psychologists.map((p) => (
                       <div
                         key={p.id}
-                        className={`bg-card border rounded-xl p-5 flex items-center gap-5 transition-colors ${p.approved ? "border-border" : "border-amber-200 bg-amber-50/30"}`}
+                        className={`bg-card border rounded-xl p-5 flex items-center gap-5 shadow-sm hover:shadow-md transition-all ${p.approved ? "border-border" : "border-amber-200 bg-amber-50/30"}`}
                       >
                         <div className="w-14 h-14 rounded-xl bg-muted overflow-hidden shrink-0 border border-border">
                           {p.photo_url ? (
@@ -10509,7 +10515,7 @@ function AdminPanel({
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-foreground">
+                            <span className="text-sm font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary">
                               {p.name}
                             </span>
                             <span
