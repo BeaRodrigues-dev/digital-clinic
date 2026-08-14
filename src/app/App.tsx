@@ -1700,10 +1700,8 @@ function SecretaryPatientsView({ user }: { user: AppUser }) {
                 {p.full_name.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate">
-                  <span className="font-medium text-sm px-2 py-0.5 rounded-md bg-primary/10 text-primary">
-                    {p.full_name}
-                  </span>
+                <p className="font-medium text-foreground text-sm truncate">
+                  {p.full_name}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5 truncate">
                   {[p.email, p.phone].filter(Boolean).join(" · ") ||
@@ -1847,7 +1845,7 @@ function SecretaryFinanceView({ user }: { user: AppUser }) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary">
+              <span className="font-semibold text-foreground">
                 {p.patients?.full_name ?? "—"}
               </span>
               <span
@@ -3722,7 +3720,7 @@ function PatientsView({ user }: { user: AppUser }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary">
+                  <span className="font-semibold text-foreground">
                     {p.full_name}
                   </span>
                   <span
@@ -5909,7 +5907,7 @@ function RecordsView({ user }: { user: AppUser }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary">
+                  <span className="font-semibold text-foreground">
                     {r.patients?.full_name ?? "—"}
                   </span>
                   <span className="text-xs text-muted-foreground">
@@ -6546,7 +6544,7 @@ function FinanceView({ user }: { user: AppUser }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary">
+                  <span className="font-semibold text-foreground">
                     {p.patients?.full_name ?? "—"}
                   </span>
                   <span
@@ -9193,10 +9191,10 @@ function AdminUsersView({ currentUserId }: { currentUserId: string }) {
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary">
+                      <span className="font-semibold text-foreground">
                         {u.full_name || t("userMenu.noName")}
                       </span>
-                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground">
+                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary">
                         {t(`roles.${u.role}`)}
                       </span>
                       {isSelf && (
@@ -9205,13 +9203,13 @@ function AdminUsersView({ currentUserId }: { currentUserId: string }) {
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1.5">
+                    <p className="text-sm text-muted-foreground mt-0.5">
                       {u.email}
                     </p>
                     {u.clinic_id && clinicNames[u.clinic_id] && (
-                      <span className="inline-block text-xs font-medium px-2 py-0.5 rounded-md bg-accent/10 text-accent mt-1.5">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {clinicNames[u.clinic_id]}
-                      </span>
+                      </p>
                     )}
                   </div>
                 </div>
@@ -9523,7 +9521,7 @@ function AdminClinicsView() {
           >
             <div className="flex items-start justify-between gap-4 flex-wrap px-5 py-4">
               <span
-                className="inline-block text-lg font-light px-3 py-1 rounded-lg bg-accent/10 text-accent"
+                className="text-lg font-light text-foreground"
                 style={{ fontFamily: "'Fraunces', serif" }}
               >
                 {c.name || t("admin.clinics.unnamed")}
@@ -9539,9 +9537,7 @@ function AdminClinicsView() {
               </p>
               {owner ? (
                 <p className="text-foreground">
-                  <span className="text-sm font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary">
-                    {owner.full_name || t("userMenu.noName")}
-                  </span>{" "}
+                  {owner.full_name || t("userMenu.noName")}{" "}
                   <span className="text-muted-foreground">
                     · {owner.email}
                   </span>
@@ -9606,12 +9602,10 @@ function AdminClinicsView() {
                   {t("admin.clinics.noOtherProfessionals")}
                 </p>
               ) : (
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1">
                   {otherProfessionals.map((p) => (
                     <p key={p.id} className="text-foreground">
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-primary/10 text-primary">
-                        {p.full_name || t("userMenu.noName")}
-                      </span>{" "}
+                      {p.full_name || t("userMenu.noName")}{" "}
                       <span className="text-muted-foreground">
                         · {p.email}
                       </span>
@@ -9630,12 +9624,10 @@ function AdminClinicsView() {
                   {t("admin.clinics.noSecretaries")}
                 </p>
               ) : (
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1">
                   {secretaries.map((s) => (
                     <p key={s.id} className="text-foreground">
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-primary/10 text-primary">
-                        {s.full_name || t("userMenu.noName")}
-                      </span>{" "}
+                      {s.full_name || t("userMenu.noName")}{" "}
                       <span className="text-muted-foreground">
                         · {s.email}
                       </span>
@@ -9823,13 +9815,13 @@ function AdminPatientsView() {
               >
                 <div className="px-5 py-4">
                   <span
-                    className="inline-block text-lg font-light px-3 py-1 rounded-lg bg-primary/10 text-primary"
+                    className="text-lg font-light text-foreground"
                     style={{ fontFamily: "'Fraunces', serif" }}
                   >
                     {p.full_name}
                   </span>
                   {p.email && (
-                    <p className="text-sm text-muted-foreground mt-1.5">
+                    <p className="text-sm text-muted-foreground mt-0.5">
                       {p.email}
                     </p>
                   )}
@@ -10517,7 +10509,7 @@ function AdminPanel({
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary">
+                            <span className="font-semibold text-foreground">
                               {p.name}
                             </span>
                             <span
