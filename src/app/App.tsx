@@ -35,6 +35,7 @@ import {
   Link as LinkIcon,
   FileText,
   LayoutDashboard,
+  CalendarDays,
 } from "lucide-react";
 
 import {
@@ -153,12 +154,20 @@ function UserMenu({
   onSwitchRole,
   onOpenSettings,
   dark = true,
+  openUp = false,
 }: {
   user: AppUser;
   onLogout: () => void;
   onSwitchRole?: (role: UserRole) => Promise<void>;
   onOpenSettings?: () => void;
   dark?: boolean;
+  // Fase 29.1 — nas sidebars novas, este botão fica no rodapé (perto do
+  // fim da tela). Abrindo pra baixo como sempre abriu (pensado pra quando
+  // ele ficava no topo, dentro do header), o menu nascia fora da área
+  // visível e não tinha como rolar até ele. `openUp` abre o menu pra cima
+  // a partir do botão em vez de para baixo — usado só nesses rodapés de
+  // sidebar; os cabeçalhos (topo da tela) continuam abrindo pra baixo.
+  openUp?: boolean;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -244,7 +253,9 @@ function UserMenu({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-64 bg-card border border-border rounded-xl shadow-xl z-50 py-2 text-foreground">
+        <div
+          className={`absolute w-64 bg-card border border-border rounded-xl shadow-xl z-50 py-2 text-foreground max-h-[70vh] overflow-y-auto ${openUp ? "left-0 bottom-full mb-2" : "right-0 top-full mt-2"}`}
+        >
           <div className="px-4 py-2 border-b border-border mb-1">
             <p className="text-sm font-semibold text-foreground truncate">
               {user.fullName || t("userMenu.noName")}
@@ -1056,6 +1067,7 @@ function SecretaryAgendaView({ user }: { user: AppUser }) {
     d.setHours(0, 0, 0, 0);
     return d;
   });
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [appointments, setAppointments] = useState<SecretaryAppointmentRow[]>(
     [],
   );
@@ -1326,6 +1338,33 @@ function SecretaryAgendaView({ user }: { user: AppUser }) {
           >
             {t("agenda.today")}
           </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setCalendarOpen((v) => !v)}
+              title={t("agenda.pickDate")}
+              className={`p-2 rounded-lg border transition-colors ${calendarOpen ? "border-primary text-primary bg-primary/5" : "border-border text-muted-foreground hover:bg-secondary"}`}
+            >
+              <CalendarDays size={16} />
+            </button>
+            {calendarOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-20"
+                  onClick={() => setCalendarOpen(false)}
+                />
+                <div className="absolute left-0 top-full mt-2 z-30">
+                  <MiniCalendar
+                    value={anchorDate}
+                    onChange={(d) => {
+                      setAnchorDate(d);
+                      setCalendarOpen(false);
+                    }}
+                  />
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -1900,7 +1939,7 @@ function SecretaryDashboard({
       style={{ fontFamily: "'Nunito', sans-serif" }}
     >
       {/* Sidebar — desktop */}
-      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground min-h-screen sticky top-0">
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground h-screen sticky top-0 overflow-y-auto">
         <div className="flex items-center gap-2 px-6 h-16 shrink-0">
           <BrandMark size={16} light />
           <span
@@ -1927,6 +1966,7 @@ function SecretaryDashboard({
               onLogout={onLogout}
               onSwitchRole={onSwitchRole}
               onOpenSettings={() => setView("settings")}
+              openUp
             />
           </div>
         </div>
@@ -2347,7 +2387,7 @@ function ProfessionalDashboard({
       style={{ fontFamily: "'Nunito', sans-serif" }}
     >
       {/* Sidebar — desktop */}
-      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground min-h-screen sticky top-0">
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground h-screen sticky top-0 overflow-y-auto">
         <div className="flex items-center gap-2 px-6 h-16 shrink-0">
           <BrandMark size={16} light />
           <span
@@ -2377,6 +2417,7 @@ function ProfessionalDashboard({
                 setSettingsTab(undefined);
                 setView("settings");
               }}
+              openUp
             />
           </div>
         </div>
@@ -3857,6 +3898,110 @@ const getMonthGridRange = (anchorDate: Date) => {
   return { gridStart, gridDays, gridEnd };
 };
 
+// Fase 30 — mini calendário (seletor de data avulso), usado como atalho pra
+// pular direto pra qualquer dia na Agenda, sem depender só das setas
+// anterior/próximo. Fica separado da grade grande do modo "mês" (que mostra
+// as consultas de cada dia) — este aqui é só um popover compacto de
+// navegação, então tem seu próprio cursor de mês independente do
+// `anchorDate` da tela, pra não bagunçar o intervalo de dados já carregado
+// enquanto a pessoa navega pra escolher a data.
+function MiniCalendar({
+  value,
+  onChange,
+}: {
+  value: Date;
+  onChange: (d: Date) => void;
+}) {
+  const { i18n } = useTranslation();
+  const [cursor, setCursor] = useState(
+    () => new Date(value.getFullYear(), value.getMonth(), 1),
+  );
+
+  useEffect(() => {
+    setCursor(new Date(value.getFullYear(), value.getMonth(), 1));
+  }, [value.getFullYear(), value.getMonth()]);
+
+  const { gridStart, gridDays } = getMonthGridRange(cursor);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-4 shadow-xl w-64">
+      <div className="flex items-center justify-between mb-3">
+        <button
+          type="button"
+          onClick={() =>
+            setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))
+          }
+          className="p-1 rounded-lg hover:bg-secondary text-muted-foreground transition-colors"
+        >
+          <ChevronLeft size={14} />
+        </button>
+        <span className="text-xs font-semibold text-foreground capitalize">
+          {new Intl.DateTimeFormat(i18n.language, {
+            month: "long",
+            year: "numeric",
+          }).format(cursor)}
+        </span>
+        <button
+          type="button"
+          onClick={() =>
+            setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))
+          }
+          className="p-1 rounded-lg hover:bg-secondary text-muted-foreground transition-colors rotate-180"
+        >
+          <ChevronLeft size={14} />
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-1 mb-1">
+        {Array.from({ length: 7 }).map((_, i) => (
+          <div
+            key={i}
+            className="text-center text-[0.6rem] font-semibold uppercase text-muted-foreground"
+          >
+            {new Intl.DateTimeFormat(i18n.language, {
+              weekday: "narrow",
+            }).format(addDays(gridStart, i))}
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {Array.from({ length: gridDays }).map((_, i) => {
+          const day = addDays(gridStart, i);
+          const isCurrentMonth = day.getMonth() === cursor.getMonth();
+          const isToday = day.getTime() === today.getTime();
+          const isSelected =
+            day.getFullYear() === value.getFullYear() &&
+            day.getMonth() === value.getMonth() &&
+            day.getDate() === value.getDate();
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() =>
+                onChange(
+                  new Date(day.getFullYear(), day.getMonth(), day.getDate()),
+                )
+              }
+              className={`text-xs h-7 w-7 rounded-full flex items-center justify-center transition-colors ${
+                isSelected
+                  ? "bg-primary text-primary-foreground font-semibold"
+                  : isToday
+                    ? "border border-primary text-primary font-semibold"
+                    : isCurrentMonth
+                      ? "text-foreground hover:bg-secondary"
+                      : "text-muted-foreground/40 hover:bg-secondary"
+              }`}
+            >
+              {day.getDate()}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // Interpreta um valor monetário digitado livremente, aceitando tanto o
 // formato pt-BR ("1.500,00") quanto o formato en-US ("1,500.00") — o app
 // só trocava vírgula por ponto antes (`Number(amount.replace(",", "."))`),
@@ -4100,6 +4245,7 @@ function AgendaView({ user }: { user: AppUser }) {
     d.setHours(0, 0, 0, 0);
     return d;
   });
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<PatientOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -4470,6 +4616,33 @@ function AgendaView({ user }: { user: AppUser }) {
           >
             {t("agenda.today")}
           </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setCalendarOpen((v) => !v)}
+              title={t("agenda.pickDate")}
+              className={`p-2 rounded-lg border transition-colors ${calendarOpen ? "border-primary text-primary bg-primary/5" : "border-border text-muted-foreground hover:bg-secondary"}`}
+            >
+              <CalendarDays size={16} />
+            </button>
+            {calendarOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-20"
+                  onClick={() => setCalendarOpen(false)}
+                />
+                <div className="absolute left-0 top-full mt-2 z-30">
+                  <MiniCalendar
+                    value={anchorDate}
+                    onChange={(d) => {
+                      setAnchorDate(d);
+                      setCalendarOpen(false);
+                    }}
+                  />
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -5564,6 +5737,9 @@ function RecordsView({ user }: { user: AppUser }) {
               key={r.id}
               className="bg-card border border-border rounded-xl p-5 flex items-center gap-5"
             >
+              <div className="w-12 h-12 rounded-xl bg-muted overflow-hidden shrink-0 border border-border flex items-center justify-center text-lg font-semibold text-muted-foreground">
+                {(r.patients?.full_name ?? "?").charAt(0).toUpperCase()}
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-foreground">
@@ -6198,6 +6374,9 @@ function FinanceView({ user }: { user: AppUser }) {
               key={p.id}
               className="bg-card border border-border rounded-xl p-5 flex items-center gap-5"
             >
+              <div className="w-12 h-12 rounded-xl bg-muted overflow-hidden shrink-0 border border-border flex items-center justify-center text-lg font-semibold text-muted-foreground">
+                {(p.patients?.full_name ?? "?").charAt(0).toUpperCase()}
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-foreground">
@@ -9941,7 +10120,7 @@ function AdminPanel({
       {/* Sidebar — desktop. Fica sempre visível, inclusive durante a edição
           de um perfil (diferente das abas no topo de antes, que sumiam
           nesse momento — uma sidebar fixa faz mais sentido continuar ali). */}
-      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground min-h-screen sticky top-0">
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground h-screen sticky top-0 overflow-y-auto">
         <div className="flex items-center gap-2 px-6 h-16 shrink-0">
           <BrandMark size={16} light />
           <span
@@ -9967,7 +10146,12 @@ function AdminPanel({
             <Globe size={14} /> {t("admin.viewSite")}
           </button>
           <div className="px-2.5">
-            <UserMenu user={user} onLogout={onLogout} onSwitchRole={onSwitchRole} />
+            <UserMenu
+              user={user}
+              onLogout={onLogout}
+              onSwitchRole={onSwitchRole}
+              openUp
+            />
           </div>
         </div>
       </aside>
@@ -11585,7 +11769,7 @@ function PatientArea({
       style={{ fontFamily: "'Nunito', sans-serif" }}
     >
       {/* Sidebar — desktop */}
-      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground min-h-screen sticky top-0">
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground h-screen sticky top-0 overflow-y-auto">
         <div className="flex items-center gap-2 px-6 h-16 shrink-0">
           <BrandMark size={16} light />
           <span
@@ -11612,6 +11796,7 @@ function PatientArea({
               onLogout={onLogout}
               onSwitchRole={onSwitchRole}
               onOpenSettings={() => setView("settings")}
+              openUp
             />
           </div>
         </div>

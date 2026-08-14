@@ -563,6 +563,7 @@
     "dayView": "Day",
     "weekView": "Week",
     "today": "Today",
+    "pickDate": "Pick a date",
     "newAppointment": "New appointment",
     "loading": "Loading schedule...",
     "errorLoading": "Couldn't load your schedule right now. Please try again.",

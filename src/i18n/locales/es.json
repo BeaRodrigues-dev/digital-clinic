@@ -563,6 +563,7 @@
     "dayView": "Día",
     "weekView": "Semana",
     "today": "Hoy",
+    "pickDate": "Elegir fecha",
     "newAppointment": "Nueva cita",
     "loading": "Cargando agenda...",
     "errorLoading": "No fue posible cargar la agenda ahora. Inténtalo de nuevo.",
