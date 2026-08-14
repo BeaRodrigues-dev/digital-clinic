@@ -1700,8 +1700,10 @@ function SecretaryPatientsView({ user }: { user: AppUser }) {
                 {p.full_name.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-foreground text-sm truncate">
-                  {p.full_name}
+                <p className="truncate">
+                  <span className="font-medium text-sm px-2 py-0.5 rounded-md bg-primary/10 text-primary">
+                    {p.full_name}
+                  </span>
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5 truncate">
                   {[p.email, p.phone].filter(Boolean).join(" · ") ||
@@ -1845,7 +1847,7 @@ function SecretaryFinanceView({ user }: { user: AppUser }) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-foreground">
+              <span className="text-sm font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary">
                 {p.patients?.full_name ?? "—"}
               </span>
               <span
@@ -3720,7 +3722,7 @@ function PatientsView({ user }: { user: AppUser }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-foreground">
+                  <span className="text-sm font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary">
                     {p.full_name}
                   </span>
                   <span
@@ -5907,7 +5909,7 @@ function RecordsView({ user }: { user: AppUser }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-foreground">
+                  <span className="text-sm font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary">
                     {r.patients?.full_name ?? "—"}
                   </span>
                   <span className="text-xs text-muted-foreground">
@@ -6544,7 +6546,7 @@ function FinanceView({ user }: { user: AppUser }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-foreground">
+                  <span className="text-sm font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary">
                     {p.patients?.full_name ?? "—"}
                   </span>
                   <span
