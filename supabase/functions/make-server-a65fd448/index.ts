@@ -2,6 +2,7 @@ import { Hono } from "npm:hono";
 import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
+import Stripe from "npm:stripe@^22";
 import * as kv from "./kv_store.tsx";
 
 const app = new Hono();
@@ -1325,56 +1326,307 @@ app.put(
   },
 );
 
-// ── Cobrança recorrente (Fase 16) — stub pronto pra integrar um gateway ──
-// Hoje NÃO existe gateway de pagamento configurado (nem Stripe nem outro).
-// A troca de plano em `PlanView`/`CheckoutScreen` continua indo direto em
-// `clinics.plan` (sem cobrar nada), e é isso que fica valendo enquanto essa
-// rota não estiver de verdade implementada.
+// ── Cobrança recorrente via Stripe (Fase 31) ────────────────────────────────
+// Substitui o stub da Fase 16. Preço hoje é só em BRL (o resto do app inteiro
+// já formata todo valor monetário como BRL — sessões, financeiro — então
+// cobrar em outra moeda pro mercado espanhol exigiria antes deixar essa parte
+// do app consistente pra multi-moeda; fica pra uma fase própria).
 //
-// Esta rota existe só pra deixar documentado, num lugar central, o que uma
-// integração real vai precisar:
-//   1. Variáveis de ambiente da function (configurar via
-//      `supabase secrets set NOME=valor`, nunca hardcoded no código):
-//        STRIPE_SECRET_KEY        — chave secreta da conta Stripe
-//        STRIPE_WEBHOOK_SECRET    — segredo pra validar assinatura dos webhooks
-//        STRIPE_PRICE_PROFESSIONAL — Price ID do plano "Profissional"
-//        STRIPE_PRICE_CLINIC       — Price ID do plano "Clínica"
-//   2. Esta rota passaria a criar uma Stripe Checkout Session (ou
-//      equivalente de outro gateway) e devolver a URL de redirecionamento
-//      pro frontend, em vez do 501 abaixo.
-//   3. Um webhook separado (nova rota, ex.:
-//      POST /make-server-a65fd448/billing/webhook) precisaria validar a
-//      assinatura do evento e, nos eventos de pagamento confirmado/
-//      cancelado, atualizar `clinics.plan` e os campos
-//      `stripe_customer_id`/`stripe_subscription_id` em `subscriptions`
-//      (essa tabela já existe — Fase 16 — e já fica em sincronia automática
-//      com `clinics.plan` via gatilho no banco).
-// Enquanto essas variáveis não existirem, a rota responde 501 (Not
-// Implemented) de propósito, pra nunca fingir uma cobrança que não
-// acontece de verdade.
+// Variáveis de ambiente (`supabase secrets set NOME=valor`, nunca
+// hardcoded):
+//   STRIPE_SECRET_KEY         — chave secreta da conta Stripe
+//   STRIPE_WEBHOOK_SECRET     — segredo do endpoint de webhook (painel Stripe
+//                               → Developers → Webhooks → sua URL → Signing secret)
+//   STRIPE_PRICE_PROFESSIONAL — Price ID (recorrente, mensal) do plano Profissional
+//   STRIPE_PRICE_CLINIC       — Price ID (recorrente, mensal) do plano Clínica
+// Enquanto `STRIPE_SECRET_KEY` não existir, esta rota responde 501
+// (`billing_not_configured`) — o frontend cai de volta pro comportamento
+// self-service de sempre (troca o plano na hora, sem cobrar nada).
+//
+// `subscriptions` (Fase 16) já existe e já tem um gatilho que espelha
+// `clinics.plan` nela automaticamente sempre que `clinics.plan` muda — não
+// mexemos nesse gatilho, só escrevemos por cima dos campos que só fazem
+// sentido vindos do Stripe (stripe_customer_id, stripe_subscription_id,
+// status, current_period_end, cancel_at_period_end).
 app.post(
-  "/make-server-a65fd448/billing/create-checkout-session",
+  "/make-server-a65fd448/billing/change-plan",
   requireRole("psychologist", "secretary", "admin"),
   async (c) => {
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) {
+    try {
+      const user = c.get("user");
+      const body = await c.req.json().catch(() => ({}));
+      const targetPlan = String(body?.plan ?? "");
+      if (!["free", "professional", "clinic"].includes(targetPlan)) {
+        return c.json({ error: "Plano inválido." }, 400);
+      }
+      if (!user.clinicId) {
+        return c.json(
+          { error: "Nenhuma clínica vinculada a esta conta." },
+          400,
+        );
+      }
+
+      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      if (!stripeKey) {
+        return c.json({ error: "billing_not_configured" }, 501);
+      }
+      const stripe = new Stripe(stripeKey);
+
+      const [{ data: clinic }, { data: sub }] = await Promise.all([
+        supabase
+          .from("clinics")
+          .select("id, plan")
+          .eq("id", user.clinicId)
+          .maybeSingle(),
+        supabase
+          .from("subscriptions")
+          .select(
+            "stripe_customer_id, stripe_subscription_id, cancel_at_period_end, current_period_end",
+          )
+          .eq("clinic_id", user.clinicId)
+          .maybeSingle(),
+      ]);
+      if (!clinic) return c.json({ error: "Clínica não encontrada." }, 404);
+
+      const hasActiveStripeSub = !!sub?.stripe_subscription_id;
+
+      // Pediu de novo o MESMO plano que já está ativo, mas com cancelamento
+      // agendado — é "mudei de ideia, quero continuar".
+      if (
+        targetPlan === clinic.plan &&
+        sub?.cancel_at_period_end &&
+        hasActiveStripeSub
+      ) {
+        await stripe.subscriptions.update(sub.stripe_subscription_id!, {
+          cancel_at_period_end: false,
+        });
+        await supabase
+          .from("subscriptions")
+          .update({ cancel_at_period_end: false })
+          .eq("clinic_id", user.clinicId);
+        return c.json({ mode: "reactivated" });
+      }
+
+      if (targetPlan === "free") {
+        if (!hasActiveStripeSub) {
+          // Nunca teve assinatura Stripe de verdade (ex.: já era grátis, ou
+          // trocou de plano antes de existir cobrança configurada) — nada
+          // pra cancelar no gateway, só reflete o plano.
+          await supabase
+            .from("clinics")
+            .update({ plan: "free" })
+            .eq("id", user.clinicId);
+          return c.json({ mode: "immediate" });
+        }
+        // Cancela no FIM do período já pago, não na hora — mesmo texto já
+        // mostrado na tela (`plans.cancelHint`). `clinics.plan` só volta
+        // pra 'free' de verdade quando o Stripe confirmar isso pelo webhook
+        // (`customer.subscription.deleted`).
+        await stripe.subscriptions.update(sub!.stripe_subscription_id!, {
+          cancel_at_period_end: true,
+        });
+        await supabase
+          .from("subscriptions")
+          .update({ cancel_at_period_end: true })
+          .eq("clinic_id", user.clinicId);
+        return c.json({
+          mode: "deferred",
+          current_period_end: sub!.current_period_end,
+        });
+      }
+
+      // Daqui pra baixo: alvo é 'professional' ou 'clinic'.
+      const priceId =
+        targetPlan === "professional"
+          ? Deno.env.get("STRIPE_PRICE_PROFESSIONAL")
+          : Deno.env.get("STRIPE_PRICE_CLINIC");
+      if (!priceId) {
+        return c.json(
+          {
+            error: `Preço do plano "${targetPlan}" não configurado (falta o secret STRIPE_PRICE_${targetPlan.toUpperCase()}).`,
+          },
+          501,
+        );
+      }
+
+      if (hasActiveStripeSub && clinic.plan !== "free") {
+        // Já é assinante pagante, só está trocando de faixa (ex.:
+        // Profissional → Clínica ou vice-versa) — atualiza a assinatura
+        // existente com proração, sem mandar de volta pro Checkout.
+        const stripeSub = await stripe.subscriptions.retrieve(
+          sub!.stripe_subscription_id!,
+        );
+        const itemId = stripeSub.items.data[0]?.id;
+        if (!itemId) {
+          return c.json({ error: "Assinatura do Stripe inválida." }, 500);
+        }
+        await stripe.subscriptions.update(sub!.stripe_subscription_id!, {
+          items: [{ id: itemId, price: priceId }],
+          proration_behavior: "create_prorations",
+          cancel_at_period_end: false,
+        });
+        await supabase
+          .from("clinics")
+          .update({ plan: targetPlan })
+          .eq("id", user.clinicId);
+        await supabase
+          .from("subscriptions")
+          .update({ cancel_at_period_end: false })
+          .eq("clinic_id", user.clinicId);
+        return c.json({ mode: "immediate" });
+      }
+
+      // Ainda não é assinante pagante — precisa passar pelo Checkout do
+      // Stripe de verdade. `clinics.plan` só muda quando o webhook
+      // confirmar o pagamento (`checkout.session.completed`), nunca aqui.
+      const origin = getRedirectOrigin(c) ?? "";
+      const session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        line_items: [{ price: priceId, quantity: 1 }],
+        ...(sub?.stripe_customer_id
+          ? { customer: sub.stripe_customer_id }
+          : { customer_email: user.email }),
+        success_url: `${origin}/#configuracoes?checkout=success`,
+        cancel_url: `${origin}/#configuracoes?checkout=cancel`,
+        metadata: { clinic_id: user.clinicId, plan: targetPlan },
+        subscription_data: {
+          metadata: { clinic_id: user.clinicId, plan: targetPlan },
+        },
+      });
+
+      if (!session.url) {
+        return c.json({ error: "Não foi possível iniciar o checkout." }, 502);
+      }
+      return c.json({ mode: "checkout", url: session.url });
+    } catch (err: any) {
+      console.error("Failed to change plan / create checkout:", err);
       return c.json(
         {
-          error: "billing_not_configured",
-          message:
-            "Cobrança automática ainda não está configurada nesta instalação. Configure STRIPE_SECRET_KEY (e demais variáveis — veja os comentários desta rota) para habilitar.",
+          error:
+            err?.message ?? "Não foi possível processar a troca de plano.",
         },
-        501,
+        500,
       );
     }
-    // A partir daqui entraria a chamada real à API do Stripe (ou outro
-    // gateway) pra criar a sessão de checkout — não implementado ainda.
-    return c.json(
-      { error: "billing_not_configured", message: "Não implementado." },
-      501,
-    );
   },
 );
+
+// ── Webhook do Stripe (Fase 31) ─────────────────────────────────────────────
+// Rota pública de propósito (sem `requireRole`) — quem chama é o Stripe, não
+// uma sessão logada. A segurança vem da verificação de assinatura abaixo
+// (`STRIPE_WEBHOOK_SECRET`), não de autenticação de usuário. Cadastre esta
+// URL completa (.../make-server-a65fd448/billing/webhook) no painel Stripe →
+// Developers → Webhooks, escutando pelo menos: checkout.session.completed,
+// customer.subscription.updated, customer.subscription.deleted.
+app.post("/make-server-a65fd448/billing/webhook", async (c) => {
+  const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+  const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+  if (!stripeKey || !webhookSecret) {
+    return c.json({ error: "billing_not_configured" }, 501);
+  }
+  const stripe = new Stripe(stripeKey);
+
+  const signature = c.req.header("stripe-signature");
+  const rawBody = await c.req.text();
+
+  let event: Stripe.Event;
+  try {
+    // Deno não tem o módulo `crypto` síncrono que o SDK usa por padrão pra
+    // verificar assinatura — por isso a versão Async + um provider de Web
+    // Crypto explícito, o jeito documentado pra Supabase Edge Functions.
+    const cryptoProvider = Stripe.createSubtleCryptoProvider();
+    event = await stripe.webhooks.constructEventAsync(
+      rawBody,
+      signature ?? "",
+      webhookSecret,
+      undefined,
+      cryptoProvider,
+    );
+  } catch (err: any) {
+    console.error("Assinatura de webhook do Stripe inválida:", err?.message);
+    return c.json({ error: "Assinatura inválida." }, 400);
+  }
+
+  try {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const clinicId = session.metadata?.clinic_id;
+        const plan = session.metadata?.plan;
+        const customerId =
+          typeof session.customer === "string"
+            ? session.customer
+            : session.customer?.id;
+        const subscriptionId =
+          typeof session.subscription === "string"
+            ? session.subscription
+            : session.subscription?.id;
+        if (!clinicId || !plan) break;
+
+        if (plan === "professional" || plan === "clinic") {
+          await supabase.from("clinics").update({ plan }).eq("id", clinicId);
+        }
+        await supabase
+          .from("subscriptions")
+          .update({
+            stripe_customer_id: customerId ?? null,
+            stripe_subscription_id: subscriptionId ?? null,
+            status: "active",
+            cancel_at_period_end: false,
+          })
+          .eq("clinic_id", clinicId);
+        break;
+      }
+
+      case "customer.subscription.updated": {
+        const subscription = event.data.object as Stripe.Subscription;
+        const clinicId = subscription.metadata?.clinic_id;
+        if (!clinicId) break;
+        await supabase
+          .from("subscriptions")
+          .update({
+            status: subscription.status,
+            current_period_end: subscription.current_period_end
+              ? new Date(
+                  subscription.current_period_end * 1000,
+                ).toISOString()
+              : null,
+            cancel_at_period_end: subscription.cancel_at_period_end,
+          })
+          .eq("clinic_id", clinicId);
+        break;
+      }
+
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+        const clinicId = subscription.metadata?.clinic_id;
+        if (!clinicId) break;
+        // O período pago acabou de verdade agora — só aqui volta pro
+        // Gratuito (não no momento em que o cancelamento foi pedido).
+        await supabase
+          .from("clinics")
+          .update({ plan: "free" })
+          .eq("id", clinicId);
+        await supabase
+          .from("subscriptions")
+          .update({ status: "canceled", cancel_at_period_end: false })
+          .eq("clinic_id", clinicId);
+        break;
+      }
+
+      default:
+        break;
+    }
+    return c.json({ received: true });
+  } catch (err: any) {
+    console.error(
+      "Failed to process Stripe webhook:",
+      event.type,
+      err,
+    );
+    return c.json({ error: "Erro ao processar evento." }, 500);
+  }
+});
 
 // ── Conceder um papel extra a uma conta (Fase 17 — troca de perfil) ──────
 // Só admin pode dar a outra conta o direito de assumir um papel a mais

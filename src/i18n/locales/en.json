@@ -971,7 +971,13 @@
     },
     "downgradeConfirmTitle": "Switch to the {{plan}} plan?",
     "downgradeConfirmBody": "You'll lose access to your current plan's exclusive features that aren't part of the {{plan}} plan. If this puts you over the new plan's patient limit, you won't be able to register new patients until you're back within it.",
-    "downgradeConfirm": "Confirm switch"
+    "downgradeConfirm": "Confirm switch",
+    "checkoutSuccess": "Payment confirmed! Your plan has been updated.",
+    "checkoutCanceled": "Checkout canceled — your plan stays the same as before.",
+    "cancelDeferredMessage": "Cancellation scheduled. Your paid features stay available until the end of the period you already paid for.",
+    "cancelScheduled": "Cancellation scheduled for the end of the current period.",
+    "cancelScheduledFor": "Cancellation scheduled for {{date}}. Until then, your paid features stay available.",
+    "reactivateSubscription": "Keep subscription"
   },
   "professionalProfile": {
     "title": "My professional profile",

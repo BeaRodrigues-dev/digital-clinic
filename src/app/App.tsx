@@ -947,9 +947,42 @@ function CheckoutScreen({
     returnObjects: true,
   }) as string[];
 
+  // Fase 31 — mesmo padrão de `PlanView.handleSwitch`: tenta cobrança real
+  // primeiro; se a instalação não tiver Stripe configurado, cai pro
+  // comportamento de sempre (aplica o plano na hora, sem cobrar — e é
+  // exactly o que `checkout.noBillingNotice` já avisa nessa tela).
   const confirm = async () => {
     setApplying(true);
     setError(false);
+    if (user.clinicId && plan !== "free") {
+      try {
+        const result = await apiFetch("/billing/change-plan", {
+          method: "POST",
+          body: JSON.stringify({ plan }),
+        });
+        if (result?.mode === "checkout" && result?.url) {
+          window.location.href = result.url;
+          return; // navegando pra fora — não chama onDone() aqui
+        }
+        onDone();
+        return;
+      } catch (err: any) {
+        let billingNotConfigured = false;
+        try {
+          billingNotConfigured =
+            JSON.parse(err?.message || "")?.error === "billing_not_configured";
+        } catch {
+          /* não era JSON */
+        }
+        if (!billingNotConfigured) {
+          console.error("Falha ao iniciar checkout do plano:", err);
+          setError(true);
+          setApplying(false);
+          return;
+        }
+        // Sem Stripe configurado — comportamento de sempre, abaixo.
+      }
+    }
     if (user.clinicId) {
       const { error: err } = await supabase
         .from("clinics")
@@ -8791,6 +8824,10 @@ type SubscriptionRow = {
   started_at: string;
   current_period_end: string | null;
   cancel_at_period_end: boolean;
+  // Fase 31 — presente só quando existe uma assinatura Stripe de verdade
+  // por trás; usado pra decidir se ainda mostramos o aviso de "sem cobrança
+  // por enquanto" ou já a cobrança real.
+  stripe_subscription_id: string | null;
 };
 
 function PlanView({ user }: { user: AppUser }) {
@@ -8813,6 +8850,29 @@ function PlanView({ user }: { user: AppUser }) {
   const [pendingDowngrade, setPendingDowngrade] = useState<PlanTier | null>(
     null,
   );
+  // Fase 31 — cobrança real via Stripe. `checkoutStatus` reflete a volta do
+  // Stripe Checkout (`?checkout=success|cancel` na URL); `reactivating`
+  // cobre o botão "continuar assinando" quando já tem cancelamento
+  // agendado; `deferredMessage` mostra o aviso depois de pedir cancelamento
+  // (`plans.cancelHint` já dizia que isso ia acontecer — Fase 31 entrega
+  // de verdade).
+  const [checkoutStatus, setCheckoutStatus] = useState<
+    "success" | "cancel" | null
+  >(null);
+  const [reactivating, setReactivating] = useState(false);
+  const [deferredMessage, setDeferredMessage] = useState(false);
+
+  useEffect(() => {
+    const queryPart = window.location.hash.split("?")[1];
+    if (!queryPart) return;
+    const status = new URLSearchParams(queryPart).get("checkout");
+    if (status === "success" || status === "cancel") {
+      setCheckoutStatus(status);
+      // Limpa o parâmetro da URL sem recarregar a página — só uma vez, pra
+      // não reaparecer se a pessoa atualizar a tela depois.
+      window.history.replaceState(null, "", `${window.location.pathname}#configuracoes`);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -8844,7 +8904,9 @@ function PlanView({ user }: { user: AppUser }) {
       // em sincronia automaticamente sempre que `clinics.plan` muda.
       supabase
         .from("subscriptions")
-        .select("status, started_at, current_period_end, cancel_at_period_end")
+        .select(
+          "status, started_at, current_period_end, cancel_at_period_end, stripe_subscription_id",
+        )
         .eq("clinic_id", user.clinicId)
         .maybeSingle(),
     ]);
@@ -8866,22 +8928,82 @@ function PlanView({ user }: { user: AppUser }) {
     load();
   }, [load]);
 
+  // Fase 31 — tenta cobrança real primeiro (`/billing/change-plan`); se a
+  // instalação não tiver Stripe configurado (`billing_not_configured`),
+  // cai de volta pro comportamento self-service de sempre (troca a hora,
+  // sem cobrar) — ninguém que ainda não configurou Stripe percebe
+  // diferença nenhuma.
   const handleSwitch = async (plan: PlanTier) => {
     if (!clinic || plan === clinic.plan) return;
     setSwitching(plan);
     setSwitchError(false);
+    setDeferredMessage(false);
     try {
-      const { error } = await supabase
-        .from("clinics")
-        .update({ plan })
-        .eq("id", clinic.id);
-      if (error) throw error;
+      const result = await apiFetch("/billing/change-plan", {
+        method: "POST",
+        body: JSON.stringify({ plan }),
+      });
+      if (result?.mode === "checkout" && result?.url) {
+        window.location.href = result.url;
+        return; // navegando pra fora — não limpa `switching` de propósito
+      }
+      if (result?.mode === "deferred") {
+        setDeferredMessage(true);
+      }
       await load();
-    } catch (err) {
+    } catch (err: any) {
+      let billingNotConfigured = false;
+      try {
+        const parsed = JSON.parse(err?.message || "");
+        billingNotConfigured = parsed?.error === "billing_not_configured";
+      } catch {
+        /* mensagem não era JSON — não é o caso de fallback */
+      }
+
+      if (billingNotConfigured) {
+        // Instalação sem Stripe configurado — comportamento de sempre
+        // (troca o plano na hora, sem cobrar).
+        try {
+          const { error } = await supabase
+            .from("clinics")
+            .update({ plan })
+            .eq("id", clinic.id);
+          if (error) throw error;
+          await load();
+        } catch (fallbackErr) {
+          console.error(
+            "Falha ao trocar de plano (fallback self-service):",
+            fallbackErr,
+          );
+          setSwitchError(true);
+        } finally {
+          setSwitching(null);
+        }
+        return;
+      }
+
       console.error("Falha ao trocar de plano:", err);
       setSwitchError(true);
     } finally {
       setSwitching(null);
+    }
+  };
+
+  const handleReactivate = async () => {
+    if (!clinic) return;
+    setReactivating(true);
+    setSwitchError(false);
+    try {
+      await apiFetch("/billing/change-plan", {
+        method: "POST",
+        body: JSON.stringify({ plan: clinic.plan }),
+      });
+      await load();
+    } catch (err) {
+      console.error("Falha ao reativar assinatura:", err);
+      setSwitchError(true);
+    } finally {
+      setReactivating(false);
     }
   };
 
@@ -8924,6 +9046,22 @@ function PlanView({ user }: { user: AppUser }) {
 
   return (
     <div className="flex flex-col gap-6">
+      {checkoutStatus === "success" && (
+        <p className="text-sm bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3">
+          {t("plans.checkoutSuccess")}
+        </p>
+      )}
+      {checkoutStatus === "cancel" && (
+        <p className="text-sm bg-secondary border border-border text-muted-foreground rounded-lg px-4 py-3">
+          {t("plans.checkoutCanceled")}
+        </p>
+      )}
+      {deferredMessage && (
+        <p className="text-sm bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-4 py-3">
+          {t("plans.cancelDeferredMessage")}
+        </p>
+      )}
+
       <div className="bg-card border border-border rounded-2xl p-6">
         <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
           <div>
@@ -8992,7 +9130,29 @@ function PlanView({ user }: { user: AppUser }) {
           </div>
         )}
 
-        {clinic.plan !== "free" && (
+        {clinic.plan !== "free" && subscription?.cancel_at_period_end && (
+          <div className="pt-5 mt-5 border-t border-border flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-xs text-amber-700 max-w-sm">
+              {subscription.current_period_end
+                ? t("plans.cancelScheduledFor", {
+                    date: new Intl.DateTimeFormat(i18n.language, {
+                      dateStyle: "medium",
+                    }).format(new Date(subscription.current_period_end)),
+                  })
+                : t("plans.cancelScheduled")}
+            </p>
+            <button
+              onClick={handleReactivate}
+              disabled={reactivating}
+              className="text-xs font-semibold px-4 py-2 rounded-full border border-border text-muted-foreground hover:bg-secondary transition-colors shrink-0 disabled:opacity-60 flex items-center gap-1.5"
+            >
+              {reactivating && <Loader2 size={12} className="animate-spin" />}
+              {t("plans.reactivateSubscription")}
+            </button>
+          </div>
+        )}
+
+        {clinic.plan !== "free" && !subscription?.cancel_at_period_end && (
           <div className="pt-5 mt-5 border-t border-border flex items-center justify-between gap-3 flex-wrap">
             <p className="text-xs text-muted-foreground max-w-sm">
               {t("plans.cancelHint")}
@@ -9059,7 +9219,11 @@ function PlanView({ user }: { user: AppUser }) {
           {t("plans.switchError")}
         </p>
       )}
-      <p className="text-xs text-muted-foreground">{t("plans.billingNote")}</p>
+      {!subscription?.stripe_subscription_id && (
+        <p className="text-xs text-muted-foreground">
+          {t("plans.billingNote")}
+        </p>
+      )}
 
       {pendingDowngrade && (
         <div

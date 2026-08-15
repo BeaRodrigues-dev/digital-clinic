@@ -971,7 +971,13 @@
     },
     "downgradeConfirmTitle": "¿Cambiar al plan {{plan}}?",
     "downgradeConfirmBody": "Vas a perder acceso a los recursos exclusivos de tu plan actual que no forman parte del plan {{plan}}. Si esto te deja por encima del límite de pacientes del nuevo plan, no podrás registrar pacientes nuevos hasta regularizar.",
-    "downgradeConfirm": "Confirmar cambio"
+    "downgradeConfirm": "Confirmar cambio",
+    "checkoutSuccess": "¡Pago confirmado! Tu plan fue actualizado.",
+    "checkoutCanceled": "Checkout cancelado — tu plan sigue igual que antes.",
+    "cancelDeferredMessage": "Cancelación programada. Tus funciones pagas siguen disponibles hasta el fin del período ya pagado.",
+    "cancelScheduled": "Cancelación programada para el fin del período actual.",
+    "cancelScheduledFor": "Cancelación programada para {{date}}. Hasta entonces, tus funciones pagas siguen disponibles.",
+    "reactivateSubscription": "Seguir suscrito"
   },
   "professionalProfile": {
     "title": "Mi perfil profesional",
