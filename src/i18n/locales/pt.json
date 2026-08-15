@@ -285,7 +285,12 @@
     "hasAccount": "Já tem conta?",
     "logIn": "Entrar",
     "isSecretary": "É secretária de uma clínica?",
-    "isSecretaryLink": "Cadastre-se com o código da clínica"
+    "isSecretaryLink": "Cadastre-se com o código da clínica",
+    "termsRequiredError": "Você precisa aceitar os Termos de Uso e a Política de Privacidade pra continuar.",
+    "termsCheckboxPrefix": "Li e aceito os",
+    "termsLinkLabel": "Termos de Uso",
+    "termsCheckboxAnd": "e a",
+    "privacyLinkLabel": "Política de Privacidade"
   },
   "publicPlans": {
     "title": "Planos para psicólogos",
@@ -334,7 +339,8 @@
       "finance": "Financeiro",
       "settings": "Configurações",
       "patients": "Pacientes",
-      "leads": "Leads"
+      "leads": "Leads",
+      "deletions": "Exclusões"
     },
     "overview": {
       "title": "Visão geral",
@@ -435,6 +441,23 @@
       "suggestError": "Não foi possível enviar a sugestão agora. Tente novamente.",
       "suggestedLabel": "Sugestão enviada: {{name}} em {{date}}",
       "emailNotConfigured": "O envio de e-mail ainda não foi configurado nesta instalação. Configure RESEND_API_KEY e RESEND_FROM_EMAIL nos secrets do projeto Supabase para habilitar."
+    },
+    "deletions": {
+      "title": "Pedidos de exclusão de conta",
+      "subtitle": "Revise cada pedido — nenhuma conta é excluída automaticamente.",
+      "legalNotice": "Marcar como \"concluído\" aqui só registra a decisão — a exclusão de dados em si (quando aplicável) precisa ser feita com cautela, direto no painel do Supabase, respeitando qualquer obrigação legal de retenção.",
+      "statusFilterAll": "Todos",
+      "status": {
+        "pending": "Pendente",
+        "completed": "Concluído",
+        "declined": "Recusado"
+      },
+      "loading": "Carregando pedidos...",
+      "errorLoading": "Não foi possível carregar os pedidos.",
+      "emptyText": "Nenhum pedido de exclusão por aqui.",
+      "markCompleted": "Marcar como concluído",
+      "markDeclined": "Recusar",
+      "actionError": "Não foi possível atualizar agora. Tente novamente."
     }
   },
   "profileForm": {
@@ -483,7 +506,11 @@
       "Divórcio",
       "Trauma",
       "Autoestima"
-    ]
+    ],
+    "currencyLabel": "Moeda de cobrança",
+    "currencyBRL": "Real (R$)",
+    "currencyEUR": "Euro (€)",
+    "currencyHint": "Usada pra formatar o valor da sessão e os pagamentos no seu painel."
   },
   "language": {
     "label": "Idioma"
@@ -1041,7 +1068,24 @@
       "saveEmail": "Salvar novo e-mail",
       "logoutSectionTitle": "Encerrar sessão",
       "logoutSectionHint": "Sai da sua conta neste dispositivo.",
-      "sessionsNote": "Gerenciamento de sessões/dispositivos conectados ainda não está disponível nesta versão."
+      "sessionsNote": "Gerenciamento de sessões/dispositivos conectados ainda não está disponível nesta versão.",
+      "dataSectionTitle": "Seus dados",
+      "dataSectionHint": "Exporte o que sua conta tem cadastrado ou peça a exclusão dela.",
+      "exportLabel": "Exportar meus dados",
+      "exportHint": "Baixa um arquivo com os dados da sua conta.",
+      "exporting": "Exportando...",
+      "exportButton": "Exportar (.json)",
+      "exportError": "Não foi possível exportar agora. Tente novamente.",
+      "deletionLabel": "Excluir minha conta",
+      "deletionHint": "Vira um pedido revisado por um administrador — não é instantâneo.",
+      "deletionButton": "Solicitar exclusão",
+      "deletionRequested": "Pedido enviado — um administrador vai revisar.",
+      "deletionReasonLabel": "Motivo (opcional)",
+      "deletionReasonPlaceholder": "Conte, se quiser, por que está pedindo a exclusão.",
+      "deletionDisclaimer": "Isto não apaga nada automaticamente. Um administrador vai revisar seu pedido — pode haver dados que precisam ficar retidos por um tempo mínimo por obrigação legal.",
+      "deletionError": "Não foi possível enviar o pedido agora. Tente novamente.",
+      "deletionSubmitting": "Enviando...",
+      "deletionConfirm": "Confirmar pedido de exclusão"
     },
     "preferences": {
       "title": "Preferências",
@@ -1049,7 +1093,11 @@
       "languageLabel": "Idioma",
       "languageHint": "Muda o idioma de toda a plataforma.",
       "notificationsLabel": "Notificações",
-      "notificationsComingSoon": "Preferências de notificação chegam em uma próxima etapa do projeto."
+      "notificationsComingSoon": "Preferências de notificação chegam em uma próxima etapa do projeto.",
+      "remindersLabel": "Lembrete de consulta por e-mail",
+      "remindersHint": "Manda um e-mail automático pros seus pacientes ~24h antes de cada consulta.",
+      "remindersError": "Não foi possível salvar agora. Tente novamente.",
+      "remindersDependencyHint": "Só funciona depois que o envio automático de e-mail estiver configurado nesta instalação — fale com quem administra a plataforma se os lembretes não estiverem chegando."
     }
   },
   "infoPages": {

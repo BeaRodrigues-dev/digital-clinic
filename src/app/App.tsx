@@ -6,7 +6,6 @@ import {
   ChevronDown,
   Menu,
   X,
-  Star,
   Plus,
   Pencil,
   Trash2,
@@ -366,6 +365,10 @@ interface ProfessionalProfile {
   approved: boolean;
   crp: string;
   session_price: number | null;
+  // Fase 32 — moeda de cobrança do profissional ("BRL" | "EUR"), escolhida
+  // por ele mesmo. `rating` continua no tipo (a coluna ainda existe), mas
+  // não é mais exibida em lugar nenhum (ver nota na migração da Fase 32).
+  currency: string;
   created_at: string;
 }
 
@@ -570,8 +573,12 @@ function SignupForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  // Fase 35 — aceite obrigatório dos Termos de Uso/Política de Privacidade.
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const legalLinkHref = (hash: string) =>
+    `${window.location.origin}${window.location.pathname}${hash}`;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -589,6 +596,10 @@ function SignupForm({
       setError(t("setPassword.mismatch"));
       return;
     }
+    if (!termsAccepted) {
+      setError(t("signup.termsRequiredError"));
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -598,6 +609,7 @@ function SignupForm({
           email: email.trim(),
           password,
           full_name: name.trim(),
+          terms_accepted: true,
         }),
       });
 
@@ -696,6 +708,37 @@ function SignupForm({
             placeholder={t("settings.security.confirmPasswordLabel")}
             className={`w-full bg-secondary border rounded-lg px-4 py-3 text-sm outline-none transition-colors ${error ? "border-red-400 text-red-600 focus:ring-2 focus:ring-red-400/20" : "border-border focus:border-primary focus:ring-2 focus:ring-primary/20"}`}
           />
+          <label className="flex items-start gap-2 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={(e) => {
+                setTermsAccepted(e.target.checked);
+                setError("");
+              }}
+              className="mt-0.5 rounded border-border shrink-0"
+            />
+            <span>
+              {t("signup.termsCheckboxPrefix")}{" "}
+              <a
+                href={legalLinkHref("#termos")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary font-semibold hover:underline"
+              >
+                {t("signup.termsLinkLabel")}
+              </a>{" "}
+              {t("signup.termsCheckboxAnd")}{" "}
+              <a
+                href={legalLinkHref("#privacidade")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary font-semibold hover:underline"
+              >
+                {t("signup.privacyLinkLabel")}
+              </a>
+            </span>
+          </label>
           {error && <p className="text-red-500 text-xs">{error}</p>}
           <button
             type="submit"
@@ -748,8 +791,12 @@ function SecretarySignupForm({
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [code, setCode] = useState(initialCode ?? "");
+  // Fase 35 — aceite obrigatório dos Termos de Uso/Política de Privacidade.
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const legalLinkHref = (hash: string) =>
+    `${window.location.origin}${window.location.pathname}${hash}`;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -767,6 +814,10 @@ function SecretarySignupForm({
       setError(t("setPassword.mismatch"));
       return;
     }
+    if (!termsAccepted) {
+      setError(t("signup.termsRequiredError"));
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -777,6 +828,7 @@ function SecretarySignupForm({
           password,
           full_name: name.trim(),
           invite_code: code.trim(),
+          terms_accepted: true,
         }),
       });
 
@@ -890,6 +942,37 @@ function SecretarySignupForm({
               {t("signupSecretary.codeHint")}
             </p>
           </div>
+          <label className="flex items-start gap-2 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={(e) => {
+                setTermsAccepted(e.target.checked);
+                setError("");
+              }}
+              className="mt-0.5 rounded border-border shrink-0"
+            />
+            <span>
+              {t("signup.termsCheckboxPrefix")}{" "}
+              <a
+                href={legalLinkHref("#termos")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary font-semibold hover:underline"
+              >
+                {t("signup.termsLinkLabel")}
+              </a>{" "}
+              {t("signup.termsCheckboxAnd")}{" "}
+              <a
+                href={legalLinkHref("#privacidade")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary font-semibold hover:underline"
+              >
+                {t("signup.privacyLinkLabel")}
+              </a>
+            </span>
+          </label>
           {error && <p className="text-red-500 text-xs">{error}</p>}
           <button
             type="submit"
@@ -1256,6 +1339,9 @@ type ProfessionalRow = {
   id: string;
   approach: string | null;
   approved: boolean;
+  // Fase 32 — moeda de cobrança do profissional, usada pra formatar os
+  // valores do painel dele (visão geral, financeiro).
+  currency: string;
 };
 
 // Abas do painel de "Configurações" do profissional (Fase 13).
@@ -1980,6 +2066,11 @@ type SecretaryPaymentRow = {
   paid_at: string | null;
   created_at: string;
   patients: { full_name: string } | null;
+  // Fase 32 — uma clínica pode ter mais de um profissional (Fase 26), cada
+  // um com sua própria moeda de cobrança agora. Precisa vir junto pra
+  // formatar cada pagamento na moeda de quem o gerou, em vez de assumir
+  // BRL pra todo mundo.
+  professionals: { currency: string } | null;
 };
 
 function SecretaryFinanceView({ user }: { user: AppUser }) {
@@ -1998,7 +2089,9 @@ function SecretaryFinanceView({ user }: { user: AppUser }) {
     setError(false);
     const { data, error: fetchErr } = await supabase
       .from("payments")
-      .select("id, amount, status, paid_at, created_at, patients(full_name)")
+      .select(
+        "id, amount, status, paid_at, created_at, patients(full_name), professionals(currency)",
+      )
       .eq("clinic_id", user.clinicId)
       .order("created_at", { ascending: false });
     if (fetchErr) setError(true);
@@ -2028,10 +2121,13 @@ function SecretaryFinanceView({ user }: { user: AppUser }) {
     await load();
   };
 
-  const currency = (value: number) =>
+  // Fase 32 — cada pagamento é formatado na moeda do profissional que o
+  // gerou (uma clínica pode ter mais de um profissional, cada um com sua
+  // própria moeda — ver `professionals.currency`), não mais BRL fixo.
+  const currency = (value: number, curr?: string | null) =>
     new Intl.NumberFormat(i18n.language, {
       style: "currency",
-      currency: "BRL",
+      currency: curr === "EUR" ? "EUR" : "BRL",
       maximumFractionDigits: 2,
     }).format(value);
 
@@ -2100,7 +2196,7 @@ function SecretaryFinanceView({ user }: { user: AppUser }) {
               </span>
             </div>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {currency(Number(p.amount))} ·{" "}
+              {currency(Number(p.amount), p.professionals?.currency)} ·{" "}
               {p.paid_at ? dateLabel(p.paid_at) : dateLabel(p.created_at)}
             </p>
           </div>
@@ -2611,7 +2707,7 @@ function SecretaryDashboard({
           {view === "patients" && <SecretaryPatientsView user={user} />}
           {view === "requests" && <RequestsView user={user} />}
           {view === "finance" && <SecretaryFinanceView user={user} />}
-          {view === "settings" && <AccountSecurityView onLogout={onLogout} />}
+          {view === "settings" && <AccountSecurityView user={user} onLogout={onLogout} />}
         </div>
       </div>
     </div>
@@ -2705,7 +2801,7 @@ function ProfessionalDashboard({
         ] = await Promise.all([
           supabase
             .from("professionals")
-            .select("id, approach, approved")
+            .select("id, approach, approved, currency")
             .eq("id", user.id)
             .maybeSingle(),
           supabase
@@ -2842,10 +2938,12 @@ function ProfessionalDashboard({
     };
   }, [user.id]);
 
+  // Fase 32 — usa a moeda que o próprio profissional escolheu nas
+  // configurações do perfil (`professionals.currency`), não BRL fixo.
   const currency = (value: number) =>
     new Intl.NumberFormat(i18n.language, {
       style: "currency",
-      currency: "BRL",
+      currency: professional?.currency === "EUR" ? "EUR" : "BRL",
       maximumFractionDigits: 0,
     }).format(value);
 
@@ -7460,6 +7558,9 @@ function FinanceView({ user }: { user: AppUser }) {
   const [patientFilter, setPatientFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [actionError, setActionError] = useState(false);
+  // Fase 32 — moeda de cobrança do profissional, usada em toda formatação
+  // monetária desta tela.
+  const [profCurrency, setProfCurrency] = useState("BRL");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -7479,7 +7580,7 @@ function FinanceView({ user }: { user: AppUser }) {
         .order("full_name", { ascending: true }),
       supabase
         .from("professionals")
-        .select("session_price")
+        .select("session_price, currency")
         .eq("id", user.id)
         .maybeSingle(),
     ]);
@@ -7493,6 +7594,9 @@ function FinanceView({ user }: { user: AppUser }) {
       (professionalRes.data as any)?.session_price != null
         ? Number((professionalRes.data as any).session_price)
         : null,
+    );
+    setProfCurrency(
+      (professionalRes.data as any)?.currency === "EUR" ? "EUR" : "BRL",
     );
     setLoading(false);
   }, [user.id]);
@@ -7558,7 +7662,7 @@ function FinanceView({ user }: { user: AppUser }) {
   const currency = (value: number) =>
     new Intl.NumberFormat(i18n.language, {
       style: "currency",
-      currency: "BRL",
+      currency: profCurrency,
       maximumFractionDigits: 2,
     }).format(value);
 
@@ -9287,7 +9391,7 @@ function ProfessionalProfileView({ user }: { user: AppUser }) {
     const { data, error } = await supabase
       .from("professionals")
       .select(
-        "id, title, location, flag, specialties, approach, sessions_info, photo_url, years, rating, approved, crp, session_price, created_at, profiles(full_name, email, phone)",
+        "id, title, location, flag, specialties, approach, sessions_info, photo_url, years, rating, approved, crp, session_price, currency, created_at, profiles(full_name, email, phone)",
       )
       .eq("id", user.id)
       .maybeSingle();
@@ -9316,6 +9420,7 @@ function ProfessionalProfileView({ user }: { user: AppUser }) {
       "years",
       "crp",
       "session_price",
+      "currency",
     ];
     fields.forEach((key) => {
       const value = data[key];
@@ -9383,7 +9488,30 @@ function ProfessionalProfileView({ user }: { user: AppUser }) {
 // vivem como componentes únicos reaproveitados em vez de uma cópia por
 // papel (evita a duplicação que o pedido de unificação pediu pra evitar).
 
-function AccountSecurityView({ onLogout }: { onLogout: () => void }) {
+// Fase 35 — além de senha/e-mail/logout (já existia), esta tela ganhou as
+// duas peças de "direitos do titular" (LGPD) comuns a QUALQUER papel
+// (psicólogo, secretária, paciente, admin) — por isso os dois pedaços
+// novos moram aqui, no componente já compartilhado por todo mundo, em vez
+// de duplicar em cada dashboard:
+//  1) Exportar meus dados — baixa um JSON com o que a PRÓPRIA conta tem
+//     cadastrado (perfil + registro específico do papel). NÃO inclui dados
+//     de outras pessoas que o profissional atende (pacientes, prontuários)
+//     — isso é dado de terceiros, uma questão bem mais delicada que exigiria
+//     revisão jurídica própria antes de virar um botão de auto-serviço.
+//  2) Solicitar exclusão da conta — vira um PEDIDO revisado por um admin
+//     (tabela `account_deletion_requests`, Fase 35), não uma exclusão
+//     instantânea: dados de prontuário costumam ter obrigação legal de
+//     retenção por um tempo mínimo, e isso não é uma decisão que dá pra
+//     automatizar com segurança sem orientação jurídica.
+// (Não sou advogado — isto é um ponto de partida técnico, não aconselhamento
+// jurídico. Revise com um profissional antes de operar com dados reais.)
+function AccountSecurityView({
+  user,
+  onLogout,
+}: {
+  user: AppUser;
+  onLogout: () => void;
+}) {
   const { t } = useTranslation();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -9395,6 +9523,57 @@ function AccountSecurityView({ onLogout }: { onLogout: () => void }) {
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [emailSuccess, setEmailSuccess] = useState(false);
+
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    setExportError(false);
+    try {
+      const data = await apiFetch("/account/export");
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `meus-dados-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Falha ao exportar dados da conta:", err);
+      setExportError(true);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const [deletionReason, setDeletionReason] = useState("");
+  const [deletionSubmitting, setDeletionSubmitting] = useState(false);
+  const [deletionError, setDeletionError] = useState(false);
+  const [deletionRequested, setDeletionRequested] = useState(false);
+  const [showDeletionForm, setShowDeletionForm] = useState(false);
+
+  const handleRequestDeletion = async () => {
+    setDeletionSubmitting(true);
+    setDeletionError(false);
+    try {
+      await apiFetch("/account/request-deletion", {
+        method: "POST",
+        body: JSON.stringify({ reason: deletionReason.trim() || null }),
+      });
+      setDeletionRequested(true);
+      setShowDeletionForm(false);
+    } catch (err) {
+      console.error("Falha ao solicitar exclusão da conta:", err);
+      setDeletionError(true);
+    } finally {
+      setDeletionSubmitting(false);
+    }
+  };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -9554,12 +9733,164 @@ function AccountSecurityView({ onLogout }: { onLogout: () => void }) {
       <p className="text-xs text-muted-foreground">
         {t("settings.security.sessionsNote")}
       </p>
+
+      {/* Fase 35 — "direitos do titular" (LGPD): exportar dados + pedido de
+          exclusão de conta. Comum a todo papel — ver nota no topo do
+          componente. */}
+      <div className="bg-card border border-border rounded-2xl p-6">
+        <h4 className="text-sm font-semibold text-foreground mb-1">
+          {t("settings.security.dataSectionTitle")}
+        </h4>
+        <p className="text-xs text-muted-foreground mb-4 max-w-md">
+          {t("settings.security.dataSectionHint")}
+        </p>
+
+        <div className="flex items-center justify-between gap-4 py-3 border-t border-border">
+          <div>
+            <h5 className="text-sm font-medium text-foreground">
+              {t("settings.security.exportLabel")}
+            </h5>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {t("settings.security.exportHint")}
+            </p>
+          </div>
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-border text-sm font-medium hover:bg-secondary transition-colors shrink-0 disabled:opacity-60"
+          >
+            {exporting
+              ? t("settings.security.exporting")
+              : t("settings.security.exportButton")}
+          </button>
+        </div>
+        {exportError && (
+          <p className="text-red-500 text-xs mt-1">
+            {t("settings.security.exportError")}
+          </p>
+        )}
+
+        <div className="py-3 border-t border-border">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h5 className="text-sm font-medium text-foreground">
+                {t("settings.security.deletionLabel")}
+              </h5>
+              <p className="text-xs text-muted-foreground mt-0.5 max-w-sm">
+                {t("settings.security.deletionHint")}
+              </p>
+            </div>
+            {!deletionRequested && (
+              <button
+                onClick={() => setShowDeletionForm((v) => !v)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors shrink-0"
+              >
+                {t("settings.security.deletionButton")}
+              </button>
+            )}
+          </div>
+          {deletionRequested && (
+            <p className="text-green-600 text-xs mt-3">
+              {t("settings.security.deletionRequested")}
+            </p>
+          )}
+          {showDeletionForm && !deletionRequested && (
+            <div className="mt-3 bg-secondary/60 border border-border rounded-xl p-4">
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                {t("settings.security.deletionReasonLabel")}
+              </label>
+              <textarea
+                value={deletionReason}
+                onChange={(e) => setDeletionReason(e.target.value)}
+                rows={2}
+                placeholder={t("settings.security.deletionReasonPlaceholder")}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-none mb-3"
+              />
+              <p className="text-xs text-muted-foreground mb-3">
+                {t("settings.security.deletionDisclaimer")}
+              </p>
+              {deletionError && (
+                <p className="text-red-500 text-xs mb-3">
+                  {t("settings.security.deletionError")}
+                </p>
+              )}
+              <button
+                onClick={handleRequestDeletion}
+                disabled={deletionSubmitting}
+                className="px-4 py-2 rounded-full bg-red-600 text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
+              >
+                {deletionSubmitting
+                  ? t("settings.security.deletionSubmitting")
+                  : t("settings.security.deletionConfirm")}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-function PreferencesView() {
+// Fase 34 — quando `professionalUserId` é passado (só a tela de
+// Configurações do PROFISSIONAL faz isso; a do paciente usa este mesmo
+// componente sem essa prop), o card de notificações vira um toggle de
+// verdade: liga/desliga o lembrete automático de consulta pros pacientes
+// DELE. É opt-in e por profissional de propósito — cada um decide se quer
+// mandar lembrete, não é um comportamento global da plataforma (ver nota
+// completa na migração da Fase 34).
+function PreferencesView({
+  professionalUserId,
+}: {
+  professionalUserId?: string;
+}) {
   const { t } = useTranslation();
+  const [remindersEnabled, setRemindersEnabled] = useState(false);
+  const [remindersLoading, setRemindersLoading] = useState(
+    !!professionalUserId,
+  );
+  const [remindersSaving, setRemindersSaving] = useState(false);
+  const [remindersError, setRemindersError] = useState(false);
+
+  useEffect(() => {
+    if (!professionalUserId) return;
+    let cancelled = false;
+    (async () => {
+      setRemindersLoading(true);
+      const { data, error } = await supabase
+        .from("professionals")
+        .select("send_appointment_reminders")
+        .eq("id", professionalUserId)
+        .maybeSingle();
+      if (!cancelled) {
+        if (!error && data) {
+          setRemindersEnabled(!!data.send_appointment_reminders);
+        }
+        setRemindersLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [professionalUserId]);
+
+  const toggleReminders = async () => {
+    if (!professionalUserId || remindersSaving) return;
+    const next = !remindersEnabled;
+    setRemindersSaving(true);
+    setRemindersError(false);
+    const { error } = await supabase
+      .from("professionals")
+      .update({ send_appointment_reminders: next })
+      .eq("id", professionalUserId);
+    if (error) {
+      console.error("Falha ao atualizar lembrete de consulta:", error);
+      setRemindersError(true);
+    } else {
+      setRemindersEnabled(next);
+    }
+    setRemindersSaving(false);
+  };
+
   return (
     <div className="max-w-lg space-y-6">
       <div>
@@ -9581,14 +9912,49 @@ function PreferencesView() {
         </div>
         <LanguageSwitcher />
       </div>
-      <div className="bg-card border border-border rounded-2xl p-6">
-        <h4 className="text-sm font-semibold text-foreground">
-          {t("settings.preferences.notificationsLabel")}
-        </h4>
-        <p className="text-xs text-muted-foreground mt-1">
-          {t("settings.preferences.notificationsComingSoon")}
-        </p>
-      </div>
+      {professionalUserId ? (
+        <div className="bg-card border border-border rounded-2xl p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h4 className="text-sm font-semibold text-foreground">
+                {t("settings.preferences.remindersLabel")}
+              </h4>
+              <p className="text-xs text-muted-foreground mt-0.5 max-w-sm">
+                {t("settings.preferences.remindersHint")}
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={remindersEnabled}
+              disabled={remindersLoading || remindersSaving}
+              onClick={toggleReminders}
+              className={`relative shrink-0 w-11 h-6 rounded-full transition-colors disabled:opacity-60 ${remindersEnabled ? "bg-primary" : "bg-muted"}`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${remindersEnabled ? "translate-x-5" : "translate-x-0"}`}
+              />
+            </button>
+          </div>
+          {remindersError && (
+            <p className="text-red-500 text-xs mt-3">
+              {t("settings.preferences.remindersError")}
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground mt-3">
+            {t("settings.preferences.remindersDependencyHint")}
+          </p>
+        </div>
+      ) : (
+        <div className="bg-card border border-border rounded-2xl p-6">
+          <h4 className="text-sm font-semibold text-foreground">
+            {t("settings.preferences.notificationsLabel")}
+          </h4>
+          <p className="text-xs text-muted-foreground mt-1">
+            {t("settings.preferences.notificationsComingSoon")}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -9829,8 +10195,10 @@ function SettingsView({
         {tab === "profile" && <ProfessionalProfileView user={user} />}
         {tab === "clinic" && <ClinicSettingsView user={user} />}
         {tab === "plan" && <PlanView user={user} />}
-        {tab === "preferences" && <PreferencesView />}
-        {tab === "security" && <AccountSecurityView onLogout={onLogout} />}
+        {tab === "preferences" && (
+          <PreferencesView professionalUserId={user.id} />
+        )}
+        {tab === "security" && <AccountSecurityView user={user} onLogout={onLogout} />}
       </div>
     </div>
   );
@@ -9872,6 +10240,7 @@ function ProfileForm({
       years: 1,
       crp: "",
       session_price: null,
+      currency: "BRL",
     },
   );
   const [specialtyInput, setSpecialtyInput] = useState("");
@@ -10001,6 +10370,22 @@ function ProfileForm({
           "",
           0,
         )}
+        <div>
+          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+            {t("profileForm.currencyLabel")}
+          </label>
+          <select
+            value={form.currency ?? "BRL"}
+            onChange={(e) => set("currency", e.target.value)}
+            className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+          >
+            <option value="BRL">{t("profileForm.currencyBRL")}</option>
+            <option value="EUR">{t("profileForm.currencyEUR")}</option>
+          </select>
+          <p className="text-xs text-muted-foreground mt-1">
+            {t("profileForm.currencyHint")}
+          </p>
+        </div>
       </div>
 
       <div className="grid sm:grid-cols-[1fr_auto] gap-4 items-end">
@@ -10210,6 +10595,7 @@ function mapProfessionalRow(row: any): ProfessionalProfile {
     approved: !!row.approved,
     crp: row.crp ?? "",
     session_price: row.session_price ?? null,
+    currency: row.currency ?? "BRL",
     created_at: row.created_at,
   };
 }
@@ -11727,6 +12113,204 @@ function AdminLeadsView({
   );
 }
 
+// ─── Painel Admin: Pedidos de exclusão de conta (Fase 35) ──────────────────
+// "Solicitar exclusão da minha conta" (Configurações → Segurança, qualquer
+// papel) cria um PEDIDO aqui em vez de apagar a conta na hora — dados de
+// prontuário costumam ter obrigação legal de retenção mínima, e decidir
+// "pode apagar agora ou não" não é algo que dá pra automatizar com
+// segurança sem orientação jurídica. Esta tela deixa o admin revisar cada
+// pedido e marcar como concluído (depois de excluir manualmente, com
+// cautela, pelo painel do Supabase) ou recusado — nenhuma das duas ações
+// apaga nada sozinha; é só o registro da decisão.
+type DeletionRequestStatus = "pending" | "completed" | "declined";
+
+type DeletionRequest = {
+  id: string;
+  user_id: string;
+  email: string;
+  role: string;
+  reason: string | null;
+  status: DeletionRequestStatus;
+  requested_at: string;
+};
+
+function AdminDeletionRequestsView({
+  adminId,
+  onCountChange,
+}: {
+  adminId: string;
+  onCountChange?: (delta: number) => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const [requests, setRequests] = useState<DeletionRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<
+    DeletionRequestStatus | "all"
+  >("pending");
+  const [actioningId, setActioningId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    const { data, error: err } = await supabase
+      .from("account_deletion_requests")
+      .select("id, user_id, email, role, reason, status, requested_at")
+      .order("requested_at", { ascending: false });
+    if (err) {
+      console.error("Falha ao carregar pedidos de exclusão:", err);
+      setError(true);
+    } else {
+      setRequests((data as DeletionRequest[]) ?? []);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const dateLabel = (iso: string) =>
+    new Intl.DateTimeFormat(i18n.language, {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(iso));
+
+  const resolve = async (
+    request: DeletionRequest,
+    status: "completed" | "declined",
+  ) => {
+    setActioningId(request.id);
+    setActionError(null);
+    const { error: err } = await supabase
+      .from("account_deletion_requests")
+      .update({
+        status,
+        resolved_at: new Date().toISOString(),
+        resolved_by: adminId,
+      })
+      .eq("id", request.id);
+    setActioningId(null);
+    if (err) {
+      console.error("Falha ao atualizar pedido de exclusão:", err);
+      setActionError(request.id);
+      return;
+    }
+    setRequests((prev) =>
+      prev.map((r) => (r.id === request.id ? { ...r, status } : r)),
+    );
+    if (request.status === "pending") onCountChange?.(-1);
+  };
+
+  const filtered = requests.filter(
+    (r) => statusFilter === "all" || r.status === statusFilter,
+  );
+
+  const statusStyles: Record<DeletionRequestStatus, string> = {
+    pending: "bg-secondary text-muted-foreground",
+    completed: "bg-green-100 text-green-700",
+    declined: "bg-red-100 text-red-700",
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-xs text-muted-foreground bg-secondary border border-border rounded-lg px-4 py-3 max-w-2xl">
+        {t("admin.deletions.legalNotice")}
+      </p>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        {(["pending", "completed", "declined", "all"] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => setStatusFilter(s)}
+            className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${statusFilter === s ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}
+          >
+            {s === "all"
+              ? t("admin.deletions.statusFilterAll")
+              : t(`admin.deletions.status.${s}`)}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-24 text-muted-foreground gap-3">
+          <Loader2 size={20} className="animate-spin" />{" "}
+          {t("admin.deletions.loading")}
+        </div>
+      ) : error ? (
+        <div className="text-center py-24 text-muted-foreground text-sm">
+          {t("admin.deletions.errorLoading")}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-20 border-2 border-dashed border-border rounded-2xl">
+          <p className="text-4xl mb-4">🌿</p>
+          <p className="text-muted-foreground text-sm">
+            {t("admin.deletions.emptyText")}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((r) => (
+            <div
+              key={r.id}
+              className="bg-card border border-border rounded-xl p-5"
+            >
+              <div className="flex items-start justify-between gap-4 flex-wrap mb-2">
+                <div>
+                  <span className="font-semibold text-foreground">
+                    {r.email}
+                  </span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {t(`roles.${r.role}`)} ·{" "}
+                    {dateLabel(r.requested_at)}
+                  </p>
+                </div>
+                <span
+                  className={`text-xs px-2.5 py-0.5 rounded-full font-medium shrink-0 ${statusStyles[r.status]}`}
+                >
+                  {t(`admin.deletions.status.${r.status}`)}
+                </span>
+              </div>
+              {r.reason && (
+                <p className="text-sm text-muted-foreground border-t border-border pt-3 mt-2">
+                  {r.reason}
+                </p>
+              )}
+              {r.status === "pending" && (
+                <div className="flex items-center gap-2 pt-3 mt-1 border-t border-border">
+                  <button
+                    onClick={() => resolve(r, "completed")}
+                    disabled={actioningId === r.id}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-full border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-60"
+                  >
+                    {t("admin.deletions.markCompleted")}
+                  </button>
+                  <button
+                    onClick={() => resolve(r, "declined")}
+                    disabled={actioningId === r.id}
+                    className="text-xs font-medium px-3 py-1.5 rounded-full border border-border hover:bg-secondary transition-colors text-muted-foreground disabled:opacity-60"
+                  >
+                    {t("admin.deletions.markDeclined")}
+                  </button>
+                </div>
+              )}
+              {actionError === r.id && (
+                <p className="text-red-500 text-xs mt-2">
+                  {t("admin.deletions.actionError")}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Painel Admin: Financeiro — faturamento estimado por plano (Fase 20) ───
 // Não existe cobrança automática configurada (o site hoje mostra "Fale
 // conosco" pros planos pagos — ver `plans.professional.price`/
@@ -11836,6 +12420,12 @@ function AdminFinanceView() {
     setSavingPlan(null);
   };
 
+  // Fase 32 — fica em BRL de propósito (não é um esquecimento): isto é
+  // receita de ASSINATURA da própria Travessia (o que as clínicas pagam
+  // pra usar a plataforma), cobrada via Stripe só em BRL por enquanto (ver
+  // nota na rota `/billing/change-plan`) — diferente da moeda que cada
+  // profissional escolhe pra cobrar SEUS pacientes (`professionals.currency`,
+  // também Fase 32). Não tem relação entre as duas.
   const currency = (cents: number) =>
     new Intl.NumberFormat(i18n.language, {
       style: "currency",
@@ -11956,6 +12546,7 @@ type AdminTab =
   | "clinics"
   | "patients"
   | "leads"
+  | "deletions"
   | "finance"
   | "settings";
 
@@ -11999,6 +12590,23 @@ function AdminPanel({
     };
   }, [tab]);
 
+  // Fase 35 — mesmo padrão de badge da Fase 29, agora pros pedidos de
+  // exclusão de conta pendentes de revisão.
+  const [pendingDeletionsCount, setPendingDeletionsCount] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { count } = await supabase
+        .from("account_deletion_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      if (!cancelled) setPendingDeletionsCount(count ?? 0);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tab]);
+
   // Fase 12: o admin já não cria "perfis" do nada nem apaga contas por aqui
   // — `professionals` agora É a conta real de quem se cadastrou na
   // plataforma (Fase 1+), então "criar" é o próprio cadastro público e
@@ -12013,7 +12621,7 @@ function AdminPanel({
       const { data, error } = await supabase
         .from("professionals")
         .select(
-          "id, title, location, flag, specialties, approach, sessions_info, photo_url, years, rating, approved, crp, session_price, created_at, profiles(full_name, email, phone)",
+          "id, title, location, flag, specialties, approach, sessions_info, photo_url, years, rating, approved, crp, session_price, currency, created_at, profiles(full_name, email, phone)",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -12046,6 +12654,7 @@ function AdminPanel({
       "years",
       "crp",
       "session_price",
+      "currency",
     ];
     fields.forEach((key) => {
       const value = data[key];
@@ -12117,6 +12726,12 @@ function AdminPanel({
         icon: <MessageSquare size={14} />,
         label: t("admin.tabs.leads"),
         badge: pendingLeadsCount,
+      },
+      {
+        key: "deletions",
+        icon: <Trash2 size={14} />,
+        label: t("admin.tabs.deletions"),
+        badge: pendingDeletionsCount,
       },
       {
         key: "finance",
@@ -12285,11 +12900,13 @@ function AdminPanel({
                       ? t("admin.patients.title")
                       : tab === "leads"
                         ? t("admin.leads.title")
-                        : tab === "finance"
-                          ? t("admin.finance.title")
-                          : tab === "settings"
-                            ? t("settings.security.title")
-                            : t("admin.listTitle")}
+                        : tab === "deletions"
+                          ? t("admin.deletions.title")
+                          : tab === "finance"
+                            ? t("admin.finance.title")
+                            : tab === "settings"
+                              ? t("settings.security.title")
+                              : t("admin.listTitle")}
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
               {tab === "overview"
@@ -12302,11 +12919,13 @@ function AdminPanel({
                       ? t("admin.patients.subtitle")
                       : tab === "leads"
                         ? t("admin.leads.subtitle")
-                        : tab === "finance"
-                          ? t("admin.finance.subtitle")
-                          : tab === "settings"
-                            ? t("admin.settingsSubtitle")
-                            : t("admin.listSubtitle")}
+                        : tab === "deletions"
+                          ? t("admin.deletions.subtitle")
+                          : tab === "finance"
+                            ? t("admin.finance.subtitle")
+                            : tab === "settings"
+                              ? t("admin.settingsSubtitle")
+                              : t("admin.listSubtitle")}
             </p>
           </div>
         )}
@@ -12322,8 +12941,16 @@ function AdminPanel({
             }
           />
         )}
+        {tab === "deletions" && (
+          <AdminDeletionRequestsView
+            adminId={user.id}
+            onCountChange={(delta) =>
+              setPendingDeletionsCount((prev) => Math.max(0, prev + delta))
+            }
+          />
+        )}
         {tab === "finance" && <AdminFinanceView />}
-        {tab === "settings" && <AccountSecurityView onLogout={onLogout} />}
+        {tab === "settings" && <AccountSecurityView user={user} onLogout={onLogout} />}
 
         {tab === "psychologists" && (
           <>
@@ -12523,9 +13150,12 @@ type PublicProfessional = {
   sessions_info: string;
   photo_url: string;
   years: number;
-  rating: number;
   crp: string;
   session_price: number | null;
+  // Fase 32 — moeda de cobrança escolhida pelo profissional ("BRL" | "EUR").
+  // `rating` saiu daqui: a view pública não expõe mais essa coluna (não
+  // existe avaliação real por trás, ver nota na migração da Fase 32).
+  currency: string;
 };
 
 // ─── Solicitações de contato — "vitrine" pública (Fase 25) ─────────────────
@@ -12585,10 +13215,13 @@ function PublicProfileModal({
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState(false);
 
+  // Fase 32 — cada profissional tem sua própria moeda de cobrança (ver
+  // `professionals.currency`); o preço da sessão exibido aqui usa a moeda
+  // dele, não a do idioma de quem está visitando o diretório.
   const currency = (value: number) =>
     new Intl.NumberFormat(i18n.language, {
       style: "currency",
-      currency: "BRL",
+      currency: psych.currency === "EUR" ? "EUR" : "BRL",
       maximumFractionDigits: 2,
     }).format(value);
 
@@ -12640,17 +13273,13 @@ function PublicProfileModal({
           </button>
         </div>
         <div className="p-8">
-          <div className="flex items-start justify-between gap-4 mb-1">
+          <div className="mb-1">
             <h3
               className="text-2xl font-light text-foreground"
               style={{ fontFamily: "'Fraunces', serif" }}
             >
               {psych.name}
             </h3>
-            <div className="flex items-center gap-1 text-sm font-semibold text-foreground shrink-0 pt-1">
-              <Star size={14} className="text-accent fill-accent" />{" "}
-              {Number(psych.rating).toFixed(1)}
-            </div>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
             {psych.title} · {psych.flag} {psych.location} ·{" "}
@@ -12835,10 +13464,16 @@ function Landing() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Fase 32 — antes ordenava por `rating`, um número estático e igual
+      // pra (quase) todo mundo (sem sistema de avaliação real por trás,
+      // ver nota na migração da Fase 32). `years` é um dado real, então
+      // vira o critério de ordenação até existir um sinal melhor (ex.:
+      // avaliações de verdade).
       const { data, error } = await supabase
         .from("public_professionals")
         .select("*")
-        .order("rating", { ascending: false });
+        .order("years", { ascending: false })
+        .order("created_at", { ascending: true });
       if (!cancelled) {
         if (!error) setPsychologists((data ?? []) as PublicProfessional[]);
         setLoadingPsychs(false);
@@ -13307,19 +13942,13 @@ function Landing() {
                     </div>
                   </div>
                   <div className="p-6">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold text-foreground text-lg">
-                          {p.name}
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          {p.years} {t("psychologistsSection.yearsExperience")}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs font-semibold text-foreground">
-                        <Star size={12} className="text-accent fill-accent" />{" "}
-                        {Number(p.rating).toFixed(1)}
-                      </div>
+                    <div className="mb-3">
+                      <h3 className="font-semibold text-foreground text-lg">
+                        {p.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        {p.years} {t("psychologistsSection.yearsExperience")}
+                      </p>
                     </div>
                     <div className="flex flex-wrap gap-1.5 mb-4">
                       {p.specialties.map((s) => (
@@ -13946,7 +14575,7 @@ function PatientSettingsView({
       <div className="min-w-0">
         {tab === "account" && <PatientAccountView user={user} />}
         {tab === "preferences" && <PreferencesView />}
-        {tab === "security" && <AccountSecurityView onLogout={onLogout} />}
+        {tab === "security" && <AccountSecurityView user={user} onLogout={onLogout} />}
       </div>
     </div>
   );

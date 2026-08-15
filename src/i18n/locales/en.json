@@ -285,7 +285,12 @@
     "hasAccount": "Already have an account?",
     "logIn": "Sign in",
     "isSecretary": "Are you a clinic secretary?",
-    "isSecretaryLink": "Sign up with the clinic's code"
+    "isSecretaryLink": "Sign up with the clinic's code",
+    "termsRequiredError": "You need to accept the Terms of Use and Privacy Policy to continue.",
+    "termsCheckboxPrefix": "I've read and accept the",
+    "termsLinkLabel": "Terms of Use",
+    "termsCheckboxAnd": "and the",
+    "privacyLinkLabel": "Privacy Policy"
   },
   "publicPlans": {
     "title": "Plans for psychologists",
@@ -334,7 +339,8 @@
       "finance": "Finance",
       "settings": "Settings",
       "patients": "Patients",
-      "leads": "Leads"
+      "leads": "Leads",
+      "deletions": "Deletions"
     },
     "overview": {
       "title": "Overview",
@@ -435,6 +441,23 @@
       "suggestError": "Couldn't send the suggestion right now. Please try again.",
       "suggestedLabel": "Suggestion sent: {{name}} on {{date}}",
       "emailNotConfigured": "Email sending isn't configured on this installation yet. Set RESEND_API_KEY and RESEND_FROM_EMAIL in the Supabase project's secrets to enable it."
+    },
+    "deletions": {
+      "title": "Account deletion requests",
+      "subtitle": "Review each request — no account is deleted automatically.",
+      "legalNotice": "Marking as \"completed\" here only records the decision — the actual data deletion (when applicable) needs to be done carefully, directly in the Supabase dashboard, respecting any legal retention obligations.",
+      "statusFilterAll": "All",
+      "status": {
+        "pending": "Pending",
+        "completed": "Completed",
+        "declined": "Declined"
+      },
+      "loading": "Loading requests...",
+      "errorLoading": "Couldn't load the requests.",
+      "emptyText": "No deletion requests here.",
+      "markCompleted": "Mark as completed",
+      "markDeclined": "Decline",
+      "actionError": "Couldn't update right now. Please try again."
     }
   },
   "profileForm": {
@@ -483,7 +506,11 @@
       "Divorce",
       "Trauma",
       "Self-esteem"
-    ]
+    ],
+    "currencyLabel": "Billing currency",
+    "currencyBRL": "Real (R$)",
+    "currencyEUR": "Euro (€)",
+    "currencyHint": "Used to format the session price and payments in your dashboard."
   },
   "language": {
     "label": "Language"
@@ -1041,7 +1068,24 @@
       "saveEmail": "Save new email",
       "logoutSectionTitle": "Sign out",
       "logoutSectionHint": "Signs you out of your account on this device.",
-      "sessionsNote": "Managing connected sessions/devices isn't available in this version yet."
+      "sessionsNote": "Managing connected sessions/devices isn't available in this version yet.",
+      "dataSectionTitle": "Your data",
+      "dataSectionHint": "Export what your account has on file, or request its deletion.",
+      "exportLabel": "Export my data",
+      "exportHint": "Downloads a file with your account's data.",
+      "exporting": "Exporting...",
+      "exportButton": "Export (.json)",
+      "exportError": "Couldn't export right now. Please try again.",
+      "deletionLabel": "Delete my account",
+      "deletionHint": "Becomes a request reviewed by an administrator — not instant.",
+      "deletionButton": "Request deletion",
+      "deletionRequested": "Request sent — an administrator will review it.",
+      "deletionReasonLabel": "Reason (optional)",
+      "deletionReasonPlaceholder": "Tell us, if you'd like, why you're requesting deletion.",
+      "deletionDisclaimer": "This doesn't delete anything automatically. An administrator will review your request — some data may need to be retained for a minimum period due to legal obligations.",
+      "deletionError": "Couldn't send the request right now. Please try again.",
+      "deletionSubmitting": "Sending...",
+      "deletionConfirm": "Confirm deletion request"
     },
     "preferences": {
       "title": "Preferences",
@@ -1049,7 +1093,11 @@
       "languageLabel": "Language",
       "languageHint": "Changes the language across the whole platform.",
       "notificationsLabel": "Notifications",
-      "notificationsComingSoon": "Notification preferences are coming in a later stage of the project."
+      "notificationsComingSoon": "Notification preferences are coming in a later stage of the project.",
+      "remindersLabel": "Email appointment reminder",
+      "remindersHint": "Sends your patients an automatic email ~24h before each appointment.",
+      "remindersError": "Couldn't save right now. Please try again.",
+      "remindersDependencyHint": "Only works once automated email sending is configured on this installation — check with whoever administers the platform if reminders aren't arriving."
     }
   },
   "infoPages": {

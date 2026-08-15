@@ -181,6 +181,10 @@ app.post("/make-server-a65fd448/signup/psychologist", async (c) => {
     const email = String(body?.email ?? "").trim();
     const password = String(body?.password ?? "");
     const fullName = String(body?.full_name ?? "").trim();
+    // Fase 35 — checkbox obrigatório de aceite dos Termos de Uso/Política
+    // de Privacidade (ver `#termos`/`#privacidade`). Checado aqui também
+    // (defesa em profundidade), não só desabilitando o botão no front.
+    const termsAccepted = body?.terms_accepted === true;
 
     if (!email || !fullName) {
       return c.json({ error: "Nome e e-mail são obrigatórios." }, 400);
@@ -188,6 +192,15 @@ app.post("/make-server-a65fd448/signup/psychologist", async (c) => {
     if (password.length < 8) {
       return c.json(
         { error: "A senha deve ter pelo menos 8 caracteres." },
+        400,
+      );
+    }
+    if (!termsAccepted) {
+      return c.json(
+        {
+          error:
+            "Você precisa aceitar os Termos de Uso e a Política de Privacidade.",
+        },
         400,
       );
     }
@@ -212,10 +225,15 @@ app.post("/make-server-a65fd448/signup/psychologist", async (c) => {
     // `handle_new_user()` já criou a linha em `profiles` (role padrão
     // 'patient') reagindo ao insert em auth.users acima. Promovemos pra
     // psicólogo aqui — isso dispara `handle_professional_role()`, que cria
-    // a linha em `professionals` e a clínica própria (Fase 3/9).
+    // a linha em `professionals` e a clínica própria (Fase 3/9). Já
+    // registra `terms_accepted_at` no mesmo UPDATE, pra ter um registro de
+    // quando o aceite aconteceu.
     const { error: roleErr } = await supabase
       .from("profiles")
-      .update({ role: "psychologist" })
+      .update({
+        role: "psychologist",
+        terms_accepted_at: new Date().toISOString(),
+      })
       .eq("id", userId);
 
     if (roleErr) {
@@ -272,6 +290,9 @@ app.post("/make-server-a65fd448/signup/secretary", async (c) => {
     const inviteCode = String(body?.invite_code ?? "")
       .trim()
       .toUpperCase();
+    // Fase 35 — mesmo aceite obrigatório de Termos/Privacidade do cadastro
+    // de psicólogo, checado aqui também (não só no front).
+    const termsAccepted = body?.terms_accepted === true;
 
     if (!email || !fullName || !inviteCode) {
       return c.json(
@@ -282,6 +303,15 @@ app.post("/make-server-a65fd448/signup/secretary", async (c) => {
     if (password.length < 8) {
       return c.json(
         { error: "A senha deve ter pelo menos 8 caracteres." },
+        400,
+      );
+    }
+    if (!termsAccepted) {
+      return c.json(
+        {
+          error:
+            "Você precisa aceitar os Termos de Uso e a Política de Privacidade.",
+        },
         400,
       );
     }
@@ -321,7 +351,11 @@ app.post("/make-server-a65fd448/signup/secretary", async (c) => {
 
     const { error: roleErr } = await supabase
       .from("profiles")
-      .update({ role: "secretary", clinic_id: clinic.id })
+      .update({
+        role: "secretary",
+        clinic_id: clinic.id,
+        terms_accepted_at: new Date().toISOString(),
+      })
       .eq("id", userId);
 
     if (roleErr) {
@@ -1269,6 +1303,12 @@ app.put(
       const yearsNum = yearsRaw ? Number(yearsRaw) : null;
       const priceNum = priceRaw ? Number(priceRaw) : null;
 
+      // Fase 32 — moeda de cobrança do profissional (BRL ou EUR). Qualquer
+      // outro valor (campo ausente, adulterado, etc.) cai em BRL, que já
+      // era o comportamento implícito de toda a plataforma antes disso.
+      const currencyRaw = (formData.get("currency") as string) || "";
+      const currency = currencyRaw === "EUR" ? "EUR" : "BRL";
+
       const update: Record<string, unknown> = {
         title: (formData.get("title") as string) || null,
         location: (formData.get("location") as string) || null,
@@ -1286,6 +1326,7 @@ app.put(
           priceNum != null && Number.isFinite(priceNum)
             ? Math.max(0, priceNum)
             : null,
+        currency,
       };
 
       const { error: updateErr } = await supabase
@@ -2345,6 +2386,397 @@ app.post(
       console.error("Failed to suggest professional to lead:", err);
       return c.json(
         { error: err?.message ?? "Não foi possível concluir a sugestão." },
+        500,
+      );
+    }
+  },
+);
+
+// ── Aviso por e-mail de novo lead/pedido de contato (Fase 33) ──────────────
+// Chamada pelo gatilho de banco `notify_new_lead()` (ver migração da Fase
+// 33) assim que alguém preenche o quiz da Landing ou pede contato no perfil
+// público de um profissional — hoje isso só aparecia como um número no
+// badge do menu (Fase 29), fácil de passar batido se ninguém estiver de
+// olho no painel.
+//
+// Rota PÚBLICA de propósito (sem `requireRole` — quem chama é o gatilho de
+// banco via `pg_net`, não uma sessão logada), protegida por um segredo
+// compartilhado (`x-internal-secret`) em vez de autenticação de usuário —
+// mesmo padrão do webhook do Stripe (Fase 31), trocando verificação de
+// assinatura por um segredo fixo combinado entre o Vault e esta função.
+app.post("/make-server-a65fd448/internal/notify-lead", async (c) => {
+  try {
+    const expectedSecret = Deno.env.get("INTERNAL_WEBHOOK_SECRET");
+    if (!expectedSecret) {
+      return c.json({ error: "internal_webhooks_not_configured" }, 501);
+    }
+    const givenSecret = c.req.header("x-internal-secret");
+    if (!givenSecret || givenSecret !== expectedSecret) {
+      return c.json({ error: "Não autorizado." }, 401);
+    }
+
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL");
+    if (!resendApiKey || !fromEmail) {
+      // O gatilho já cadastrou o lead/pedido normalmente — só não dá pra
+      // avisar por e-mail ainda. Não é um erro do chamador.
+      return c.json({ error: "email_not_configured" }, 501);
+    }
+
+    const body = await c.req.json().catch(() => ({}));
+    const type = String(body?.type ?? "");
+    const id = String(body?.id ?? "");
+    if (!id || (type !== "quiz_lead" && type !== "booking_request")) {
+      return c.json({ error: "Requisição inválida." }, 400);
+    }
+
+    const sendEmail = async (to: string, subject: string, html: string) => {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ from: fromEmail, to, subject, html }),
+      });
+      if (!res.ok) {
+        const detail = await res.text();
+        console.error("Falha ao enviar aviso via Resend:", res.status, detail);
+      }
+      return res.ok;
+    };
+
+    if (type === "quiz_lead") {
+      const { data: lead, error: leadErr } = await supabase
+        .from("quiz_leads")
+        .select("id, full_name, email, created_at")
+        .eq("id", id)
+        .maybeSingle();
+      if (leadErr || !lead) {
+        return c.json({ error: "Lead não encontrado." }, 404);
+      }
+      const { data: admins, error: adminsErr } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("role", "admin");
+      if (adminsErr || !admins?.length) {
+        console.error(
+          "Nenhum admin encontrado pra avisar sobre novo lead:",
+          adminsErr,
+        );
+        return c.json({ success: false }, 200);
+      }
+      const html = `
+        <div style="font-family: sans-serif; color: #1f2937; line-height: 1.6; max-width: 480px;">
+          <p>Um novo lead chegou pelo questionário "Não achou quem procura?" da Landing:</p>
+          <p><strong>${lead.full_name || "(sem nome)"}</strong><br/>${lead.email}</p>
+          <p>Acesse o painel administrativo → Leads pra ver as respostas e sugerir um profissional.</p>
+        </div>
+      `;
+      await Promise.all(
+        admins.map((a: any) =>
+          a.email ? sendEmail(a.email, "Novo lead no questionário", html) : null,
+        ),
+      );
+      return c.json({ success: true });
+    }
+
+    // type === "booking_request"
+    const { data: request, error: reqErr } = await supabase
+      .from("booking_requests")
+      .select("id, full_name, professional_id, message")
+      .eq("id", id)
+      .maybeSingle();
+    if (reqErr || !request) {
+      return c.json({ error: "Pedido não encontrado." }, 404);
+    }
+    const { data: professional, error: profErr } = await supabase
+      .from("professionals")
+      .select("id, profiles(email, full_name)")
+      .eq("id", request.professional_id)
+      .maybeSingle();
+    const professionalEmail = (professional as any)?.profiles?.email;
+    if (profErr || !professionalEmail) {
+      console.error(
+        "Não foi possível achar o e-mail do profissional pra avisar sobre o pedido:",
+        profErr,
+      );
+      return c.json({ success: false }, 200);
+    }
+    const html = `
+      <div style="font-family: sans-serif; color: #1f2937; line-height: 1.6; max-width: 480px;">
+        <p>Você recebeu um novo pedido de contato pelo seu perfil público:</p>
+        <p><strong>${request.full_name || "(sem nome)"}</strong></p>
+        ${request.message ? `<p>"${request.message}"</p>` : ""}
+        <p>Acesse seu painel → Solicitações pra ver os detalhes e responder.</p>
+      </div>
+    `;
+    await sendEmail(
+      professionalEmail,
+      "Novo pedido de contato no seu perfil",
+      html,
+    );
+    return c.json({ success: true });
+  } catch (err: any) {
+    console.error("Failed to send new lead notification:", err);
+    return c.json(
+      { error: err?.message ?? "Erro ao processar notificação." },
+      500,
+    );
+  }
+});
+
+// ── Lembrete automático de consulta por e-mail (Fase 34) ───────────────────
+// Chamada de hora em hora pelo `pg_cron` (via `trigger_appointment_reminders_
+// sweep()`, ver migração da Fase 34) — não por um usuário. Mesmo padrão de
+// segredo compartilhado da Fase 33 (`x-internal-secret`), sem `requireRole`.
+//
+// OPT-IN por profissional (`professionals.send_appointment_reminders`,
+// default false) — só manda lembrete pra consulta de um profissional que
+// ligou isso explicitamente em Configurações → Preferências. Não é um
+// comportamento automático da plataforma pra todo mundo.
+//
+// Janela de 23–25h antes do início da consulta, rodando de hora em hora:
+// cobre toda consulta mesmo com alguma variação no horário exato do cron,
+// e `reminder_sent_at` (marcado logo após o envio) impede reenvio se a
+// mesma consulta aparecer em mais de uma varredura.
+app.post(
+  "/make-server-a65fd448/internal/send-appointment-reminders",
+  async (c) => {
+    try {
+      const expectedSecret = Deno.env.get("INTERNAL_WEBHOOK_SECRET");
+      if (!expectedSecret) {
+        return c.json({ error: "internal_webhooks_not_configured" }, 501);
+      }
+      const givenSecret = c.req.header("x-internal-secret");
+      if (!givenSecret || givenSecret !== expectedSecret) {
+        return c.json({ error: "Não autorizado." }, 401);
+      }
+
+      const resendApiKey = Deno.env.get("RESEND_API_KEY");
+      const fromEmail = Deno.env.get("RESEND_FROM_EMAIL");
+      if (!resendApiKey || !fromEmail) {
+        return c.json({ error: "email_not_configured" }, 501);
+      }
+
+      const now = Date.now();
+      const windowStart = new Date(now + 23 * 60 * 60 * 1000).toISOString();
+      const windowEnd = new Date(now + 25 * 60 * 60 * 1000).toISOString();
+
+      const { data: appointments, error: apptErr } = await supabase
+        .from("appointments")
+        .select(
+          "id, starts_at, patient_id, professional_id, patients(full_name, email), professionals!inner(send_appointment_reminders, profiles(full_name))",
+        )
+        .neq("status", "cancelled")
+        .is("reminder_sent_at", null)
+        .gte("starts_at", windowStart)
+        .lte("starts_at", windowEnd)
+        .eq("professionals.send_appointment_reminders", true);
+
+      if (apptErr) {
+        console.error("Falha ao buscar consultas pro lembrete:", apptErr);
+        return c.json({ error: "Erro ao buscar consultas." }, 500);
+      }
+
+      let sent = 0;
+      for (const appt of (appointments as any[]) ?? []) {
+        const patientEmail = appt.patients?.email;
+        if (!patientEmail) continue;
+
+        const professionalName =
+          appt.professionals?.profiles?.full_name ?? "seu psicólogo(a)";
+        const patientFirstName = appt.patients?.full_name
+          ? String(appt.patients.full_name).trim().split(/\s+/)[0]
+          : "";
+        const startsAt = new Date(appt.starts_at);
+        const dateLabel = startsAt.toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+        });
+        const timeLabel = startsAt.toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
+        const html = `
+          <div style="font-family: sans-serif; color: #1f2937; line-height: 1.6; max-width: 480px;">
+            <p>${patientFirstName ? `Oi, ${patientFirstName}!` : "Oi!"}</p>
+            <p>Passando pra lembrar da sua consulta com <strong>${professionalName}</strong> amanhã, dia ${dateLabel} às ${timeLabel}.</p>
+            <p>Um abraço!</p>
+          </div>
+        `;
+
+        const resendRes = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${resendApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: fromEmail,
+            to: patientEmail,
+            subject: "Lembrete: sua consulta é amanhã",
+            html,
+          }),
+        });
+
+        if (!resendRes.ok) {
+          const detail = await resendRes.text();
+          console.error(
+            "Falha ao enviar lembrete de consulta via Resend:",
+            resendRes.status,
+            detail,
+          );
+          continue;
+        }
+
+        const { error: markErr } = await supabase
+          .from("appointments")
+          .update({ reminder_sent_at: new Date().toISOString() })
+          .eq("id", appt.id);
+        if (markErr) {
+          console.error(
+            "Lembrete enviado mas falhou ao marcar reminder_sent_at:",
+            markErr,
+          );
+        }
+        sent++;
+      }
+
+      return c.json({ success: true, sent });
+    } catch (err: any) {
+      console.error("Failed to send appointment reminders:", err);
+      return c.json(
+        { error: err?.message ?? "Erro ao enviar lembretes." },
+        500,
+      );
+    }
+  },
+);
+
+// ── Exportar meus dados (Fase 35) ───────────────────────────────────────────
+// "Direito de acesso/portabilidade" básico: devolve o que a PRÓPRIA conta
+// tem cadastrado. NÃO inclui dados de outras pessoas que um profissional
+// atende (pacientes, prontuários) — isso é dado de terceiros, uma questão
+// mais delicada que exigiria revisão jurídica própria antes de virar um
+// botão de auto-serviço (ver nota completa em `AccountSecurityView`, no
+// front). Não sou advogado — isto é um ponto de partida técnico.
+app.get(
+  "/make-server-a65fd448/account/export",
+  requireRole("admin", "psychologist", "secretary", "patient"),
+  async (c) => {
+    try {
+      const user = c.get("user");
+
+      const { data: profile, error: profileErr } = await supabase
+        .from("profiles")
+        .select(
+          "id, full_name, email, phone, role, clinic_id, created_at, terms_accepted_at",
+        )
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profileErr || !profile) {
+        return c.json({ error: "Não foi possível carregar sua conta." }, 500);
+      }
+
+      const result: Record<string, unknown> = { profile };
+
+      if (user.role === "psychologist") {
+        const { data: professional } = await supabase
+          .from("professionals")
+          .select(
+            "title, location, flag, specialties, approach, sessions_info, years, crp, session_price, currency, approved, created_at",
+          )
+          .eq("id", user.id)
+          .maybeSingle();
+        result.professional_profile = professional ?? null;
+      }
+
+      if (user.role === "secretary" && profile.clinic_id) {
+        const { data: clinic } = await supabase
+          .from("clinics")
+          .select("name, plan")
+          .eq("id", profile.clinic_id)
+          .maybeSingle();
+        result.clinic = clinic ?? null;
+      }
+
+      if (user.role === "patient") {
+        const { data: patientRows } = await supabase
+          .from("patients")
+          .select("id, full_name, email, phone, status, created_at")
+          .eq("patient_user_id", user.id);
+        result.patient_records = patientRows ?? [];
+
+        const patientIds = (patientRows ?? []).map((p: any) => p.id);
+        if (patientIds.length) {
+          const [{ data: appointments }, { data: payments }] =
+            await Promise.all([
+              supabase
+                .from("appointments")
+                .select("starts_at, ends_at, status")
+                .in("patient_id", patientIds),
+              supabase
+                .from("payments")
+                .select("amount, status, paid_at, created_at")
+                .in("patient_id", patientIds),
+            ]);
+          result.appointments = appointments ?? [];
+          result.payments = payments ?? [];
+        }
+      }
+
+      return c.json(result);
+    } catch (err: any) {
+      console.error("Failed to export account data:", err);
+      return c.json(
+        { error: err?.message ?? "Erro ao exportar dados." },
+        500,
+      );
+    }
+  },
+);
+
+// ── Solicitar exclusão da minha conta (Fase 35) ─────────────────────────────
+// Cria um PEDIDO (`account_deletion_requests`) em vez de apagar a conta na
+// hora — ver nota completa na migração da Fase 35 e em `AccountSecurityView`
+// sobre por que isto não é self-service.
+app.post(
+  "/make-server-a65fd448/account/request-deletion",
+  requireRole("admin", "psychologist", "secretary", "patient"),
+  async (c) => {
+    try {
+      const user = c.get("user");
+      const body = await c.req.json().catch(() => ({}));
+      const reason =
+        typeof body?.reason === "string" && body.reason.trim()
+          ? body.reason.trim()
+          : null;
+
+      const { error: insertErr } = await supabase
+        .from("account_deletion_requests")
+        .insert({
+          user_id: user.id,
+          email: user.email,
+          role: user.role,
+          reason,
+        });
+
+      if (insertErr) {
+        console.error("Failed to create account deletion request:", insertErr);
+        return c.json(
+          { error: "Não foi possível registrar o pedido. Tente novamente." },
+          500,
+        );
+      }
+
+      return c.json({ success: true });
+    } catch (err: any) {
+      console.error("Failed to request account deletion:", err);
+      return c.json(
+        { error: err?.message ?? "Erro ao registrar o pedido." },
         500,
       );
     }
