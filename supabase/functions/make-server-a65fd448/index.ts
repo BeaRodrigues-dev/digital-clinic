@@ -879,6 +879,215 @@ app.post(
   },
 );
 
+// ── IA: gerar documentos psicológicos (Fase 24) ──
+// Reaproveita a MESMA integração de IA já configurada acima em /ai/notes
+// (Groq, GROQ_API_KEY, GROQ_MODEL, mesmo gate de plano pago) — não é uma
+// segunda integração nova, é o mesmo provedor já em produção gerando um tipo
+// de conteúdo diferente. O rascunho gerado aqui NUNCA é salvo
+// automaticamente: esta rota só devolve texto pro profissional revisar e
+// editar; salvar em `psychological_documents` é uma ação separada, feita
+// direto do frontend (RLS já cuida do acesso, igual ao resto do prontuário).
+const AI_DOCUMENT_PROMPTS: Record<string, string> = {
+  psychological_report:
+    "Você é um assistente de um psicólogo clínico brasileiro. Redija um " +
+    "RELATÓRIO PSICOLÓGICO formal, em português, a partir das anotações de " +
+    "sessão fornecidas. Estruture com: identificação (nome do paciente e do " +
+    "profissional responsável, com CRP quando informado, e a data de hoje), " +
+    "motivo/contexto do atendimento, procedimentos/técnicas utilizadas (se " +
+    "mencionados nas anotações), evolução observada e considerações finais. " +
+    "Use linguagem técnica, impessoal e profissional. NÃO invente nenhuma " +
+    "informação clínica que não esteja nas anotações fornecidas — se faltar " +
+    'informação para alguma seção, deixe um espaço indicado como ' +
+    '"[completar]" em vez de inventar. Responda só com o texto do ' +
+    "documento, sem introdução nem comentários.",
+  referral:
+    "Você é um assistente de um psicólogo clínico brasileiro. Redija uma " +
+    "CARTA DE ENCAMINHAMENTO formal, em português, a partir das anotações " +
+    "de sessão fornecidas. Inclua: identificação do paciente e do " +
+    "profissional que encaminha (com CRP quando informado) e a data de " +
+    "hoje, o motivo clínico do encaminhamento (baseado só no que está nas " +
+    'anotações), e um pedido objetivo de avaliação/acompanhamento pelo ' +
+    'profissional ou serviço de destino (use "[especialidade/serviço de ' +
+    'destino]" como espaço reservado se o destino não estiver claro nas ' +
+    "anotações ou no contexto adicional). NÃO invente diagnóstico nem " +
+    "informação clínica que não esteja nas anotações. Responda só com o " +
+    "texto da carta, sem introdução nem comentários.",
+  attendance_declaration:
+    "Você é um assistente de um psicólogo clínico brasileiro. Redija uma " +
+    "DECLARAÇÃO DE COMPARECIMENTO formal e objetiva, em português, " +
+    "confirmando que o paciente compareceu a atendimento psicológico. " +
+    "Inclua identificação do paciente e do profissional (com CRP quando " +
+    "informado), a data de hoje, e mencione a data/horário do atendimento " +
+    'se essa informação estiver disponível no contexto fornecido (senão, ' +
+    'deixe "[data do atendimento]" como espaço reservado). NÃO inclua ' +
+    "nenhum detalhe clínico ou diagnóstico — este documento é só uma " +
+    "confirmação de comparecimento, sigiloso quanto ao conteúdo do " +
+    "atendimento. Responda só com o texto da declaração, sem introdução " +
+    "nem comentários.",
+  medical_certificate:
+    "Você é um assistente de um psicólogo clínico brasileiro. Redija um " +
+    "ATESTADO DE ACOMPANHAMENTO PSICOLÓGICO formal, em português. Inclua " +
+    "identificação do paciente e do profissional (com CRP quando " +
+    "informado), a data de hoje, a confirmação de que o paciente está em " +
+    "acompanhamento psicológico, e o período/necessidade de afastamento " +
+    "SOMENTE se essa informação estiver explícita nas anotações ou no " +
+    'contexto adicional fornecido pelo profissional — caso contrário, ' +
+    'deixe "[período]" como espaço reservado em vez de inventar. NÃO ' +
+    "inclua diagnóstico nem detalhes clínicos além do necessário — atestado " +
+    "é sigiloso quanto ao conteúdo do acompanhamento. Responda só com o " +
+    "texto do atestado, sem introdução nem comentários.",
+};
+
+app.post(
+  "/make-server-a65fd448/ai/documents",
+  requireRole("psychologist", "admin"),
+  async (c) => {
+    try {
+      const user = c.get("user");
+
+      // Mesmo gate de plano pago do /ai/notes (Fase 16) — checado aqui no
+      // backend, não só escondendo botão no frontend.
+      if (user.role !== "admin") {
+        const { data: prof } = await supabase
+          .from("professionals")
+          .select("clinics(plan)")
+          .eq("id", user.id)
+          .maybeSingle();
+        const plan = (prof as any)?.clinics?.plan ?? "free";
+        if (plan === "free") {
+          return c.json({ error: "ai_requires_paid_plan" }, 403);
+        }
+      }
+
+      const apiKey = Deno.env.get("GROQ_API_KEY");
+      if (!apiKey) {
+        return c.json(
+          {
+            error:
+              "IA não configurada: falta a chave GROQ_API_KEY no backend.",
+          },
+          503,
+        );
+      }
+
+      const body = await c.req.json().catch(() => ({}));
+      const docType = body?.docType;
+      const patientId = body?.patientId;
+      const extraContext = (body?.extraContext ?? "").toString().trim();
+
+      const systemPrompt = AI_DOCUMENT_PROMPTS[docType];
+      if (!systemPrompt) {
+        return c.json({ error: "Tipo de documento inválido." }, 400);
+      }
+      if (!patientId) {
+        return c.json({ error: "Paciente não informado." }, 400);
+      }
+
+      // Busca o paciente e as anotações de sessão mais recentes — SEMPRE
+      // filtrando por professional_id = user.id (mesmo usando a service
+      // role key, que ignora RLS): sem esse filtro manual, bastaria
+      // adivinhar um patientId de outro profissional pra puxar anotações
+      // que não são suas.
+      const [{ data: patient }, { data: records }, { data: profRow }] =
+        await Promise.all([
+          supabase
+            .from("patients")
+            .select("id, full_name")
+            .eq("id", patientId)
+            .eq("professional_id", user.id)
+            .maybeSingle(),
+          supabase
+            .from("clinical_records")
+            .select("session_date, private_notes, shared_notes")
+            .eq("patient_id", patientId)
+            .eq("professional_id", user.id)
+            .order("session_date", { ascending: false })
+            .limit(10),
+          supabase
+            .from("professionals")
+            .select("crp, profiles(full_name)")
+            .eq("id", user.id)
+            .maybeSingle(),
+        ]);
+
+      if (!patient) {
+        return c.json({ error: "Paciente não encontrado." }, 404);
+      }
+
+      const notesText = (records ?? [])
+        .map((r: any) => {
+          const parts = [r.private_notes, r.shared_notes]
+            .filter(Boolean)
+            .join(" ");
+          return parts ? `- ${r.session_date}: ${parts}` : null;
+        })
+        .filter(Boolean)
+        .join("\n");
+
+      const professionalName = (profRow as any)?.profiles?.full_name ?? "";
+      const crp = (profRow as any)?.crp ?? "";
+      const today = new Date().toLocaleDateString("pt-BR");
+
+      const contextLines = [
+        `Paciente: ${patient.full_name}`,
+        `Profissional responsável: ${professionalName || "[completar]"}${crp ? ` (CRP ${crp})` : ""}`,
+        `Data de hoje: ${today}`,
+        notesText
+          ? `Anotações de sessão recentes:\n${notesText}`
+          : "Anotações de sessão recentes: nenhuma anotação registrada ainda.",
+        extraContext
+          ? `Observações adicionais do profissional: ${extraContext}`
+          : "",
+      ].filter(Boolean);
+
+      const userContent = contextLines.join("\n\n");
+
+      const groqRes = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: GROQ_MODEL,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userContent },
+            ],
+            temperature: 0.3,
+            max_tokens: 1200,
+          }),
+        },
+      );
+
+      if (!groqRes.ok) {
+        const errText = await groqRes.text();
+        console.error("Groq API error (documents):", groqRes.status, errText);
+        return c.json(
+          { error: `Falha ao chamar o serviço de IA (${groqRes.status}).` },
+          502,
+        );
+      }
+
+      const groqData = await groqRes.json();
+      const result = groqData?.choices?.[0]?.message?.content?.trim();
+      if (!result) {
+        return c.json({ error: "A IA não retornou nenhum texto." }, 502);
+      }
+
+      return c.json({ result });
+    } catch (err: any) {
+      console.error("Failed to process AI document request:", err);
+      return c.json(
+        { error: err?.message ?? "Erro ao gerar documento com IA." },
+        500,
+      );
+    }
+  },
+);
+
 // ── Perfil profissional unificado (Fase 12) ──
 // Substitui o fluxo antigo (diretório no key-value store, só editável por
 // admin) por um único formulário que o próprio psicólogo usa pra editar seu

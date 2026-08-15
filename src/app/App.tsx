@@ -37,6 +37,11 @@ import {
   FileText,
   LayoutDashboard,
   CalendarDays,
+  Send,
+  BadgeCheck,
+  Stamp,
+  Download,
+  Copy,
 } from "lucide-react";
 
 import {
@@ -5069,6 +5074,49 @@ type ClinicalRecord = {
   patients?: { full_name: string } | null;
 };
 
+// ─── Documentos psicológicos com IA (Fase 24) ──────────────────────────────
+// Peça formal (relatório, encaminhamento, declaração, atestado), separada
+// das anotações de sessão de `clinical_records`. O rascunho é gerado pela
+// MESMA IA já usada em "Resumir"/"Organizar" (Groq, via `/ai/notes`) — aqui
+// através de `/ai/documents` — nunca uma segunda integração inventada.
+type DocType =
+  | "psychological_report"
+  | "referral"
+  | "attendance_declaration"
+  | "medical_certificate";
+
+const DOC_TYPE_LIST: DocType[] = [
+  "psychological_report",
+  "referral",
+  "attendance_declaration",
+  "medical_certificate",
+];
+
+function docTypeIcon(type: DocType, size = 14) {
+  switch (type) {
+    case "psychological_report":
+      return <FileText size={size} />;
+    case "referral":
+      return <Send size={size} />;
+    case "attendance_declaration":
+      return <BadgeCheck size={size} />;
+    case "medical_certificate":
+      return <Stamp size={size} />;
+  }
+}
+
+type PsychDocument = {
+  id: string;
+  patient_id: string;
+  professional_id: string;
+  doc_type: DocType;
+  title: string | null;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  patients?: { full_name: string } | null;
+};
+
 type AppointmentOption = { id: string; starts_at: string };
 
 function RecordForm({
@@ -5697,6 +5745,13 @@ function SessionRecordModal({
 
 function RecordsView({ user }: { user: AppUser }) {
   const { t, i18n } = useTranslation();
+  // Fase 24 — o Prontuário ganhou uma segunda aba, "Documentos", separada
+  // das anotações de sessão (que continuam exatamente como antes). Um
+  // documento formal (relatório, encaminhamento, declaração, atestado) é uma
+  // peça diferente de uma anotação de sessão — por isso mora numa tabela
+  // própria (`psychological_documents`) em vez de virar mais um campo em
+  // `clinical_records`.
+  const [section, setSection] = useState<"notes" | "documents">("notes");
   const [records, setRecords] = useState<ClinicalRecord[]>([]);
   const [patients, setPatients] = useState<PatientOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -5793,7 +5848,7 @@ function RecordsView({ user }: { user: AppUser }) {
     ? records.filter((r) => r.patient_id === patientFilter)
     : records;
 
-  if (view === "new" || view === "edit") {
+  if (section === "notes" && (view === "new" || view === "edit")) {
     return (
       <div>
         <button
@@ -5828,6 +5883,25 @@ function RecordsView({ user }: { user: AppUser }) {
 
   return (
     <div>
+      <div className="flex rounded-full border border-border overflow-hidden text-xs font-medium w-fit mb-6">
+        <button
+          onClick={() => setSection("notes")}
+          className={`px-4 py-1.5 transition-colors ${section === "notes" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}
+        >
+          {t("records.documents.notesTab")}
+        </button>
+        <button
+          onClick={() => setSection("documents")}
+          className={`px-4 py-1.5 transition-colors ${section === "documents" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}
+        >
+          {t("records.documents.documentsTab")}
+        </button>
+      </div>
+
+      {section === "documents" ? (
+        <DocumentsView user={user} patients={patients} />
+      ) : (
+        <>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         {patients.length > 0 && (
           <select
@@ -5991,7 +6065,562 @@ function RecordsView({ user }: { user: AppUser }) {
           </div>
         </div>
       )}
+        </>
+      )}
     </div>
+  );
+}
+
+// ─── Documentos psicológicos com IA (Fase 24) ──────────────────────────────
+function DocumentsView({
+  user,
+  patients,
+}: {
+  user: AppUser;
+  patients: PatientOption[];
+}) {
+  const { t, i18n } = useTranslation();
+  const [documents, setDocuments] = useState<PsychDocument[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [view, setView] = useState<"list" | "new" | "edit">("list");
+  const [selected, setSelected] = useState<PsychDocument | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState(false);
+  const [patientFilter, setPatientFilter] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    const { data, error: err } = await supabase
+      .from("psychological_documents")
+      .select(
+        "id, patient_id, professional_id, doc_type, title, content, created_at, updated_at, patients(full_name)",
+      )
+      .eq("professional_id", user.id)
+      .order("updated_at", { ascending: false });
+    if (err) {
+      setError(true);
+    } else {
+      setDocuments((data as any as PsychDocument[]) ?? []);
+    }
+    setLoading(false);
+  }, [user.id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handleSave = async (data: {
+    patient_id: string;
+    doc_type: DocType;
+    title: string;
+    content: string;
+  }) => {
+    if (view === "edit" && selected) {
+      const { error: err } = await supabase
+        .from("psychological_documents")
+        .update({
+          title: data.title || null,
+          content: data.content,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", selected.id);
+      if (err) throw err;
+    } else {
+      const { error: err } = await supabase
+        .from("psychological_documents")
+        .insert({
+          patient_id: data.patient_id,
+          professional_id: user.id,
+          doc_type: data.doc_type,
+          title: data.title || null,
+          content: data.content,
+        });
+      if (err) throw err;
+    }
+    await load();
+    setView("list");
+    setSelected(null);
+  };
+
+  const handleDelete = async (id: string) => {
+    setDeleteError(false);
+    const { error: err } = await supabase
+      .from("psychological_documents")
+      .delete()
+      .eq("id", id);
+    if (err) {
+      console.error("Falha ao excluir documento:", err);
+      setDeleteError(true);
+      return;
+    }
+    setDeleteId(null);
+    await load();
+  };
+
+  const dateLabel = (iso: string) =>
+    new Intl.DateTimeFormat(i18n.language, {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(new Date(iso));
+
+  const filtered = patientFilter
+    ? documents.filter((d) => d.patient_id === patientFilter)
+    : documents;
+
+  if (view === "new" || view === "edit") {
+    return (
+      <div>
+        <button
+          onClick={() => {
+            setView("list");
+            setSelected(null);
+          }}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+        >
+          <ChevronLeft size={16} /> {t("records.documents.backToList")}
+        </button>
+        <h2
+          className="text-2xl font-light mb-8 text-foreground"
+          style={{ fontFamily: "'Fraunces', serif" }}
+        >
+          {view === "edit"
+            ? t("records.documents.editTitle")
+            : t("records.documents.newTitle")}
+        </h2>
+        <div className="bg-card border border-border rounded-2xl p-8">
+          <DocumentForm
+            initial={selected}
+            patients={patients}
+            onSave={handleSave}
+            onCancel={() => {
+              setView("list");
+              setSelected(null);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        {patients.length > 0 && (
+          <select
+            value={patientFilter}
+            onChange={(e) => setPatientFilter(e.target.value)}
+            className="text-sm px-4 py-2.5 rounded-lg border border-border bg-secondary text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer max-w-xs transition-colors"
+          >
+            <option value="">{t("records.documents.patientFilterAll")}</option>
+            {patients.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.full_name}
+              </option>
+            ))}
+          </select>
+        )}
+        <button
+          onClick={() => {
+            setSelected(null);
+            setView("new");
+          }}
+          disabled={patients.length === 0}
+          className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+        >
+          <Plus size={16} /> {t("records.documents.newDocument")}
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-24 text-muted-foreground gap-3">
+          <Loader2 size={20} className="animate-spin" />{" "}
+          {t("records.documents.loading")}
+        </div>
+      ) : error ? (
+        <div className="text-center py-24 text-muted-foreground text-sm">
+          {t("records.documents.errorLoading")}
+        </div>
+      ) : patients.length === 0 ? (
+        <div className="text-center py-24 border-2 border-dashed border-border rounded-2xl">
+          <p className="text-4xl mb-4">🌿</p>
+          <p className="font-semibold text-foreground mb-2">
+            {t("records.noPatientsTitle")}
+          </p>
+          <p className="text-muted-foreground text-sm">
+            {t("records.noPatientsText")}
+          </p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-24 border-2 border-dashed border-border rounded-2xl">
+          <p className="text-4xl mb-4">📄</p>
+          <p className="font-semibold text-foreground mb-2">
+            {t("records.documents.emptyTitle")}
+          </p>
+          <p className="text-muted-foreground text-sm mb-6">
+            {t("records.documents.emptyText")}
+          </p>
+          <button
+            onClick={() => {
+              setSelected(null);
+              setView("new");
+            }}
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
+          >
+            <Plus size={16} /> {t("records.documents.newDocument")}
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((d) => (
+            <button
+              key={d.id}
+              type="button"
+              onClick={() => {
+                setSelected(d);
+                setView("edit");
+              }}
+              className="w-full text-left bg-card border border-border rounded-xl p-5 flex items-center gap-5 shadow-sm hover:shadow-md hover:border-primary/40 transition-all"
+            >
+              <div className="w-12 h-12 rounded-xl bg-primary/10 shrink-0 flex items-center justify-center text-primary">
+                {docTypeIcon(d.doc_type, 20)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-foreground">
+                    {d.patients?.full_name ?? "—"}
+                  </span>
+                  <span className="text-xs bg-secondary border border-border rounded-full px-2.5 py-0.5 text-muted-foreground">
+                    {t(`records.documents.types.${d.doc_type}`)}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                  {d.title || t(`records.documents.types.${d.doc_type}`)} ·{" "}
+                  {dateLabel(d.updated_at)}
+                </p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteId(d.id);
+                  }}
+                  className="p-2 rounded-lg border border-border hover:bg-red-50 hover:border-red-200 transition-colors text-muted-foreground hover:text-red-600"
+                >
+                  <Trash2 size={14} />
+                </button>
+                <ChevronRight size={18} className="text-muted-foreground/40" />
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {deleteId && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6"
+          onClick={() => setDeleteId(null)}
+        >
+          <div
+            className="bg-card rounded-2xl p-8 max-w-sm w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-semibold text-lg text-foreground mb-2">
+              {t("records.documents.deleteTitle")}
+            </h3>
+            <p className="text-muted-foreground text-sm mb-6">
+              {t("records.documents.deleteBody")}
+            </p>
+            {deleteError && (
+              <p className="text-red-500 text-xs mb-4">
+                {t("records.documents.deleteError")}
+              </p>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setDeleteId(null);
+                  setDeleteError(false);
+                }}
+                className="px-5 py-2 rounded-full border border-border text-sm font-medium hover:bg-secondary transition-colors"
+              >
+                {t("records.documents.cancel")}
+              </button>
+              <button
+                onClick={() => handleDelete(deleteId)}
+                className="px-5 py-2 rounded-full bg-red-600 text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+              >
+                {t("records.documents.confirmDelete")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DocumentForm({
+  initial,
+  patients,
+  onSave,
+  onCancel,
+}: {
+  initial?: PsychDocument | null;
+  patients: PatientOption[];
+  onSave: (data: {
+    patient_id: string;
+    doc_type: DocType;
+    title: string;
+    content: string;
+  }) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const { t } = useTranslation();
+  const [patientId, setPatientId] = useState(initial?.patient_id ?? "");
+  const [docType, setDocType] = useState<DocType>(
+    initial?.doc_type ?? "psychological_report",
+  );
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [content, setContent] = useState(initial?.content ?? "");
+  const [extraContext, setExtraContext] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const runAi = async () => {
+    if (!patientId) return;
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const res = await apiFetch("/ai/documents", {
+        method: "POST",
+        body: JSON.stringify({ docType, patientId, extraContext }),
+      });
+      setContent(res.result as string);
+    } catch (err: any) {
+      const raw = err?.message ?? "";
+      let detail = raw;
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed?.error) detail = parsed.error;
+      } catch {
+        // não era JSON — usa o texto cru mesmo
+      }
+      setAiError(
+        detail === "ai_requires_paid_plan"
+          ? t("records.ai.requiresPaidPlan")
+          : detail || t("records.ai.genericError"),
+      );
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!patientId || !content.trim()) {
+      setError(t("records.documents.fields.requiredError"));
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      await onSave({
+        patient_id: patientId,
+        doc_type: docType,
+        title: title.trim(),
+        content: content.trim(),
+      });
+    } catch {
+      setError(t("records.documents.fields.genericSaveError"));
+      setSaving(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard indisponível (ex.: contexto não seguro) — sem tela de
+      // erro dedicada; ainda dá pra selecionar e copiar o texto na mão.
+    }
+  };
+
+  const handleDownload = () => {
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(title || t(`records.documents.types.${docType}`)).replace(/[^\w-]+/g, "_")}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+            {t("records.documents.fields.patientLabel")}
+          </label>
+          <select
+            value={patientId}
+            onChange={(e) => setPatientId(e.target.value)}
+            disabled={!!initial}
+            className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors disabled:opacity-60"
+          >
+            <option value="">
+              {t("records.documents.fields.selectPatientPlaceholder")}
+            </option>
+            {patients.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.full_name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+            {t("records.documents.fields.typeLabel")}
+          </label>
+          <select
+            value={docType}
+            onChange={(e) => setDocType(e.target.value as DocType)}
+            disabled={!!initial}
+            className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors disabled:opacity-60"
+          >
+            {DOC_TYPE_LIST.map((type) => (
+              <option key={type} value={type}>
+                {t(`records.documents.types.${type}`)}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+          {t("records.documents.fields.titleLabel")}
+        </label>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={t("records.documents.fields.titlePlaceholder")}
+          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+        />
+      </div>
+
+      {!initial && (
+        <div>
+          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+            {t("records.documents.fields.extraContextLabel")}
+          </label>
+          <p className="text-xs text-muted-foreground/80 mb-1.5">
+            {t("records.documents.fields.extraContextHint")}
+          </p>
+          <textarea
+            value={extraContext}
+            onChange={(e) => setExtraContext(e.target.value)}
+            placeholder={t("records.documents.fields.extraContextPlaceholder")}
+            rows={3}
+            className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-none"
+          />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={runAi}
+              disabled={!patientId || aiLoading}
+              className="flex items-center gap-1.5 text-xs font-medium text-primary border border-primary/30 rounded-full px-3 py-1.5 hover:bg-primary/5 transition-colors disabled:opacity-50"
+            >
+              {aiLoading ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <Sparkles size={12} />
+              )}
+              {t("records.documents.fields.generateButton")}
+            </button>
+            <span className="text-xs text-muted-foreground/70">
+              {t("records.ai.disclosure")}
+            </span>
+          </div>
+          {aiError && <p className="text-red-500 text-xs mt-2">{aiError}</p>}
+        </div>
+      )}
+
+      <div>
+        <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+          {t("records.documents.fields.contentLabel")}
+        </label>
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder={t("records.documents.fields.contentPlaceholder")}
+          rows={14}
+          className="w-full bg-secondary border border-border rounded-lg px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-y"
+        />
+        {content.trim() && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="flex items-center gap-1.5 text-xs font-medium border border-border rounded-full px-3 py-1.5 hover:bg-secondary transition-colors text-muted-foreground"
+            >
+              <Copy size={12} />{" "}
+              {copied
+                ? t("records.documents.fields.copied")
+                : t("records.documents.fields.copyButton")}
+            </button>
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="flex items-center gap-1.5 text-xs font-medium border border-border rounded-full px-3 py-1.5 hover:bg-secondary transition-colors text-muted-foreground"
+            >
+              <Download size={12} /> {t("records.documents.fields.downloadButton")}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          {error}
+        </p>
+      )}
+
+      <div className="flex justify-end gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-6 py-2.5 rounded-full border border-border text-sm font-medium hover:bg-secondary transition-colors"
+        >
+          {t("records.documents.cancel")}
+        </button>
+        <button
+          type="submit"
+          disabled={saving}
+          className="px-6 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-60"
+        >
+          {saving ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <Check size={14} />
+          )}
+          {initial
+            ? t("records.documents.fields.saveEdit")
+            : t("records.documents.fields.saveNew")}
+        </button>
+      </div>
+    </form>
   );
 }
 

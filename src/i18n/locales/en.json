@@ -661,7 +661,51 @@
       "genericError": "Could not process with AI right now. Please try again.",
       "requiresPaidPlan": "AI note summarizing/organizing is exclusive to the Professional and Clinic plans. See Settings → Plan."
     },
-    "deleteError": "Couldn't delete the record. Please try again."
+    "deleteError": "Couldn't delete the record. Please try again.",
+    "documents": {
+      "notesTab": "Notes",
+      "documentsTab": "Documents",
+      "backToList": "Back to list",
+      "editTitle": "Edit document",
+      "newTitle": "New document",
+      "patientFilterAll": "All patients",
+      "newDocument": "New document",
+      "loading": "Loading documents...",
+      "errorLoading": "Couldn't load documents. Please try again.",
+      "emptyTitle": "No documents yet",
+      "emptyText": "Create reports, referrals, declarations, and certificates with AI assistance, based on the patient's history.",
+      "deleteTitle": "Delete document?",
+      "deleteBody": "This action cannot be undone.",
+      "deleteError": "Couldn't delete the document. Please try again.",
+      "cancel": "Cancel",
+      "confirmDelete": "Delete",
+      "types": {
+        "psychological_report": "Psychological report",
+        "referral": "Referral",
+        "attendance_declaration": "Attendance certificate",
+        "medical_certificate": "Medical certificate"
+      },
+      "fields": {
+        "patientLabel": "Patient",
+        "selectPatientPlaceholder": "Select a patient",
+        "typeLabel": "Document type",
+        "titleLabel": "Title (optional)",
+        "titlePlaceholder": "E.g.: Report for school",
+        "extraContextLabel": "Extra context for the AI (optional)",
+        "extraContextHint": "The AI uses the session notes already recorded for this patient. Use this field to add anything specific for this document.",
+        "extraContextPlaceholder": "E.g.: This document is for a referral to a neurologist...",
+        "generateButton": "Generate draft with AI",
+        "contentLabel": "Document content",
+        "contentPlaceholder": "The generated (or manually typed) content appears here...",
+        "copyButton": "Copy",
+        "copied": "Copied!",
+        "downloadButton": "Download .txt",
+        "requiredError": "Select a patient and fill in the document content.",
+        "genericSaveError": "Couldn't save the document. Please try again.",
+        "saveEdit": "Save changes",
+        "saveNew": "Save document"
+      }
+    }
   },
   "finance": {
     "title": "Billing",

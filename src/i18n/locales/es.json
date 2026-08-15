@@ -661,7 +661,51 @@
       "genericError": "No fue posible procesar con IA ahora. Intenta de nuevo.",
       "requiresPaidPlan": "La IA de resumen/organización de notas es exclusiva de los planes Profesional y Clínica. Consulta Configuración → Plan."
     },
-    "deleteError": "No fue posible eliminar el historial. Intenta de nuevo."
+    "deleteError": "No fue posible eliminar el historial. Intenta de nuevo.",
+    "documents": {
+      "notesTab": "Anotaciones",
+      "documentsTab": "Documentos",
+      "backToList": "Volver a la lista",
+      "editTitle": "Editar documento",
+      "newTitle": "Nuevo documento",
+      "patientFilterAll": "Todos los pacientes",
+      "newDocument": "Nuevo documento",
+      "loading": "Cargando documentos...",
+      "errorLoading": "No se pudieron cargar los documentos. Inténtalo de nuevo.",
+      "emptyTitle": "Aún no hay documentos",
+      "emptyText": "Crea informes, derivaciones, declaraciones y certificados con ayuda de la IA, a partir del historial del paciente.",
+      "deleteTitle": "¿Eliminar documento?",
+      "deleteBody": "Esta acción no se puede deshacer.",
+      "deleteError": "No se pudo eliminar el documento. Inténtalo de nuevo.",
+      "cancel": "Cancelar",
+      "confirmDelete": "Eliminar",
+      "types": {
+        "psychological_report": "Informe psicológico",
+        "referral": "Derivación",
+        "attendance_declaration": "Constancia de asistencia",
+        "medical_certificate": "Certificado"
+      },
+      "fields": {
+        "patientLabel": "Paciente",
+        "selectPatientPlaceholder": "Selecciona un paciente",
+        "typeLabel": "Tipo de documento",
+        "titleLabel": "Título (opcional)",
+        "titlePlaceholder": "Ej.: Informe para la escuela",
+        "extraContextLabel": "Contexto adicional para la IA (opcional)",
+        "extraContextHint": "La IA usa las anotaciones de sesión ya registradas para este paciente. Usa este campo para agregar algo específico para este documento.",
+        "extraContextPlaceholder": "Ej.: El documento es para derivar a un neurólogo...",
+        "generateButton": "Generar borrador con IA",
+        "contentLabel": "Contenido del documento",
+        "contentPlaceholder": "El contenido generado (o escrito manualmente) aparece aquí...",
+        "copyButton": "Copiar",
+        "copied": "¡Copiado!",
+        "downloadButton": "Descargar .txt",
+        "requiredError": "Selecciona un paciente y completa el contenido del documento.",
+        "genericSaveError": "No se pudo guardar el documento. Inténtalo de nuevo.",
+        "saveEdit": "Guardar cambios",
+        "saveNew": "Guardar documento"
+      }
+    }
   },
   "finance": {
     "title": "Finanzas",
