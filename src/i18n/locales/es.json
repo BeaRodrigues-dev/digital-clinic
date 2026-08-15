@@ -126,7 +126,30 @@
     "yearsExperience": "años de experiencia",
     "viewProfile": "Ver perfil",
     "footerNote": "Tu match se hace según tu perfil — puedes ser conectado/a con profesionales que no aparecen aquí.",
-    "photoAlt": "Foto de {{name}}"
+    "photoAlt": "Foto de {{name}}",
+    "searchPlaceholder": "Buscar por nombre o especialidad...",
+    "specialtyFilterAll": "Todas las especialidades",
+    "noResultsTitle": "Ningún profesional encontrado",
+    "noResultsText": "Prueba con otro término de búsqueda o quita el filtro de especialidad.",
+    "priceLabel": "Sesión desde",
+    "connect": {
+      "cta": "Quiero agendar",
+      "namePlaceholder": "Tu nombre completo",
+      "emailPlaceholder": "Tu correo electrónico",
+      "phonePlaceholder": "Tu teléfono (opcional)",
+      "periodPlaceholder": "Período de preferencia (opcional)",
+      "periods": {
+        "morning": "Mañana",
+        "afternoon": "Tarde",
+        "evening": "Noche",
+        "flexible": "Cualquier horario"
+      },
+      "messagePlaceholder": "Cuéntanos un poco qué estás buscando (opcional)",
+      "submit": "Enviar solicitud",
+      "error": "No se pudo enviar tu solicitud ahora. Inténtalo de nuevo.",
+      "successTitle": "¡Solicitud enviada!",
+      "successText": "{{name}} recibirá tu contacto y responderá pronto."
+    }
   },
   "testimonialsSection": {
     "eyebrow": "Testimonios",
@@ -485,7 +508,8 @@
     "navProfile": "Mi perfil",
     "navClinic": "Clínica",
     "navPlan": "Plan",
-    "navSettings": "Configuración"
+    "navSettings": "Configuración",
+    "navRequests": "Solicitudes"
   },
   "patients": {
     "title": "Pacientes",
@@ -1112,5 +1136,25 @@
     "title": "Historial de la sesión",
     "loadError": "No fue posible cargar el historial de esta sesión. Intenta de nuevo.",
     "duplicateError": "Ya existe un historial para esta sesión. Cierra y vuelve a abrir para editar lo que ya se guardó."
+  },
+  "requests": {
+    "title": "Solicitudes",
+    "subtitle": "Pedidos de contacto enviados desde el perfil público en la página de inicio.",
+    "loading": "Cargando solicitudes...",
+    "errorLoading": "No se pudieron cargar las solicitudes ahora. Inténtalo de nuevo.",
+    "statusFilterAll": "Todos los estados",
+    "status": {
+      "pending": "Pendiente",
+      "contacted": "Contactado",
+      "converted": "Convertido en paciente",
+      "declined": "Rechazado"
+    },
+    "emptyTitle": "Aún no hay solicitudes",
+    "emptyText": "Cuando alguien pida contacto desde tu perfil público, el pedido aparece aquí.",
+    "actionError": "No se pudo completar la acción. Inténtalo de nuevo.",
+    "convertSuccess": "Paciente creado — ve a la pestaña Pacientes para completar el registro.",
+    "markContacted": "Marcar como contactado",
+    "convertToPatient": "Convertir en paciente",
+    "decline": "Rechazar"
   }
 }

@@ -42,6 +42,10 @@ import {
   Stamp,
   Download,
   Copy,
+  Inbox,
+  Phone,
+  Mail,
+  Search,
 } from "lucide-react";
 
 import {
@@ -1887,6 +1891,273 @@ function SecretaryFinanceView({ user }: { user: AppUser }) {
   );
 }
 
+// ─── Solicitações de contato (Fase 25) ─────────────────────────────────────
+// Tela compartilhada entre o painel do profissional e o da secretária —
+// mostra os pedidos "quero agendar" enviados pelo perfil público do
+// profissional na Landing (ver `booking_requests`/RLS na migration da
+// Fase 25). Sem agendamento automático aqui: a única ação que "avança" o
+// pedido de verdade é converter em paciente, usando a mesma tabela
+// `patients` de sempre — a partir daí o profissional/secretária agenda a
+// consulta normalmente pela Agenda.
+function RequestsView({ user }: { user: AppUser }) {
+  const { t, i18n } = useTranslation();
+  const isSecretary = user.role === "secretary";
+  const [requests, setRequests] = useState<BookingRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<BookingRequestStatus | "all">(
+    "all",
+  );
+  const [actioningId, setActioningId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [convertedIds, setConvertedIds] = useState<Set<string>>(new Set());
+
+  const load = useCallback(async () => {
+    const scopeId = isSecretary ? user.clinicId : user.id;
+    if (!scopeId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(false);
+    const query = supabase
+      .from("booking_requests")
+      .select(
+        "id, professional_id, clinic_id, full_name, email, phone, preferred_period, message, status, converted_patient_id, created_at, updated_at",
+      )
+      .order("created_at", { ascending: false });
+    const { data, error: err } = isSecretary
+      ? await query.eq("clinic_id", scopeId)
+      : await query.eq("professional_id", scopeId);
+    if (err) setError(true);
+    else setRequests((data as BookingRequest[]) ?? []);
+    setLoading(false);
+  }, [isSecretary, user.clinicId, user.id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const dateLabel = (iso: string) =>
+    new Intl.DateTimeFormat(i18n.language, {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(iso));
+
+  const updateStatus = async (id: string, status: BookingRequestStatus) => {
+    setActioningId(id);
+    setActionError(null);
+    const { error: err } = await supabase
+      .from("booking_requests")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    setActioningId(null);
+    if (err) {
+      console.error("Falha ao atualizar solicitação:", err);
+      setActionError(id);
+      return;
+    }
+    await load();
+  };
+
+  const convertToPatient = async (r: BookingRequest) => {
+    setActioningId(r.id);
+    setActionError(null);
+    const professionalId = isSecretary ? user.clinicProfessionalId : user.id;
+    if (!professionalId) {
+      setActioningId(null);
+      setActionError(r.id);
+      return;
+    }
+    const { data: patientRow, error: patientErr } = await supabase
+      .from("patients")
+      .insert({
+        full_name: r.full_name,
+        email: r.email,
+        phone: r.phone,
+        professional_id: professionalId,
+        ...(isSecretary && user.clinicId ? { clinic_id: user.clinicId } : {}),
+      })
+      .select("id")
+      .single();
+    if (patientErr || !patientRow) {
+      console.error("Falha ao converter solicitação em paciente:", patientErr);
+      setActioningId(null);
+      setActionError(r.id);
+      return;
+    }
+    const { error: reqErr } = await supabase
+      .from("booking_requests")
+      .update({
+        status: "converted",
+        converted_patient_id: patientRow.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", r.id);
+    setActioningId(null);
+    if (reqErr) {
+      console.error("Falha ao marcar solicitação como convertida:", reqErr);
+      setActionError(r.id);
+      return;
+    }
+    setConvertedIds((prev) => new Set(prev).add(r.id));
+    await load();
+  };
+
+  const statusBadgeClass: Record<BookingRequestStatus, string> = {
+    pending: "bg-amber-100 text-amber-700",
+    contacted: "bg-blue-100 text-blue-700",
+    converted: "bg-green-100 text-green-700",
+    declined: "bg-secondary text-muted-foreground",
+  };
+
+  const filtered =
+    statusFilter === "all"
+      ? requests
+      : requests.filter((r) => r.status === statusFilter);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-24 text-muted-foreground gap-3">
+        <Loader2 size={20} className="animate-spin" />{" "}
+        {t("requests.loading")}
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="text-center py-24 text-muted-foreground text-sm">
+        {t("requests.errorLoading")}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+        <select
+          value={statusFilter}
+          onChange={(e) =>
+            setStatusFilter(e.target.value as BookingRequestStatus | "all")
+          }
+          className="text-sm px-4 py-2.5 rounded-lg border border-border bg-secondary text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer max-w-xs transition-colors"
+        >
+          <option value="all">{t("requests.statusFilterAll")}</option>
+          <option value="pending">{t("requests.status.pending")}</option>
+          <option value="contacted">{t("requests.status.contacted")}</option>
+          <option value="converted">{t("requests.status.converted")}</option>
+          <option value="declined">{t("requests.status.declined")}</option>
+        </select>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-24 border-2 border-dashed border-border rounded-2xl">
+          <p className="text-4xl mb-4">📬</p>
+          <p className="font-semibold text-foreground mb-2">
+            {t("requests.emptyTitle")}
+          </p>
+          <p className="text-muted-foreground text-sm">
+            {t("requests.emptyText")}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((r) => (
+            <div
+              key={r.id}
+              className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-foreground">
+                      {r.full_name}
+                    </span>
+                    <span
+                      className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${statusBadgeClass[r.status]}`}
+                    >
+                      {t(`requests.status.${r.status}`)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {dateLabel(r.created_at)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5 text-sm text-muted-foreground mb-3">
+                <span className="flex items-center gap-2">
+                  <Mail size={13} className="shrink-0" /> {r.email}
+                </span>
+                {r.phone && (
+                  <span className="flex items-center gap-2">
+                    <Phone size={13} className="shrink-0" /> {r.phone}
+                  </span>
+                )}
+                {r.preferred_period && (
+                  <span className="flex items-center gap-2">
+                    <Clock size={13} className="shrink-0" />{" "}
+                    {t(`psychologistsSection.connect.periods.${r.preferred_period}`)}
+                  </span>
+                )}
+              </div>
+
+              {r.message && (
+                <p className="text-sm text-foreground bg-secondary rounded-lg px-3 py-2 mb-3">
+                  {r.message}
+                </p>
+              )}
+
+              {actionError === r.id && (
+                <p className="text-red-500 text-xs mb-2">
+                  {t("requests.actionError")}
+                </p>
+              )}
+
+              {convertedIds.has(r.id) && r.status === "converted" && (
+                <p className="text-green-700 text-xs mb-2">
+                  {t("requests.convertSuccess")}
+                </p>
+              )}
+
+              {(r.status === "pending" || r.status === "contacted") && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {r.status === "pending" && (
+                    <button
+                      onClick={() => updateStatus(r.id, "contacted")}
+                      disabled={actioningId === r.id}
+                      className="text-xs font-medium px-3 py-1.5 rounded-full border border-border hover:bg-secondary transition-colors text-muted-foreground disabled:opacity-50"
+                    >
+                      {t("requests.markContacted")}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => convertToPatient(r)}
+                    disabled={actioningId === r.id}
+                    className="text-xs font-medium px-3 py-1.5 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+                  >
+                    {t("requests.convertToPatient")}
+                  </button>
+                  <button
+                    onClick={() => updateStatus(r.id, "declined")}
+                    disabled={actioningId === r.id}
+                    className="text-xs font-medium px-3 py-1.5 rounded-full border border-border hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors text-muted-foreground disabled:opacity-50"
+                  >
+                    {t("requests.decline")}
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SecretaryDashboard({
   user,
   onLogout,
@@ -1898,7 +2169,7 @@ function SecretaryDashboard({
 }) {
   const { t } = useTranslation();
   const [view, setView] = useState<
-    "agenda" | "patients" | "finance" | "settings"
+    "agenda" | "patients" | "requests" | "finance" | "settings"
   >("agenda");
   // Fase 28 — menu lateral fixo (em vez das abas no topo) nas telas
   // internas, no mesmo espírito do mockup de referência: sidebar com a
@@ -1910,12 +2181,13 @@ function SecretaryDashboard({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const navItems: {
-    key: "agenda" | "patients" | "finance" | "settings";
+    key: "agenda" | "patients" | "requests" | "finance" | "settings";
     icon: React.ReactNode;
     label: string;
   }[] = [
     { key: "agenda", icon: <Calendar size={14} />, label: t("dashboard.navAgenda") },
     { key: "patients", icon: <Users size={14} />, label: t("dashboard.navPatients") },
+    { key: "requests", icon: <Inbox size={14} />, label: t("dashboard.navRequests") },
     { key: "finance", icon: <Wallet size={14} />, label: t("dashboard.navFinance") },
     { key: "settings", icon: <Settings size={14} />, label: t("dashboard.navSettings") },
   ];
@@ -2068,6 +2340,7 @@ function SecretaryDashboard({
 
           {view === "agenda" && <SecretaryAgendaView user={user} />}
           {view === "patients" && <SecretaryPatientsView user={user} />}
+          {view === "requests" && <RequestsView user={user} />}
           {view === "finance" && <SecretaryFinanceView user={user} />}
           {view === "settings" && <AccountSecurityView onLogout={onLogout} />}
         </div>
@@ -2087,7 +2360,13 @@ function ProfessionalDashboard({
 }) {
   const { t, i18n } = useTranslation();
   const [view, setView] = useState<
-    "overview" | "patients" | "agenda" | "records" | "finance" | "settings"
+    | "overview"
+    | "patients"
+    | "agenda"
+    | "records"
+    | "requests"
+    | "finance"
+    | "settings"
   >("overview");
   // Fase 28 — sidebar fixa nas telas internas em vez das abas no topo (ver
   // nota equivalente em `SecretaryDashboard`).
@@ -2322,7 +2601,14 @@ function ProfessionalDashboard({
   );
 
   const proNavItems: {
-    key: "overview" | "agenda" | "patients" | "records" | "finance" | "settings";
+    key:
+      | "overview"
+      | "agenda"
+      | "patients"
+      | "records"
+      | "requests"
+      | "finance"
+      | "settings";
     icon: React.ReactNode;
     label: string;
     onClick: () => void;
@@ -2350,6 +2636,12 @@ function ProfessionalDashboard({
       icon: <Shield size={14} />,
       label: t("dashboard.navRecords"),
       onClick: () => setView("records"),
+    },
+    {
+      key: "requests",
+      icon: <Inbox size={14} />,
+      label: t("dashboard.navRequests"),
+      onClick: () => setView("requests"),
     },
     {
       key: "finance",
@@ -2509,15 +2801,17 @@ function ProfessionalDashboard({
                 ? t("agenda.title")
                 : view === "records"
                   ? t("records.title")
-                  : view === "finance"
-                    ? t("finance.title")
-                    : view === "settings"
-                      ? t("settings.title")
-                      : user.fullName
-                        ? t("dashboard.greeting", {
-                            name: user.fullName.trim().split(/\s+/)[0],
-                          })
-                        : t("dashboard.title")}
+                  : view === "requests"
+                    ? t("requests.title")
+                    : view === "finance"
+                      ? t("finance.title")
+                      : view === "settings"
+                        ? t("settings.title")
+                        : user.fullName
+                          ? t("dashboard.greeting", {
+                              name: user.fullName.trim().split(/\s+/)[0],
+                            })
+                          : t("dashboard.title")}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
             {view === "patients"
@@ -2526,11 +2820,13 @@ function ProfessionalDashboard({
                 ? t("agenda.subtitle")
                 : view === "records"
                   ? t("records.subtitle")
-                  : view === "finance"
-                    ? t("finance.subtitle")
-                    : view === "settings"
-                      ? t("settings.subtitle")
-                      : t("dashboard.subtitle")}
+                  : view === "requests"
+                    ? t("requests.subtitle")
+                    : view === "finance"
+                      ? t("finance.subtitle")
+                      : view === "settings"
+                        ? t("settings.subtitle")
+                        : t("dashboard.subtitle")}
           </p>
         </div>
 
@@ -2540,6 +2836,8 @@ function ProfessionalDashboard({
           <AgendaView user={user} />
         ) : view === "records" ? (
           <RecordsView user={user} />
+        ) : view === "requests" ? (
+          <RequestsView user={user} />
         ) : view === "finance" ? (
           <FinanceView user={user} />
         ) : view === "settings" ? (
@@ -11260,6 +11558,255 @@ type PublicProfessional = {
   session_price: number | null;
 };
 
+// ─── Solicitações de contato — "vitrine" pública (Fase 25) ─────────────────
+// Um visitante do diretório público (`public_professionals`, acima) pode
+// pedir pra ser conectado a um profissional específico pra agendar. Isto
+// NÃO é agendamento self-service (o visitante não vê/escolhe um horário
+// livre) — é um pedido de contato que cai na tela "Solicitações" do
+// profissional (ou da secretária da clínica), pra ele decidir contatar,
+// recusar, ou converter direto em paciente com o cadastro que já existe.
+type BookingRequestStatus = "pending" | "contacted" | "converted" | "declined";
+
+const PREFERRED_PERIOD_LIST = [
+  "morning",
+  "afternoon",
+  "evening",
+  "flexible",
+] as const;
+type PreferredPeriod = (typeof PREFERRED_PERIOD_LIST)[number];
+
+type BookingRequest = {
+  id: string;
+  professional_id: string;
+  clinic_id: string | null;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  preferred_period: PreferredPeriod | null;
+  message: string | null;
+  status: BookingRequestStatus;
+  converted_patient_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// Perfil público completo de um profissional do diretório + formulário
+// "quero agendar" — é o que "Ver perfil" abre na Landing. O envio não cria
+// uma consulta (ver nota na migration da Fase 25): só grava o pedido de
+// contato, que aparece pro profissional (ou secretária da clínica) na tela
+// "Solicitações" do painel dele.
+function PublicProfileModal({
+  psych,
+  onClose,
+}: {
+  psych: PublicProfessional;
+  onClose: () => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const [showForm, setShowForm] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [preferredPeriod, setPreferredPeriod] = useState<PreferredPeriod | "">(
+    "",
+  );
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState(false);
+
+  const currency = (value: number) =>
+    new Intl.NumberFormat(i18n.language, {
+      style: "currency",
+      currency: "BRL",
+      maximumFractionDigits: 2,
+    }).format(value);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fullName.trim() || !email.trim()) return;
+    setSubmitting(true);
+    setError(false);
+    const { error: err } = await supabase.from("booking_requests").insert({
+      professional_id: psych.id,
+      full_name: fullName.trim(),
+      email: email.trim(),
+      phone: phone.trim() || null,
+      preferred_period: preferredPeriod || null,
+      message: message.trim() || null,
+    });
+    setSubmitting(false);
+    if (err) {
+      console.error("Falha ao enviar solicitação de contato:", err);
+      setError(true);
+    } else {
+      setSubmitted(true);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center px-4 py-8 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div
+        className="bg-card rounded-2xl max-w-lg w-full shadow-2xl my-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="relative h-56 bg-muted rounded-t-2xl overflow-hidden shrink-0">
+          <img
+            src={
+              psych.photo_url ||
+              `https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500&h=400&fit=crop&auto=format`
+            }
+            alt={t("psychologistsSection.photoAlt", { name: psych.name })}
+            className="w-full h-full object-cover"
+          />
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 bg-background/90 backdrop-blur-sm rounded-full p-2 hover:bg-background transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <div className="p-8">
+          <div className="flex items-start justify-between gap-4 mb-1">
+            <h3
+              className="text-2xl font-light text-foreground"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              {psych.name}
+            </h3>
+            <div className="flex items-center gap-1 text-sm font-semibold text-foreground shrink-0 pt-1">
+              <Star size={14} className="text-accent fill-accent" />{" "}
+              {Number(psych.rating).toFixed(1)}
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            {psych.title} · {psych.flag} {psych.location} ·{" "}
+            {psych.years} {t("psychologistsSection.yearsExperience")}
+          </p>
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {psych.specialties.map((s) => (
+              <span
+                key={s}
+                className="text-xs bg-secondary text-secondary-foreground px-2.5 py-1 rounded-full border border-border"
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+          {psych.approach && (
+            <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+              {psych.approach}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-muted-foreground border-t border-border pt-4 mb-6">
+            <span>{psych.sessions_info}</span>
+            {psych.session_price != null && (
+              <span>
+                {t("psychologistsSection.priceLabel")}{" "}
+                <strong className="text-foreground">
+                  {currency(psych.session_price)}
+                </strong>
+              </span>
+            )}
+            {psych.crp && <span>CRP {psych.crp}</span>}
+          </div>
+
+          {submitted ? (
+            <div className="text-center py-6 bg-secondary rounded-xl">
+              <p className="text-3xl mb-3">🌿</p>
+              <p className="font-semibold text-foreground mb-1">
+                {t("psychologistsSection.connect.successTitle")}
+              </p>
+              <p className="text-muted-foreground text-sm px-4">
+                {t("psychologistsSection.connect.successText", {
+                  name: psych.name,
+                })}
+              </p>
+            </div>
+          ) : showForm ? (
+            <form onSubmit={submit} className="flex flex-col gap-3">
+              <input
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder={t("psychologistsSection.connect.namePlaceholder")}
+                required
+                className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+              />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t(
+                  "psychologistsSection.connect.emailPlaceholder",
+                )}
+                required
+                className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+              />
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder={t(
+                  "psychologistsSection.connect.phonePlaceholder",
+                )}
+                className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+              />
+              <select
+                value={preferredPeriod}
+                onChange={(e) =>
+                  setPreferredPeriod(e.target.value as PreferredPeriod | "")
+                }
+                className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer transition-colors"
+              >
+                <option value="">
+                  {t("psychologistsSection.connect.periodPlaceholder")}
+                </option>
+                {PREFERRED_PERIOD_LIST.map((period) => (
+                  <option key={period} value={period}>
+                    {t(`psychologistsSection.connect.periods.${period}`)}
+                  </option>
+                ))}
+              </select>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={t(
+                  "psychologistsSection.connect.messagePlaceholder",
+                )}
+                rows={3}
+                className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-none"
+              />
+              {error && (
+                <p className="text-red-500 text-xs">
+                  {t("psychologistsSection.connect.error")}
+                </p>
+              )}
+              <button
+                type="submit"
+                disabled={submitting}
+                className="bg-primary text-primary-foreground py-3 rounded-full font-semibold hover:opacity-90 transition-opacity text-sm disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {submitting && <Loader2 size={14} className="animate-spin" />}
+                {t("psychologistsSection.connect.submit")}
+              </button>
+            </form>
+          ) : (
+            <button
+              onClick={() => setShowForm(true)}
+              className="w-full bg-primary text-primary-foreground py-3 rounded-full font-semibold hover:opacity-90 transition-opacity text-sm"
+            >
+              {t("psychologistsSection.connect.cta")}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Landing() {
   const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -11294,6 +11841,14 @@ function Landing() {
     [],
   );
   const [loadingPsychs, setLoadingPsychs] = useState(true);
+  // Fase 25 — busca/filtro no diretório (client-side, sobre a lista já
+  // carregada — a quantidade de profissionais aprovados não justifica ainda
+  // uma query separada por termo de busca) + o profissional cujo perfil
+  // público está aberto no momento (null = nenhum modal aberto).
+  const [psychSearch, setPsychSearch] = useState("");
+  const [psychSpecialty, setPsychSpecialty] = useState("");
+  const [profileModalPsych, setProfileModalPsych] =
+    useState<PublicProfessional | null>(null);
 
   const transitions = t("transitions.items", {
     returnObjects: true,
@@ -11328,6 +11883,21 @@ function Landing() {
     if (p.photo_url) return p.photo_url;
     return `https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500&h=400&fit=crop&auto=format`;
   };
+
+  const allSpecialties = Array.from(
+    new Set(psychologists.flatMap((p) => p.specialties)),
+  ).sort((a: string, b: string) => a.localeCompare(b));
+
+  const filteredPsychologists = psychologists.filter((p) => {
+    const term = psychSearch.trim().toLowerCase();
+    const matchesTerm =
+      !term ||
+      p.name.toLowerCase().includes(term) ||
+      p.specialties.some((s) => s.toLowerCase().includes(term));
+    const matchesSpecialty =
+      !psychSpecialty || p.specialties.includes(psychSpecialty);
+    return matchesTerm && matchesSpecialty;
+  });
 
   return (
     <div
@@ -11664,6 +12234,37 @@ function Landing() {
             </p>
           </div>
 
+          {!loadingPsychs && psychologists.length > 0 && (
+            <div className="flex flex-col sm:flex-row gap-3 mb-10">
+              <div className="relative flex-1 max-w-sm">
+                <Search
+                  size={16}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                />
+                <input
+                  value={psychSearch}
+                  onChange={(e) => setPsychSearch(e.target.value)}
+                  placeholder={t("psychologistsSection.searchPlaceholder")}
+                  className="w-full bg-background border border-border rounded-full pl-10 pr-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                />
+              </div>
+              <select
+                value={psychSpecialty}
+                onChange={(e) => setPsychSpecialty(e.target.value)}
+                className="bg-background border border-border rounded-full px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer transition-colors"
+              >
+                <option value="">
+                  {t("psychologistsSection.specialtyFilterAll")}
+                </option>
+                {allSpecialties.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {loadingPsychs ? (
             <div className="flex items-center justify-center py-20 text-muted-foreground gap-3">
               <Loader2 size={20} className="animate-spin" />{" "}
@@ -11679,9 +12280,19 @@ function Landing() {
                 {t("psychologistsSection.emptyText")}
               </p>
             </div>
+          ) : filteredPsychologists.length === 0 ? (
+            <div className="text-center py-20 border-2 border-dashed border-border rounded-2xl bg-background/50">
+              <p className="text-4xl mb-4">🔍</p>
+              <p className="font-semibold text-foreground mb-2">
+                {t("psychologistsSection.noResultsTitle")}
+              </p>
+              <p className="text-muted-foreground text-sm">
+                {t("psychologistsSection.noResultsText")}
+              </p>
+            </div>
           ) : (
             <div className="grid md:grid-cols-3 gap-6">
-              {psychologists.map((p) => (
+              {filteredPsychologists.map((p) => (
                 <div
                   key={p.id}
                   className="bg-card rounded-2xl overflow-hidden border border-border hover:shadow-lg transition-shadow group"
@@ -11731,13 +12342,14 @@ function Landing() {
                       <span className="text-xs text-muted-foreground">
                         {p.sessions_info}
                       </span>
-                      <a
-                        href="#comecar"
+                      <button
+                        type="button"
+                        onClick={() => setProfileModalPsych(p)}
                         className="text-xs font-semibold text-primary hover:text-accent transition-colors flex items-center gap-1"
                       >
                         {t("psychologistsSection.viewProfile")}{" "}
                         <ArrowRight size={12} />
-                      </a>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -11750,6 +12362,13 @@ function Landing() {
           </p>
         </div>
       </section>
+
+      {profileModalPsych && (
+        <PublicProfileModal
+          psych={profileModalPsych}
+          onClose={() => setProfileModalPsych(null)}
+        />
+      )}
 
       {/* TESTIMONIALS */}
       <section className="py-28 bg-background">

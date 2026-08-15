@@ -126,7 +126,30 @@
     "yearsExperience": "years of experience",
     "viewProfile": "View profile",
     "footerNote": "Your match is based on your profile — you may be connected with professionals not listed here.",
-    "photoAlt": "Photo of {{name}}"
+    "photoAlt": "Photo of {{name}}",
+    "searchPlaceholder": "Search by name or specialty...",
+    "specialtyFilterAll": "All specialties",
+    "noResultsTitle": "No professionals found",
+    "noResultsText": "Try a different search term or clear the specialty filter.",
+    "priceLabel": "Session from",
+    "connect": {
+      "cta": "I want to book",
+      "namePlaceholder": "Your full name",
+      "emailPlaceholder": "Your email",
+      "phonePlaceholder": "Your phone (optional)",
+      "periodPlaceholder": "Preferred time of day (optional)",
+      "periods": {
+        "morning": "Morning",
+        "afternoon": "Afternoon",
+        "evening": "Evening",
+        "flexible": "Any time"
+      },
+      "messagePlaceholder": "Tell us a bit about what you're looking for (optional)",
+      "submit": "Send request",
+      "error": "Couldn't send your request right now. Please try again.",
+      "successTitle": "Request sent!",
+      "successText": "{{name}} will get your contact info and reach out soon."
+    }
   },
   "testimonialsSection": {
     "eyebrow": "Testimonials",
@@ -485,7 +508,8 @@
     "navProfile": "My profile",
     "navClinic": "Clinic",
     "navSettings": "Settings",
-    "navPlan": "Plan"
+    "navPlan": "Plan",
+    "navRequests": "Requests"
   },
   "patients": {
     "title": "Patients",
@@ -1112,5 +1136,25 @@
     "title": "Session record",
     "loadError": "Couldn't load this session's record. Please try again.",
     "duplicateError": "A record for this session already exists. Close and reopen to edit what was already saved."
+  },
+  "requests": {
+    "title": "Requests",
+    "subtitle": "Contact requests sent from your public profile on the homepage.",
+    "loading": "Loading requests...",
+    "errorLoading": "Couldn't load requests right now. Please try again.",
+    "statusFilterAll": "All statuses",
+    "status": {
+      "pending": "Pending",
+      "contacted": "Contacted",
+      "converted": "Converted to patient",
+      "declined": "Declined"
+    },
+    "emptyTitle": "No requests yet",
+    "emptyText": "When someone requests contact through your public profile, the request shows up here.",
+    "actionError": "Couldn't complete the action. Please try again.",
+    "convertSuccess": "Patient created — go to the Patients tab to finish setting up their record.",
+    "markContacted": "Mark as contacted",
+    "convertToPatient": "Convert to patient",
+    "decline": "Decline"
   }
 }
