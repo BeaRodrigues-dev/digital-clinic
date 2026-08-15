@@ -333,7 +333,8 @@
       "clinics": "Clinics",
       "finance": "Finance",
       "settings": "Settings",
-      "patients": "Patients"
+      "patients": "Patients",
+      "leads": "Leads"
     },
     "overview": {
       "title": "Overview",
@@ -345,7 +346,8 @@
       "activePatients": "Active patients",
       "secretaries": "Secretaries",
       "planBreakdown": "Clinics by plan",
-      "errorLoading": "Couldn't load the overview. Please try again."
+      "errorLoading": "Couldn't load the overview. Please try again.",
+      "pendingLeads": "Pending leads"
     },
     "users": {
       "title": "Users",
@@ -412,6 +414,22 @@
       "reassignLabel": "Link to:",
       "reassignButton": "Link",
       "reassignError": "Couldn't link the patient to that psychologist. Please try again."
+    },
+    "leads": {
+      "title": "Quiz leads",
+      "subtitle": "People who filled out the \"Can't find who you're looking for?\" quiz on the homepage, asking to be notified.",
+      "loading": "Loading leads...",
+      "errorLoading": "Couldn't load leads right now. Please try again.",
+      "statusFilterAll": "All statuses",
+      "status": {
+        "pending": "Pending",
+        "contacted": "Contacted"
+      },
+      "emptyTitle": "No leads yet",
+      "emptyText": "When someone fills out the homepage quiz, the lead shows up here.",
+      "noName": "No name provided",
+      "actionError": "Couldn't complete the action. Please try again.",
+      "markContacted": "Mark as contacted"
     }
   },
   "profileForm": {

@@ -45,6 +45,7 @@ import {
   Phone,
   Mail,
   Search,
+  MessageSquare,
 } from "lucide-react";
 
 import {
@@ -2382,14 +2383,40 @@ function SecretaryDashboard({
   // comum pra esse tipo de layout.
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  // Fase 29 — contagem de solicitações pendentes pro badge no menu
+  // "Solicitações". Refaz a busca a cada troca de tela (consulta leve,
+  // `head: true`) pra refletir mudanças feitas na própria tela.
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  useEffect(() => {
+    if (!user.clinicId) return;
+    let cancelled = false;
+    (async () => {
+      const { count } = await supabase
+        .from("booking_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("clinic_id", user.clinicId)
+        .eq("status", "pending");
+      if (!cancelled) setPendingRequestsCount(count ?? 0);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user.clinicId, view]);
+
   const navItems: {
     key: "agenda" | "patients" | "requests" | "finance" | "settings";
     icon: React.ReactNode;
     label: string;
+    badge?: number;
   }[] = [
     { key: "agenda", icon: <Calendar size={14} />, label: t("dashboard.navAgenda") },
     { key: "patients", icon: <Users size={14} />, label: t("dashboard.navPatients") },
-    { key: "requests", icon: <Inbox size={14} />, label: t("dashboard.navRequests") },
+    {
+      key: "requests",
+      icon: <Inbox size={14} />,
+      label: t("dashboard.navRequests"),
+      badge: pendingRequestsCount,
+    },
     { key: "finance", icon: <Wallet size={14} />, label: t("dashboard.navFinance") },
     { key: "settings", icon: <Settings size={14} />, label: t("dashboard.navSettings") },
   ];
@@ -2400,6 +2427,13 @@ function SecretaryDashboard({
         ? "bg-primary-foreground/10 text-primary-foreground border-accent"
         : "text-primary-foreground/70 border-transparent hover:bg-primary-foreground/5 hover:text-primary-foreground"
     }`;
+
+  const navBadge = (count?: number) =>
+    count && count > 0 ? (
+      <span className="ml-auto bg-accent text-accent-foreground text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+        {count > 99 ? "99+" : count}
+      </span>
+    ) : null;
 
   const sidebarNav = (onNavigate?: () => void) => (
     <nav className="flex-1 flex flex-col gap-1 px-3 py-4">
@@ -2412,7 +2446,7 @@ function SecretaryDashboard({
           }}
           className={navItemClass(view === item.key)}
         >
-          {item.icon} {item.label}
+          {item.icon} {item.label} {navBadge(item.badge)}
         </button>
       ))}
     </nav>
@@ -2573,6 +2607,25 @@ function ProfessionalDashboard({
   // Fase 28 — sidebar fixa nas telas internas em vez das abas no topo (ver
   // nota equivalente em `SecretaryDashboard`).
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Fase 29 — contagem de solicitações pendentes pro badge no menu
+  // "Solicitações" (ver nota equivalente em `SecretaryDashboard`).
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { count } = await supabase
+        .from("booking_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("professional_id", user.id)
+        .eq("status", "pending");
+      if (!cancelled) setPendingRequestsCount(count ?? 0);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user.id, view]);
+
   // Quando o aviso de perfil incompleto leva direto pra uma aba específica
   // de Configurações (em vez de sempre abrir em "Conta").
   const [settingsTab, setSettingsTab] = useState<SettingsTab | undefined>(
@@ -2814,6 +2867,7 @@ function ProfessionalDashboard({
     icon: React.ReactNode;
     label: string;
     onClick: () => void;
+    badge?: number;
   }[] = [
     {
       key: "overview",
@@ -2844,6 +2898,7 @@ function ProfessionalDashboard({
       icon: <Inbox size={14} />,
       label: t("dashboard.navRequests"),
       onClick: () => setView("requests"),
+      badge: pendingRequestsCount,
     },
     {
       key: "finance",
@@ -2869,6 +2924,13 @@ function ProfessionalDashboard({
         : "text-primary-foreground/70 border-transparent hover:bg-primary-foreground/5 hover:text-primary-foreground"
     }`;
 
+  const navBadge = (count?: number) =>
+    count && count > 0 ? (
+      <span className="ml-auto bg-accent text-accent-foreground text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+        {count > 99 ? "99+" : count}
+      </span>
+    ) : null;
+
   const proSidebarNav = (onNavigate?: () => void) => (
     <nav className="flex-1 flex flex-col gap-1 px-3 py-4">
       {proNavItems.map((item) => (
@@ -2880,7 +2942,7 @@ function ProfessionalDashboard({
           }}
           className={proNavItemClass(view === item.key)}
         >
-          {item.icon} {item.label}
+          {item.icon} {item.label} {navBadge(item.badge)}
         </button>
       ))}
     </nav>
@@ -10000,6 +10062,7 @@ type AdminStats = {
   planFree: number;
   planProfessional: number;
   planClinic: number;
+  pendingLeads: number;
 };
 
 function AdminOverview() {
@@ -10021,6 +10084,7 @@ function AdminOverview() {
         freeRes,
         professionalPlanRes,
         clinicPlanRes,
+        pendingLeadsRes,
       ] = await Promise.all([
         supabase.from("clinics").select("id", { count: "exact", head: true }),
         supabase
@@ -10051,11 +10115,15 @@ function AdminOverview() {
           .from("clinics")
           .select("id", { count: "exact", head: true })
           .eq("plan", "clinic"),
+        supabase
+          .from("quiz_leads")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "pending"),
       ]);
 
       if (cancelled) return;
 
-      // Antes nenhuma dessas 8 consultas era checada — uma falha (RLS, rede)
+      // Antes nenhuma dessas consultas era checada — uma falha (RLS, rede)
       // em qualquer uma delas fazia o card correspondente mostrar "0" calado,
       // visualmente idêntico a "a plataforma realmente não tem nada disso".
       const results = [
@@ -10067,6 +10135,7 @@ function AdminOverview() {
         freeRes,
         professionalPlanRes,
         clinicPlanRes,
+        pendingLeadsRes,
       ];
       const failed = results.find((r) => r.error);
       if (failed) {
@@ -10085,6 +10154,7 @@ function AdminOverview() {
         planFree: freeRes.count ?? 0,
         planProfessional: professionalPlanRes.count ?? 0,
         planClinic: clinicPlanRes.count ?? 0,
+        pendingLeads: pendingLeadsRes.count ?? 0,
       });
       setLoading(false);
     })();
@@ -10132,11 +10202,16 @@ function AdminOverview() {
       value: stats.secretaries,
       icon: UserCircle,
     },
+    {
+      label: t("admin.overview.pendingLeads"),
+      value: stats.pendingLeads,
+      icon: MessageSquare,
+    },
   ];
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-px bg-border border border-border">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-px bg-border border border-border">
         {cards.map((card) => (
           <div
             key={card.label}
@@ -11135,6 +11210,223 @@ function AdminPatientsView() {
   );
 }
 
+// ─── Painel Admin: Leads do quiz (Fase 29) ─────────────────────────────────
+// O quiz público da Landing ("Não achou quem procura?", Fase 23) já
+// gravava os leads certinho em `quiz_leads`, mas não existia nenhuma tela
+// pra ver isso dentro do site — só consultando direto no painel do
+// Supabase. Esta tela lista os leads (mais recentes primeiro) e deixa
+// marcar como "já contatei", igual ao padrão já usado em "Solicitações".
+type QuizLeadStatus = "pending" | "contacted";
+
+type QuizLead = {
+  id: string;
+  full_name: string | null;
+  email: string;
+  answers: Record<string, string> | null;
+  status: QuizLeadStatus;
+  created_at: string;
+};
+
+function AdminLeadsView({
+  onCountChange,
+}: {
+  onCountChange?: (delta: number) => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const [leads, setLeads] = useState<QuizLead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<QuizLeadStatus | "all">(
+    "all",
+  );
+  const [actioningId, setActioningId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const quizQuestions = t("quiz.questions", {
+    returnObjects: true,
+  }) as QuizQuestionItem[];
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    const { data, error: err } = await supabase
+      .from("quiz_leads")
+      .select("id, full_name, email, answers, status, created_at")
+      .order("created_at", { ascending: false });
+    if (err) {
+      console.error("Falha ao carregar leads do quiz:", err);
+      setError(true);
+    } else {
+      setLeads((data as QuizLead[]) ?? []);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const dateLabel = (iso: string) =>
+    new Intl.DateTimeFormat(i18n.language, {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(iso));
+
+  const markContacted = async (lead: QuizLead) => {
+    setActioningId(lead.id);
+    setActionError(null);
+    const { error: err } = await supabase
+      .from("quiz_leads")
+      .update({ status: "contacted" })
+      .eq("id", lead.id);
+    setActioningId(null);
+    if (err) {
+      console.error("Falha ao atualizar lead:", err);
+      setActionError(lead.id);
+      return;
+    }
+    setLeads((prev) =>
+      prev.map((l) => (l.id === lead.id ? { ...l, status: "contacted" } : l)),
+    );
+    onCountChange?.(-1);
+  };
+
+  const answerLines = (lead: QuizLead) => {
+    if (!lead.answers) return [];
+    return Object.entries(lead.answers)
+      .filter(([key]) => /^q\d+$/.test(key))
+      .sort(([a], [b]) => Number(a.slice(1)) - Number(b.slice(1)))
+      .map(([key, value]) => {
+        const index = Number(key.slice(1));
+        return {
+          question: quizQuestions[index]?.question ?? key,
+          answer: value,
+        };
+      });
+  };
+
+  const filtered =
+    statusFilter === "all"
+      ? leads
+      : leads.filter((l) => l.status === statusFilter);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-24 text-muted-foreground gap-3">
+        <Loader2 size={20} className="animate-spin" /> {t("admin.leads.loading")}
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="text-center py-24 text-muted-foreground text-sm">
+        {t("admin.leads.errorLoading")}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+        <select
+          value={statusFilter}
+          onChange={(e) =>
+            setStatusFilter(e.target.value as QuizLeadStatus | "all")
+          }
+          className="text-sm px-4 py-2.5 rounded-lg border border-border bg-secondary text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer max-w-xs transition-colors"
+        >
+          <option value="all">{t("admin.leads.statusFilterAll")}</option>
+          <option value="pending">{t("admin.leads.status.pending")}</option>
+          <option value="contacted">{t("admin.leads.status.contacted")}</option>
+        </select>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-24 border-2 border-dashed border-border rounded-2xl">
+          <p className="text-4xl mb-4">💌</p>
+          <p className="font-semibold text-foreground mb-2">
+            {t("admin.leads.emptyTitle")}
+          </p>
+          <p className="text-muted-foreground text-sm">
+            {t("admin.leads.emptyText")}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((lead) => (
+            <div
+              key={lead.id}
+              className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-foreground">
+                      {lead.full_name || t("admin.leads.noName")}
+                    </span>
+                    <span
+                      className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
+                        lead.status === "pending"
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-blue-100 text-blue-700"
+                      }`}
+                    >
+                      {t(`admin.leads.status.${lead.status}`)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {dateLabel(lead.created_at)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5 text-sm text-muted-foreground mb-3">
+                <span className="flex items-center gap-2">
+                  <Mail size={13} className="shrink-0" /> {lead.email}
+                </span>
+              </div>
+
+              {answerLines(lead).length > 0 && (
+                <div className="flex flex-col gap-2 text-sm bg-secondary rounded-lg px-3 py-2.5 mb-3">
+                  {answerLines(lead).map((line, i) => (
+                    <div key={i}>
+                      <p className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wider">
+                        {line.question}
+                      </p>
+                      <p className="text-foreground">{line.answer}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {actionError === lead.id && (
+                <p className="text-red-500 text-xs mb-2">
+                  {t("admin.leads.actionError")}
+                </p>
+              )}
+
+              {lead.status === "pending" && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button
+                    onClick={() => markContacted(lead)}
+                    disabled={actioningId === lead.id}
+                    className="text-xs font-medium px-3 py-1.5 rounded-full border border-border hover:bg-secondary transition-colors text-muted-foreground disabled:opacity-50"
+                  >
+                    {t("admin.leads.markContacted")}
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Painel Admin: Financeiro — faturamento estimado por plano (Fase 20) ───
 // Não existe cobrança automática configurada (o site hoje mostra "Fale
 // conosco" pros planos pagos — ver `plans.professional.price`/
@@ -11363,6 +11655,7 @@ type AdminTab =
   | "users"
   | "clinics"
   | "patients"
+  | "leads"
   | "finance"
   | "settings";
 
@@ -11387,6 +11680,24 @@ function AdminPanel({
   const [view, setView] = useState<"list" | "edit">("list");
   const [editing, setEditing] = useState<ProfessionalProfile | null>(null);
   const [toggleError, setToggleError] = useState(false);
+
+  // Fase 29 — contagem de leads pendentes pro badge no menu "Leads". Refaz
+  // a busca a cada troca de aba (consulta leve, `head: true`) pra não ficar
+  // desatualizado depois que o admin marca algum lead como contatado.
+  const [pendingLeadsCount, setPendingLeadsCount] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { count } = await supabase
+        .from("quiz_leads")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      if (!cancelled) setPendingLeadsCount(count ?? 0);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tab]);
 
   // Fase 12: o admin já não cria "perfis" do nada nem apaga contas por aqui
   // — `professionals` agora É a conta real de quem se cadastrou na
@@ -11474,8 +11785,12 @@ function AdminPanel({
 
   const approved = psychologists.filter((p) => p.approved).length;
 
-  const adminNavItems: { key: AdminTab; icon: React.ReactNode; label: string }[] =
-    [
+  const adminNavItems: {
+    key: AdminTab;
+    icon: React.ReactNode;
+    label: string;
+    badge?: number;
+  }[] = [
       {
         key: "overview",
         icon: <LayoutDashboard size={14} />,
@@ -11498,6 +11813,12 @@ function AdminPanel({
         label: t("admin.tabs.patients"),
       },
       {
+        key: "leads",
+        icon: <MessageSquare size={14} />,
+        label: t("admin.tabs.leads"),
+        badge: pendingLeadsCount,
+      },
+      {
         key: "finance",
         icon: <Wallet size={14} />,
         label: t("admin.tabs.finance"),
@@ -11516,6 +11837,13 @@ function AdminPanel({
         : "text-primary-foreground/70 border-transparent hover:bg-primary-foreground/5 hover:text-primary-foreground"
     }`;
 
+  const navBadge = (count?: number) =>
+    count && count > 0 ? (
+      <span className="ml-auto bg-accent text-accent-foreground text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+        {count > 99 ? "99+" : count}
+      </span>
+    ) : null;
+
   const adminSidebarNav = (onNavigate?: () => void) => (
     <nav className="flex-1 flex flex-col gap-1 px-3 py-4">
       {adminNavItems.map((item) => (
@@ -11527,7 +11855,7 @@ function AdminPanel({
           }}
           className={adminNavItemClass(tab === item.key)}
         >
-          {item.icon} {item.label}
+          {item.icon} {item.label} {navBadge(item.badge)}
         </button>
       ))}
     </nav>
@@ -11655,11 +11983,13 @@ function AdminPanel({
                     ? t("admin.clinics.title")
                     : tab === "patients"
                       ? t("admin.patients.title")
-                      : tab === "finance"
-                        ? t("admin.finance.title")
-                        : tab === "settings"
-                          ? t("settings.security.title")
-                          : t("admin.listTitle")}
+                      : tab === "leads"
+                        ? t("admin.leads.title")
+                        : tab === "finance"
+                          ? t("admin.finance.title")
+                          : tab === "settings"
+                            ? t("settings.security.title")
+                            : t("admin.listTitle")}
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
               {tab === "overview"
@@ -11670,11 +12000,13 @@ function AdminPanel({
                     ? t("admin.clinics.subtitle")
                     : tab === "patients"
                       ? t("admin.patients.subtitle")
-                      : tab === "finance"
-                        ? t("admin.finance.subtitle")
-                        : tab === "settings"
-                          ? t("admin.settingsSubtitle")
-                          : t("admin.listSubtitle")}
+                      : tab === "leads"
+                        ? t("admin.leads.subtitle")
+                        : tab === "finance"
+                          ? t("admin.finance.subtitle")
+                          : tab === "settings"
+                            ? t("admin.settingsSubtitle")
+                            : t("admin.listSubtitle")}
             </p>
           </div>
         )}
@@ -11683,6 +12015,13 @@ function AdminPanel({
         {tab === "users" && <AdminUsersView currentUserId={user.id} />}
         {tab === "clinics" && <AdminClinicsView />}
         {tab === "patients" && <AdminPatientsView />}
+        {tab === "leads" && (
+          <AdminLeadsView
+            onCountChange={(delta) =>
+              setPendingLeadsCount((prev) => Math.max(0, prev + delta))
+            }
+          />
+        )}
         {tab === "finance" && <AdminFinanceView />}
         {tab === "settings" && <AccountSecurityView onLogout={onLogout} />}
 

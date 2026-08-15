@@ -333,7 +333,8 @@
       "clinics": "Clínicas",
       "finance": "Financeiro",
       "settings": "Configurações",
-      "patients": "Pacientes"
+      "patients": "Pacientes",
+      "leads": "Leads"
     },
     "overview": {
       "title": "Visão geral",
@@ -345,7 +346,8 @@
       "activePatients": "Pacientes ativos",
       "secretaries": "Secretárias",
       "planBreakdown": "Clínicas por plano",
-      "errorLoading": "Não foi possível carregar a visão geral. Tente novamente."
+      "errorLoading": "Não foi possível carregar a visão geral. Tente novamente.",
+      "pendingLeads": "Leads pendentes"
     },
     "users": {
       "title": "Usuários",
@@ -412,6 +414,22 @@
       "reassignLabel": "Vincular a:",
       "reassignButton": "Vincular",
       "reassignError": "Não foi possível vincular o paciente a esse psicólogo. Tente novamente."
+    },
+    "leads": {
+      "title": "Leads do quiz",
+      "subtitle": "Pessoas que preencheram o questionário \"Não achou quem procura?\" na página inicial, pedindo pra serem avisadas.",
+      "loading": "Carregando leads...",
+      "errorLoading": "Não foi possível carregar os leads agora. Tente novamente.",
+      "statusFilterAll": "Todos os status",
+      "status": {
+        "pending": "Pendente",
+        "contacted": "Contatado"
+      },
+      "emptyTitle": "Nenhum lead ainda",
+      "emptyText": "Quando alguém preencher o questionário da página inicial, o lead aparece aqui.",
+      "noName": "Sem nome informado",
+      "actionError": "Não foi possível concluir a ação. Tente novamente.",
+      "markContacted": "Marcar como contatado"
     }
   },
   "profileForm": {

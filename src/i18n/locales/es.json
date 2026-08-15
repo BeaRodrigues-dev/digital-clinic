@@ -333,7 +333,8 @@
       "clinics": "Clínicas",
       "finance": "Finanzas",
       "settings": "Configuración",
-      "patients": "Pacientes"
+      "patients": "Pacientes",
+      "leads": "Leads"
     },
     "overview": {
       "title": "Resumen",
@@ -345,7 +346,8 @@
       "activePatients": "Pacientes activos",
       "secretaries": "Secretarias",
       "planBreakdown": "Clínicas por plan",
-      "errorLoading": "No fue posible cargar el resumen. Intenta de nuevo."
+      "errorLoading": "No fue posible cargar el resumen. Intenta de nuevo.",
+      "pendingLeads": "Leads pendientes"
     },
     "users": {
       "title": "Usuarios",
@@ -412,6 +414,22 @@
       "reassignLabel": "Vincular a:",
       "reassignButton": "Vincular",
       "reassignError": "No se pudo vincular el paciente a ese psicólogo. Inténtalo de nuevo."
+    },
+    "leads": {
+      "title": "Leads del cuestionario",
+      "subtitle": "Personas que completaron el cuestionario \"¿No encontraste a quien buscas?\" en la página principal, pidiendo ser avisadas.",
+      "loading": "Cargando leads...",
+      "errorLoading": "No se pudieron cargar los leads ahora. Intenta de nuevo.",
+      "statusFilterAll": "Todos los estados",
+      "status": {
+        "pending": "Pendiente",
+        "contacted": "Contactado"
+      },
+      "emptyTitle": "Ningún lead todavía",
+      "emptyText": "Cuando alguien complete el cuestionario de la página principal, el lead aparece aquí.",
+      "noName": "Nombre no informado",
+      "actionError": "No se pudo completar la acción. Intenta de nuevo.",
+      "markContacted": "Marcar como contactado"
     }
   },
   "profileForm": {
