@@ -7,7 +7,6 @@ import {
   Menu,
   X,
   Star,
-  Quote,
   Plus,
   Pencil,
   Trash2,
@@ -11526,14 +11525,13 @@ type TransitionItem = {
   countries: string[];
 };
 type StepItem = { number: string; title: string; description: string };
-type TestimonialItem = {
-  name: string;
-  location: string;
-  flag: string;
-  transition: string;
-  text: string;
-  rating: number;
-};
+// Fase 26 — a seção antes exibia 3 depoimentos com nome/local/foto de
+// pessoas fictícias, com o título "Histórias reais de quem atravessou."
+// Não existe (ainda) nenhum depoimento real coletado na plataforma — exibir
+// como se fossem reais seria enganoso. Virou uma seção de proposta de
+// valor (sem atribuir a uma pessoa específica) até que existam depoimentos
+// de verdade pra usar aqui.
+type ValuePropItem = { emoji: string; title: string; text: string };
 type QuizQuestionItem = { question: string; options: string[] };
 type FaqItem = { q: string; a: string };
 
@@ -11854,9 +11852,9 @@ function Landing() {
     returnObjects: true,
   }) as TransitionItem[];
   const steps = t("howItWorks.steps", { returnObjects: true }) as StepItem[];
-  const testimonials = t("testimonialsSection.items", {
+  const valueProps = t("testimonialsSection.items", {
     returnObjects: true,
-  }) as TestimonialItem[];
+  }) as ValuePropItem[];
   const quizQuestions = t("quiz.questions", {
     returnObjects: true,
   }) as QuizQuestionItem[];
@@ -11938,6 +11936,12 @@ function Landing() {
             >
               {t("nav.perguntas")}
             </a>
+            <a
+              href="#planos"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {t("nav.paraPsicologos")}
+            </a>
             <LanguageSwitcher compact />
             <a
               href="#admin"
@@ -11982,6 +11986,13 @@ function Landing() {
             >
               {t("nav.perguntas")}
             </a>
+            <a
+              href="#planos"
+              onClick={() => setMenuOpen(false)}
+              className="text-muted-foreground"
+            >
+              {t("nav.paraPsicologos")}
+            </a>
             <LanguageSwitcher />
             <a
               href="#admin"
@@ -12025,7 +12036,7 @@ function Landing() {
           </p>
           <div className="flex flex-col sm:flex-row gap-6 sm:items-center">
             <a
-              href="#comecar"
+              href="#psicologos"
               className="inline-flex items-center justify-center gap-2 border-b-2 border-foreground text-foreground pb-1 font-semibold hover:border-accent hover:text-accent transition-colors text-base w-fit"
             >
               {t("hero.ctaPrimary")} <ArrowRight size={18} />
@@ -12037,13 +12048,29 @@ function Landing() {
               {t("hero.ctaSecondary")}
             </a>
           </div>
+          <p className="mt-6 text-sm text-muted-foreground">
+            {t("hero.professionalCtaText")}{" "}
+            <a
+              href="#planos"
+              className="font-semibold text-primary hover:text-accent transition-colors"
+            >
+              {t("hero.professionalCtaLink")}
+            </a>
+          </p>
+          {/* Fase 26 — os 3 números aqui (840+, 🇧🇷🇪🇸, 4.9) eram fixos no
+          JSX, sem nenhum dado real por trás — inclusive uma "avaliação
+          média" que não existe (não há sistema de avaliação de pacientes
+          construído ainda). Ficam só 2 números agora, e ambos são reais:
+          a contagem de profissionais aprovados que já carregou pro
+          diretório logo abaixo, e o "100% online" — verdadeiro, já que o
+          produto todo é remoto. */}
           <div className="mt-14 flex items-center gap-8 text-sm text-muted-foreground">
             <div className="flex flex-col">
               <span
                 className="text-2xl font-light text-foreground"
                 style={{ fontFamily: "'Fraunces', serif" }}
               >
-                840+
+                {psychologists.length}+
               </span>
               <span>{t("hero.statPatients")}</span>
             </div>
@@ -12053,19 +12080,9 @@ function Landing() {
                 className="text-2xl font-light text-foreground"
                 style={{ fontFamily: "'Fraunces', serif" }}
               >
-                🇧🇷 🇪🇸
+                100%
               </span>
-              <span>{t("hero.statCountries")}</span>
-            </div>
-            <div className="w-px h-10 bg-border"></div>
-            <div className="flex flex-col">
-              <span
-                className="text-2xl font-light text-foreground"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                4.9
-              </span>
-              <span>{t("hero.statRating")}</span>
+              <span>{t("hero.statOnline")}</span>
             </div>
           </div>
         </div>
@@ -12077,25 +12094,11 @@ function Landing() {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-primary/60 via-transparent to-transparent"></div>
           <div className="absolute bottom-12 left-10 right-10">
-            <blockquote className="bg-background/90 backdrop-blur-sm rounded-2xl p-6 border border-border/50">
-              <Quote size={20} className="text-accent mb-3" />
-              <p className="text-sm leading-relaxed text-foreground font-medium mb-4">
-                "{t("hero.quoteText")}"
+            <div className="bg-background/90 backdrop-blur-sm rounded-2xl p-6 border border-border/50">
+              <p className="text-sm leading-relaxed text-foreground font-medium">
+                {t("hero.imageCaption")}
               </p>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-sm">
-                  A
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-foreground">
-                    {t("hero.quoteAuthor")}
-                  </p>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <MapPin size={10} /> {t("hero.quoteLocation")}
-                  </p>
-                </div>
-              </div>
-            </blockquote>
+            </div>
           </div>
         </div>
       </section>
@@ -12386,39 +12389,18 @@ function Landing() {
             {t("testimonialsSection.title")}
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((item) => (
+            {valueProps.map((item) => (
               <div
-                key={item.name}
+                key={item.title}
                 className="bg-card border border-border rounded-2xl p-8 flex flex-col"
               >
-                <Quote size={24} className="text-accent mb-5" />
-                <p className="text-foreground leading-relaxed mb-8 flex-1 text-[15px]">
-                  "{item.text}"
+                <span className="text-3xl mb-5 block">{item.emoji}</span>
+                <h3 className="font-semibold text-foreground text-lg mb-3">
+                  {item.title}
+                </h3>
+                <p className="text-muted-foreground leading-relaxed text-[15px]">
+                  {item.text}
                 </p>
-                <div className="pt-6 border-t border-border">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-semibold text-foreground text-sm">
-                        {item.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                        <MapPin size={10} /> {item.flag} {item.location}
-                      </p>
-                    </div>
-                    <span className="text-xs bg-secondary text-muted-foreground px-2.5 py-1 rounded-full border border-border">
-                      {item.transition}
-                    </span>
-                  </div>
-                  <div className="flex gap-0.5 mt-3">
-                    {Array.from({ length: item.rating }).map((_, i) => (
-                      <Star
-                        key={i}
-                        size={12}
-                        className="text-accent fill-accent"
-                      />
-                    ))}
-                  </div>
-                </div>
               </div>
             ))}
           </div>
@@ -12716,7 +12698,7 @@ function Landing() {
             </div>
           </div>
           <div className="pt-8 border-t border-background/10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-background/40">
-            <p>{t("footer.copyright")}</p>
+            <p>{t("footer.copyright", { year: new Date().getFullYear() })}</p>
             <p>{t("footer.registration")}</p>
           </div>
         </div>
@@ -13554,7 +13536,7 @@ function InfoPageShell({
       </div>
       <footer className="border-t border-border py-8">
         <div className="max-w-3xl mx-auto px-6 text-xs text-muted-foreground">
-          {t("footer.copyright")}
+          {t("footer.copyright", { year: new Date().getFullYear() })}
         </div>
       </footer>
     </div>
@@ -13764,7 +13746,7 @@ function PublicPlansPage() {
 
       <footer className="border-t border-border py-8">
         <div className="max-w-5xl mx-auto px-6 text-xs text-muted-foreground">
-          {t("footer.copyright")}
+          {t("footer.copyright", { year: new Date().getFullYear() })}
         </div>
       </footer>
     </div>

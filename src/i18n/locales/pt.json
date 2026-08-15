@@ -13,29 +13,29 @@
     "noName": "Minha conta"
   },
   "nav": {
-    "brand": "Travessia",
+    "brand": "ConecPsi",
     "brandTag": "Psicologia",
     "comoFunciona": "Como funciona",
     "psicologos": "Psicólogos",
     "perguntas": "Perguntas",
     "comecar": "Começar",
-    "comecarFull": "Começar minha jornada"
+    "comecarFull": "Começar minha jornada",
+    "paraPsicologos": "Para psicólogos"
   },
   "hero": {
-    "eyebrow": "Psicologia para quem está em travessia",
+    "eyebrow": "Encontre o psicólogo certo pra você",
     "titleLine1": "Você não precisa",
     "titleLine2": "atravessar isso",
     "titleEmphasis": "sozinho.",
-    "subtitle": "Conectamos brasileiros que vivem grandes mudanças — dentro e fora do Brasil — com psicólogos selecionados para sua história.",
+    "subtitle": "Busque por especialidade, conheça o perfil completo de cada psicólogo e peça pra ser conectado — no seu ritmo, sem intermediário.",
     "ctaPrimary": "Encontrar meu psicólogo",
     "ctaSecondary": "Como funciona",
-    "statPatients": "pacientes acompanhados",
-    "statCountries": "Brasil · Espanha",
-    "statRating": "avaliação média",
-    "quoteText": "A mudança me tirou tudo que eu conhecia — cidade, trabalho, amigos. Mas também me devolveu a mim mesma.",
-    "quoteAuthor": "Ana Paula, 34",
-    "quoteLocation": "Barcelona, Espanha",
-    "imageAlt": "Vista de Barcelona ao entardecer"
+    "statPatients": "psicólogos e clínicas na plataforma",
+    "imageAlt": "Pessoa observando o pôr do sol",
+    "professionalCtaText": "É psicólogo(a) ou tem uma clínica?",
+    "professionalCtaLink": "Comece por aqui →",
+    "statOnline": "atendimento online",
+    "imageCaption": "Psicólogos para cada momento da sua história."
   },
   "transitions": {
     "eyebrow": "Momentos que atendemos",
@@ -92,40 +92,40 @@
   },
   "howItWorks": {
     "eyebrow": "Como funciona",
-    "title": "Um cuidado que começa antes da primeira sessão.",
+    "title": "Um cuidado que começa na sua busca.",
     "steps": [
       {
         "number": "01",
-        "title": "Conte sua história",
-        "description": "Um questionário cuidadoso — não genérico — para entender seu momento de vida, seus valores e o que você está atravessando agora."
+        "title": "Explore o diretório",
+        "description": "Busque por especialidade, veja o perfil completo e a forma de atendimento de cada psicólogo aprovado na plataforma."
       },
       {
         "number": "02",
-        "title": "Receba seu match",
-        "description": "Nossa curadoria combina você com psicólogos selecionados por especialidade, experiência com sua situação e estilo terapêutico."
+        "title": "Peça pra ser conectado",
+        "description": "Encontrou quem faz sentido pra você? Envie uma solicitação de contato direto pelo perfil dele — sem intermediário."
       },
       {
         "number": "03",
-        "title": "Sessão experimental",
-        "description": "Uma primeira sessão para sentir a conexão. Sem compromisso longo. Você decide se quer continuar."
+        "title": "Primeira conversa",
+        "description": "O profissional recebe seu pedido e entra em contato. Vocês combinam juntos o formato da primeira sessão."
       },
       {
         "number": "04",
-        "title": "Seu processo começa",
-        "description": "Sessões semanais online, no seu horário, no seu idioma. Com acompanhamento da nossa equipe durante toda a jornada."
+        "title": "Seu processo continua",
+        "description": "Sessões no seu ritmo, com o psicólogo acompanhando sua jornada — sem nenhum compromisso de continuidade."
       }
     ]
   },
   "psychologistsSection": {
     "eyebrow": "Psicólogos",
     "title": "Profissionais selecionados para o seu momento.",
-    "subtitle": "Não listamos todos os psicólogos do mundo. Curadoria rigorosa — profissionais com experiência real em transições de vida.",
+    "subtitle": "Não listamos qualquer psicólogo. Cada perfil passa por aprovação manual antes de aparecer aqui.",
     "loading": "Carregando profissionais...",
     "emptyTitle": "Em breve, novos profissionais",
     "emptyText": "Nossa curadoria está em andamento. Em breve anunciamos os primeiros psicólogos da plataforma.",
     "yearsExperience": "anos de experiência",
     "viewProfile": "Ver perfil",
-    "footerNote": "O seu match é feito com base no seu perfil — você pode ser conectado a profissionais não listados aqui.",
+    "footerNote": "Não encontrou quem procura? Preencha o formulário abaixo — avisamos você quando tivermos um profissional com esse perfil.",
     "photoAlt": "Foto de {{name}}",
     "searchPlaceholder": "Buscar por nome ou especialidade...",
     "specialtyFilterAll": "Todas as especialidades",
@@ -152,48 +152,39 @@
     }
   },
   "testimonialsSection": {
-    "eyebrow": "Depoimentos",
-    "title": "Histórias reais de quem atravessou.",
+    "eyebrow": "Por que ConecPsi",
+    "title": "Feito pra quem busca cuidado — e pra quem cuida.",
     "items": [
       {
-        "name": "Mariana Costa",
-        "location": "Barcelona há 2 anos",
-        "flag": "🇪🇸",
-        "transition": "Expatriada",
-        "text": "Cheguei na Espanha com uma mala e a sensação de que havia perdido quem eu era. A psicóloga foi a primeira pessoa que entendeu de verdade o que é ser imigrante brasileira. Não precisei explicar o que é saudade.",
-        "rating": 5
+        "emoji": "🔍",
+        "title": "Diretório público e gratuito",
+        "text": "Busque por especialidade, veja o perfil completo de cada psicólogo e peça contato direto — sem intermediário e sem taxa sobre as sessões."
       },
       {
-        "name": "Thiago Lemos",
-        "location": "São Paulo, Brasil",
-        "flag": "🇧🇷",
-        "transition": "Mudança de Carreira",
-        "text": "Larguei a advocacia aos 38 anos. Todo mundo ao redor achava que eu estava em crise. O processo me ajudou a perceber que eu estava, na verdade, acordando.",
-        "rating": 5
+        "emoji": "🗂️",
+        "title": "Sua rotina em um só lugar",
+        "text": "Agenda, prontuário e financeiro organizados pra você — com apoio de IA pra resumir e organizar suas anotações de sessão."
       },
       {
-        "name": "Renata Figueiredo",
-        "location": "Madrid há 4 anos",
-        "flag": "🇪🇸",
-        "transition": "Maternidade no Exterior",
-        "text": "Ser mãe longe da família é um desafio que não tem manual. A psicóloga me deu ferramentas e, principalmente, me fez sentir menos sozinha nessa jornada.",
-        "rating": 5
+        "emoji": "🌿",
+        "title": "Sua própria página pública",
+        "text": "Todo profissional aprovado ganha um perfil no nosso diretório pra divulgar o trabalho — sem custo extra."
       }
     ]
   },
   "quiz": {
-    "eyebrow": "Começar",
-    "introTitleLine1": "Pronto para",
-    "introTitleLine2": "sua travessia?",
-    "introSubtitle": "Leva menos de 3 minutos. Vamos entender seu momento antes de sugerir qualquer profissional.",
+    "eyebrow": "Não achou quem procura?",
+    "introTitleLine1": "Conta pra gente",
+    "introTitleLine2": "o que você precisa",
+    "introSubtitle": "Leva menos de 3 minutos. Guardamos suas respostas e avisamos assim que tivermos um psicólogo com esse perfil.",
     "startCta": "Começar o questionário",
     "back": "← Voltar",
     "thanksTitle": "Obrigado por compartilhar.",
-    "thanksSubtitle": "Nossa equipe entrará em contato em até 24 horas com suas indicações personalizadas.",
+    "thanksSubtitle": "Guardamos suas respostas. Enquanto isso, já dá pra explorar o diretório de psicólogos disponíveis agora.",
     "continueLabel": "Continue o cadastro:",
     "emailPlaceholder": "Seu e-mail",
     "namePlaceholder": "Seu nome",
-    "submitCta": "Quero encontrar meu psicólogo",
+    "submitCta": "Quero ser avisado",
     "questions": [
       {
         "question": "Onde você está agora?",
@@ -223,7 +214,7 @@
         ]
       }
     ],
-    "leadSavedMessage": "Recebemos seus dados! Em breve entramos em contato com uma sugestão de psicólogo pra você.",
+    "leadSavedMessage": "Recebemos seus dados! Avisamos você assim que tivermos um psicólogo com esse perfil — enquanto isso, dá uma olhada no diretório.",
     "leadError": "Não foi possível enviar agora. Tente novamente em instantes."
   },
   "faqSection": {
@@ -231,8 +222,8 @@
     "title": "Dúvidas comuns.",
     "items": [
       {
-        "q": "Como funciona o processo de matching?",
-        "a": "Você preenche nosso questionário detalhado sobre sua história, momento de vida e preferências terapêuticas. Nossa equipe — formada por psicólogos — analisa seu perfil e sugere 2 a 3 profissionais compatíveis. Não é um algoritmo: é uma curadoria humana."
+        "q": "Como funciona? Vocês indicam um psicólogo pra mim?",
+        "a": "Você mesmo busca no nosso diretório por especialidade e conhece o perfil completo de cada psicólogo aprovado. Encontrou quem faz sentido? É só enviar uma solicitação de contato pelo perfil dele — sem intermediário. Se preferir, também pode preencher nosso formulário rápido contando o que busca; avisamos quando tivermos alguém com esse perfil."
       },
       {
         "q": "Os psicólogos atendem em português?",
@@ -240,16 +231,20 @@
       },
       {
         "q": "Quanto custa?",
-        "a": "O cadastro e o matching são gratuitos. O valor das sessões varia por profissional, entre R$150 e R$350 (ou equivalente em euros). Não cobramos taxa de plataforma sobre as sessões."
+        "a": "Buscar no diretório e pedir contato é gratuito. Cada psicólogo define o valor da própria sessão, que aparece no perfil dele quando informado. Não cobramos taxa sobre as sessões."
       },
       {
-        "q": "E se o match não funcionar?",
-        "a": "Faz parte. Se a conexão com o profissional indicado não fluir na primeira sessão, nossa equipe revisa seu perfil e sugere novas opções sem custo adicional."
+        "q": "E se eu não me identificar com o profissional?",
+        "a": "Sem problema — e sem compromisso. Você pode voltar ao diretório e pedir contato com outro psicólogo quando quiser."
+      },
+      {
+        "q": "Sou psicólogo(a) — como entro na plataforma?",
+        "a": "Você cria sua conta, monta seu perfil (especialidades, forma de atendimento, valor da sessão) e, depois de aprovado, ganha uma página pública no nosso diretório — além de agenda, prontuário e financeiro pra organizar sua rotina. Veja os planos em \"Para psicólogos\"."
       }
     ]
   },
   "footer": {
-    "blurb": "Psicologia especializada em pessoas que estão passando por grandes mudanças de vida. Brasileiros no Brasil e no mundo.",
+    "blurb": "Psicologia para quem busca cuidado — e uma base completa para quem cuida: agenda, prontuário e financeiro para psicólogos e clínicas.",
     "badgeBrasil": "🇧🇷 Brasil",
     "badgeEspanha": "🇪🇸 Espanha",
     "platformTitle": "Plataforma",
@@ -264,11 +259,11 @@
     "adminArea": "Área de administração",
     "privacidade": "Privacidade",
     "termos": "Termos de uso",
-    "copyright": "© 2025 Travessia Psicologia. Todos os direitos reservados.",
+    "copyright": "© {{year}} ConecPsi. Todos os direitos reservados.",
     "registration": "Plataforma registrada no CFP · CRP regularizado"
   },
   "login": {
-    "brand": "Travessia · Acesso",
+    "brand": "ConecPsi · Acesso",
     "title": "Área restrita",
     "subtitle": "Entre com seu e-mail e senha para continuar.",
     "emailPlaceholder": "E-mail",
@@ -303,7 +298,7 @@
     "logout": "Sair"
   },
   "admin": {
-    "navTitle": "Travessia · Administração",
+    "navTitle": "ConecPsi · Administração",
     "viewSite": "Ver site",
     "logout": "Sair",
     "published": "publicados",
@@ -1021,8 +1016,8 @@
   "sobrePage": {
     "title": "Sobre",
     "paragraphs": [
-      "A Travessia nasceu para dar a psicólogos e psicólogas que atendem brasileiros no Brasil e no mundo uma forma organizada de administrar o próprio consultório — sem depender de planilhas soltas, agendas de papel ou uma dezena de ferramentas desconectadas.",
-      "A plataforma reúne agenda, prontuário, financeiro e o relacionamento com pacientes em um só lugar, com o cuidado extra que dados de saúde mental exigem: cada informação clínica fica isolada por profissional, e nenhum paciente enxerga o que não é dele.",
+      "O ConecPsi nasceu para dar a psicólogos e psicólogas que atendem brasileiros no Brasil e no mundo uma forma organizada de administrar o próprio consultório — sem depender de planilhas soltas, agendas de papel ou uma dezena de ferramentas desconectadas.",
+      "A plataforma reúne agenda, prontuário, financeiro e o relacionamento com pacientes em um só lugar, com o cuidado extra que dados de saúde mental exigem: cada informação clínica fica isolada por profissional, e nenhum paciente enxerga o que não é dele. Quem procura terapia também encontra um diretório público para buscar e conhecer o perfil de cada profissional aprovado.",
       "Ainda somos uma plataforma em construção ativa — novas funcionalidades chegam com frequência, sempre guiadas pelo que realmente ajuda quem está no consultório todos os dias."
     ]
   },
@@ -1040,7 +1035,7 @@
     "sections": [
       {
         "heading": "1. Sobre estes termos",
-        "body": "Ao criar uma conta e usar a Travessia, você concorda com estes termos de uso. Eles se aplicam a profissionais de psicologia que usam a plataforma para gerenciar seu consultório e a pacientes que acessam a área do paciente a convite de seu psicólogo ou psicóloga."
+        "body": "Ao criar uma conta e usar o ConecPsi, você concorda com estes termos de uso. Eles se aplicam a profissionais de psicologia que usam a plataforma para gerenciar seu consultório e a pacientes que acessam a área do paciente a convite de seu psicólogo ou psicóloga."
       },
       {
         "heading": "2. O que a plataforma oferece",
@@ -1048,7 +1043,7 @@
       },
       {
         "heading": "3. Responsabilidade profissional",
-        "body": "A Travessia é uma ferramenta de gestão administrativa. Ela não substitui o julgamento clínico do profissional nem se responsabiliza pelo conteúdo dos registros inseridos, que são de responsabilidade exclusiva de quem os cria."
+        "body": "O ConecPsi é uma ferramenta de gestão administrativa. Ela não substitui o julgamento clínico do profissional nem se responsabiliza pelo conteúdo dos registros inseridos, que são de responsabilidade exclusiva de quem os cria."
       },
       {
         "heading": "4. Conta e acesso",
@@ -1104,7 +1099,7 @@
     "laterHint": "Você pode mudar de plano a qualquer momento em Configurações → Plano."
   },
   "secretary": {
-    "navTitle": "Travessia · Secretaria",
+    "navTitle": "ConecPsi · Secretaria",
     "title": "Painel da secretaria",
     "subtitle": "Agenda e pacientes da clínica.",
     "agendaEmpty": "Nenhuma consulta futura agendada.",

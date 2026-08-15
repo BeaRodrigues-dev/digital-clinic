@@ -13,29 +13,29 @@
     "noName": "My account"
   },
   "nav": {
-    "brand": "Travessia",
+    "brand": "ConecPsi",
     "brandTag": "Psychology",
     "comoFunciona": "How it works",
     "psicologos": "Psychologists",
     "perguntas": "FAQ",
     "comecar": "Get started",
-    "comecarFull": "Start my journey"
+    "comecarFull": "Start my journey",
+    "paraPsicologos": "For psychologists"
   },
   "hero": {
-    "eyebrow": "Psychology for people in transition",
+    "eyebrow": "Find the right psychologist for you",
     "titleLine1": "You don't have to",
     "titleLine2": "go through this",
     "titleEmphasis": "alone.",
-    "subtitle": "We connect Brazilians going through major life changes — at home and abroad — with psychologists chosen for their story.",
+    "subtitle": "Search by specialty, browse each psychologist's full profile, and request to be connected — at your own pace, no middleman.",
     "ctaPrimary": "Find my psychologist",
     "ctaSecondary": "How it works",
-    "statPatients": "patients supported",
-    "statCountries": "Brazil · Spain",
-    "statRating": "average rating",
-    "quoteText": "The move took away everything I knew — city, job, friends. But it also gave me back myself.",
-    "quoteAuthor": "Ana Paula, 34",
-    "quoteLocation": "Barcelona, Spain",
-    "imageAlt": "View of Barcelona at sunset"
+    "statPatients": "psychologists and clinics on the platform",
+    "imageAlt": "Person watching the sunset",
+    "professionalCtaText": "Are you a psychologist or do you run a clinic?",
+    "professionalCtaLink": "Start here →",
+    "statOnline": "online care",
+    "imageCaption": "Psychologists for every moment of your story."
   },
   "transitions": {
     "eyebrow": "Moments we support",
@@ -92,40 +92,40 @@
   },
   "howItWorks": {
     "eyebrow": "How it works",
-    "title": "Care that starts before the first session.",
+    "title": "Care that starts with your search.",
     "steps": [
       {
         "number": "01",
-        "title": "Tell your story",
-        "description": "A thoughtful questionnaire — not a generic one — to understand your moment in life, your values, and what you're going through right now."
+        "title": "Browse the directory",
+        "description": "Search by specialty and see the full profile and format of care for every approved psychologist on the platform."
       },
       {
         "number": "02",
-        "title": "Get your match",
-        "description": "Our curation matches you with psychologists selected by specialty, experience with your situation, and therapeutic style."
+        "title": "Request to connect",
+        "description": "Found someone who feels right for you? Send a contact request straight from their profile — no middleman."
       },
       {
         "number": "03",
-        "title": "Trial session",
-        "description": "A first session to feel the connection. No long-term commitment. You decide whether to continue."
+        "title": "First conversation",
+        "description": "The professional gets your request and reaches out. Together you agree on the format of your first session."
       },
       {
         "number": "04",
-        "title": "Your process begins",
-        "description": "Weekly online sessions, on your schedule, in your language, with support from our team throughout the journey."
+        "title": "Your process continues",
+        "description": "Sessions at your own pace, with your psychologist following your journey — no obligation to continue."
       }
     ]
   },
   "psychologistsSection": {
     "eyebrow": "Psychologists",
     "title": "Professionals selected for your moment.",
-    "subtitle": "We don't list every psychologist in the world. Rigorous curation — professionals with real experience in life transitions.",
+    "subtitle": "We don't list just any psychologist. Every profile goes through manual approval before showing up here.",
     "loading": "Loading professionals...",
     "emptyTitle": "New professionals coming soon",
     "emptyText": "Our curation is underway. We'll announce the platform's first psychologists soon.",
     "yearsExperience": "years of experience",
     "viewProfile": "View profile",
-    "footerNote": "Your match is based on your profile — you may be connected with professionals not listed here.",
+    "footerNote": "Didn't find who you're looking for? Fill out the form below — we'll let you know when we have a professional with that profile.",
     "photoAlt": "Photo of {{name}}",
     "searchPlaceholder": "Search by name or specialty...",
     "specialtyFilterAll": "All specialties",
@@ -152,48 +152,39 @@
     }
   },
   "testimonialsSection": {
-    "eyebrow": "Testimonials",
-    "title": "Real stories from people who went through it.",
+    "eyebrow": "Why ConecPsi",
+    "title": "Built for people seeking care — and for the people who provide it.",
     "items": [
       {
-        "name": "Mariana Costa",
-        "location": "Barcelona, 2 years",
-        "flag": "🇪🇸",
-        "transition": "Expat",
-        "text": "I arrived in Spain with a suitcase and the feeling that I'd lost who I was. My psychologist was the first person who truly understood what it's like to be a Brazilian immigrant. I didn't have to explain what saudade means.",
-        "rating": 5
+        "emoji": "🔍",
+        "title": "A free, public directory",
+        "text": "Search by specialty, browse each psychologist's full profile, and request direct contact — no middleman and no fee on sessions."
       },
       {
-        "name": "Thiago Lemos",
-        "location": "São Paulo, Brazil",
-        "flag": "🇧🇷",
-        "transition": "Career Change",
-        "text": "I left law at 38. Everyone around me thought I was having a crisis. The process helped me realize I was actually waking up.",
-        "rating": 5
+        "emoji": "🗂️",
+        "title": "Your practice in one place",
+        "text": "Scheduling, clinical records, and billing organized for you — with AI support to summarize and organize your session notes."
       },
       {
-        "name": "Renata Figueiredo",
-        "location": "Madrid, 4 years",
-        "flag": "🇪🇸",
-        "transition": "Motherhood Abroad",
-        "text": "Being a mother far from family is a challenge with no manual. My psychologist gave me tools and, above all, made me feel less alone on that journey.",
-        "rating": 5
+        "emoji": "🌿",
+        "title": "Your own public page",
+        "text": "Every approved professional gets a profile in our directory to promote their work — at no extra cost."
       }
     ]
   },
   "quiz": {
-    "eyebrow": "Get started",
-    "introTitleLine1": "Ready for",
-    "introTitleLine2": "your journey?",
-    "introSubtitle": "It takes less than 3 minutes. Let's understand your moment before suggesting any professional.",
+    "eyebrow": "Didn't find who you're looking for?",
+    "introTitleLine1": "Tell us",
+    "introTitleLine2": "what you need",
+    "introSubtitle": "Takes less than 3 minutes. We save your answers and let you know as soon as we have a psychologist matching that profile.",
     "startCta": "Start the questionnaire",
     "back": "← Back",
     "thanksTitle": "Thank you for sharing.",
-    "thanksSubtitle": "Our team will reach out within 24 hours with your personalized recommendations.",
+    "thanksSubtitle": "We've saved your answers. In the meantime, feel free to browse the directory of psychologists available right now.",
     "continueLabel": "Continue your sign-up:",
     "emailPlaceholder": "Your email",
     "namePlaceholder": "Your name",
-    "submitCta": "I want to find my psychologist",
+    "submitCta": "Notify me",
     "questions": [
       {
         "question": "Where are you right now?",
@@ -223,7 +214,7 @@
         ]
       }
     ],
-    "leadSavedMessage": "We've got your details! We'll reach out soon with a psychologist suggestion for you.",
+    "leadSavedMessage": "We received your info! We'll let you know as soon as we have a psychologist matching that profile — in the meantime, take a look at the directory.",
     "leadError": "Couldn't send it right now. Please try again in a moment."
   },
   "faqSection": {
@@ -231,25 +222,29 @@
     "title": "Common questions.",
     "items": [
       {
-        "q": "How does the matching process work?",
-        "a": "You fill out our detailed questionnaire about your story, life moment, and therapeutic preferences. Our team — made up of psychologists — reviews your profile and suggests 2 to 3 compatible professionals. It's not an algorithm: it's human curation."
+        "q": "How does it work? Do you recommend a psychologist for me?",
+        "a": "You search our directory yourself by specialty and browse the full profile of every approved psychologist. Found someone who feels right? Just send a contact request from their profile — no middleman. If you'd rather, you can also fill out our short form describing what you're looking for; we'll let you know when we have someone matching that profile."
       },
       {
-        "q": "Do the psychologists see patients in Portuguese?",
-        "a": "Yes. All professionals on our platform work in Brazilian Portuguese. Some also work in Spanish, English, or other languages."
+        "q": "Do the psychologists work in Portuguese?",
+        "a": "Yes. Every professional on our platform works in Brazilian Portuguese. Some also work in Spanish, English, or other languages."
       },
       {
         "q": "How much does it cost?",
-        "a": "Signing up and matching are free. Session prices vary by professional, between R$150 and R$350 (or the equivalent in euros). We don't charge a platform fee on sessions."
+        "a": "Searching the directory and requesting contact is free. Each psychologist sets their own session price, shown on their profile when provided. We don't charge a platform fee on sessions."
       },
       {
-        "q": "What if the match doesn't work out?",
-        "a": "That happens. If the connection with the suggested professional doesn't click in the first session, our team reviews your profile and suggests new options at no extra cost."
+        "q": "What if I don't click with the professional?",
+        "a": "No problem — and no obligation. You can go back to the directory and request contact with another psychologist whenever you like."
+      },
+      {
+        "q": "I'm a psychologist — how do I join the platform?",
+        "a": "You create an account, set up your profile (specialties, format of care, session price), and once approved, you get a public page in our directory — plus scheduling, clinical records, and billing to organize your practice. See the plans under \"For psychologists\"."
       }
     ]
   },
   "footer": {
-    "blurb": "Psychology specialized in people going through major life changes. Brazilians in Brazil and around the world.",
+    "blurb": "Psychology for people seeking care — and a complete toolkit for those providing it: scheduling, clinical records, and billing for psychologists and clinics.",
     "badgeBrasil": "🇧🇷 Brazil",
     "badgeEspanha": "🇪🇸 Spain",
     "platformTitle": "Platform",
@@ -264,11 +259,11 @@
     "adminArea": "Admin area",
     "privacidade": "Privacy",
     "termos": "Terms of use",
-    "copyright": "© 2025 Travessia Psicologia. All rights reserved.",
+    "copyright": "© {{year}} ConecPsi. All rights reserved.",
     "registration": "Platform registered with CFP · CRP-compliant"
   },
   "login": {
-    "brand": "Travessia · Access",
+    "brand": "ConecPsi · Access",
     "title": "Restricted area",
     "subtitle": "Sign in with your email and password to continue.",
     "emailPlaceholder": "Email",
@@ -303,7 +298,7 @@
     "logout": "Sign out"
   },
   "admin": {
-    "navTitle": "Travessia · Admin",
+    "navTitle": "ConecPsi · Admin",
     "viewSite": "View site",
     "logout": "Sign out",
     "published": "published",
@@ -1021,8 +1016,8 @@
   "sobrePage": {
     "title": "About",
     "paragraphs": [
-      "Travessia was built to give psychologists who work with Brazilians in Brazil and around the world an organized way to run their own practice — instead of relying on scattered spreadsheets, paper agendas, or a dozen disconnected tools.",
-      "The platform brings scheduling, clinical records, billing, and patient relationships together in one place, with the extra care mental health data requires: every clinical record stays isolated per professional, and no patient ever sees what isn't theirs.",
+      "ConecPsi was built to give psychologists who work with Brazilians in Brazil and around the world an organized way to run their own practice — instead of relying on scattered spreadsheets, paper agendas, or a dozen disconnected tools.",
+      "The platform brings scheduling, clinical records, billing, and patient relationships together in one place, with the extra care mental health data requires: every clinical record stays isolated per professional, and no patient ever sees what isn't theirs. Anyone looking for therapy also finds a public directory to search and browse the profile of every approved professional.",
       "We're still actively building the platform — new features ship regularly, always guided by what genuinely helps the people running a practice day to day."
     ]
   },
@@ -1040,7 +1035,7 @@
     "sections": [
       {
         "heading": "1. About these terms",
-        "body": "By creating an account and using Travessia, you agree to these terms of use. They apply to psychology professionals who use the platform to manage their practice, and to patients who access the patient area at their psychologist's invitation."
+        "body": "By creating an account and using ConecPsi, you agree to these terms of use. They apply to psychology professionals who use the platform to manage their practice, and to patients who access the patient area at their psychologist's invitation."
       },
       {
         "heading": "2. What the platform offers",
@@ -1048,7 +1043,7 @@
       },
       {
         "heading": "3. Professional responsibility",
-        "body": "Travessia is an administrative management tool. It does not replace the professional's clinical judgment and is not responsible for the content of the records entered, which are the sole responsibility of whoever creates them."
+        "body": "ConecPsi is an administrative management tool. It does not replace the professional's clinical judgment and is not responsible for the content of the records entered, which are the sole responsibility of whoever creates them."
       },
       {
         "heading": "4. Account and access",
@@ -1104,7 +1099,7 @@
     "laterHint": "You can change plans anytime under Settings → Plan."
   },
   "secretary": {
-    "navTitle": "Travessia · Secretary Desk",
+    "navTitle": "ConecPsi · Secretary Desk",
     "title": "Secretary dashboard",
     "subtitle": "Clinic schedule and patients.",
     "agendaEmpty": "No upcoming appointments scheduled.",
