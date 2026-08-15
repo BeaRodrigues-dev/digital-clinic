@@ -713,6 +713,209 @@ function SignupForm({
             {t("signup.logIn")}
           </a>
         </p>
+        <p className="text-center text-sm text-muted-foreground mt-2">
+          {t("signup.isSecretary")}{" "}
+          <a
+            href="#cadastro-secretaria"
+            className="text-primary font-semibold hover:underline"
+          >
+            {t("signup.isSecretaryLink")}
+          </a>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Cadastro autônomo de secretária por código de convite (Fase 27) ───────
+// Antes disso, virar secretária de uma clínica dependia sempre de o
+// profissional entrar no sistema e convidar (nome + e-mail, um por vez).
+// Aqui a pessoa se cadastra sozinha com o código que a clínica compartilhou
+// (`clinics.secretary_invite_code`) — o `initialCode` já vem preenchido
+// quando chega por um link do tipo `#cadastro-secretaria?code=XXXXXXXX`,
+// que é o que "Copiar link" gera em Configurações → Equipe.
+function SecretarySignupForm({
+  initialCode,
+  onSignedUp,
+}: {
+  initialCode: string | null;
+  onSignedUp: (user: AppUser) => void;
+}) {
+  const { t } = useTranslation();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [code, setCode] = useState(initialCode ?? "");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!name.trim() || !email.trim() || !code.trim()) {
+      setError(t("signupSecretary.requiredError"));
+      return;
+    }
+    if (password.length < 8) {
+      setError(t("setPassword.tooShort"));
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError(t("setPassword.mismatch"));
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await apiFetch("/signup/secretary", {
+        method: "POST",
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          full_name: name.trim(),
+          invite_code: code.trim(),
+        }),
+      });
+
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (authError) throw authError;
+
+      const user = await fetchCurrentUser();
+      if (!user) throw new Error(t("login.genericError"));
+
+      onSignedUp(user);
+    } catch (err: any) {
+      let message = err?.message || t("signupSecretary.genericError");
+      try {
+        const parsed = JSON.parse(message);
+        if (parsed?.error) message = parsed.error;
+      } catch {
+        /* fall back to raw message */
+      }
+      setError(
+        message === "secretary_requires_business_plan"
+          ? t("signupSecretary.planRequiredError")
+          : message === "Código de convite inválido."
+            ? t("signupSecretary.invalidCodeError")
+            : message,
+      );
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-primary flex items-center justify-center px-6 relative">
+      <div className="absolute top-6 right-6">
+        <LanguageSwitcher compact />
+      </div>
+      <div className="bg-background rounded-2xl p-10 w-full max-w-sm shadow-2xl">
+        <div className="flex items-center gap-2 mb-8">
+          <BrandMark size={20} />
+          <span
+            className="font-bold text-foreground"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            {t("login.brand")}
+          </span>
+        </div>
+        <h2
+          className="text-2xl font-light mb-2 text-foreground"
+          style={{ fontFamily: "'Fraunces', serif" }}
+        >
+          {t("signupSecretary.title")}
+        </h2>
+        <p className="text-muted-foreground text-sm mb-8">
+          {t("signupSecretary.subtitle")}
+        </p>
+        <form onSubmit={submit} className="flex flex-col gap-4">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              setError("");
+            }}
+            placeholder={t("profileForm.namePlaceholder")}
+            autoFocus
+            className={`w-full bg-secondary border rounded-lg px-4 py-3 text-sm outline-none transition-colors ${error ? "border-red-400 text-red-600 focus:ring-2 focus:ring-red-400/20" : "border-border focus:border-primary focus:ring-2 focus:ring-primary/20"}`}
+          />
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setError("");
+            }}
+            placeholder={t("login.emailPlaceholder")}
+            className={`w-full bg-secondary border rounded-lg px-4 py-3 text-sm outline-none transition-colors ${error ? "border-red-400 text-red-600 focus:ring-2 focus:ring-red-400/20" : "border-border focus:border-primary focus:ring-2 focus:ring-primary/20"}`}
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setError("");
+            }}
+            placeholder={t("login.passwordPlaceholder")}
+            className={`w-full bg-secondary border rounded-lg px-4 py-3 text-sm outline-none transition-colors ${error ? "border-red-400 text-red-600 focus:ring-2 focus:ring-red-400/20" : "border-border focus:border-primary focus:ring-2 focus:ring-primary/20"}`}
+          />
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => {
+              setConfirmPassword(e.target.value);
+              setError("");
+            }}
+            placeholder={t("settings.security.confirmPasswordLabel")}
+            className={`w-full bg-secondary border rounded-lg px-4 py-3 text-sm outline-none transition-colors ${error ? "border-red-400 text-red-600 focus:ring-2 focus:ring-red-400/20" : "border-border focus:border-primary focus:ring-2 focus:ring-primary/20"}`}
+          />
+          <div>
+            <input
+              type="text"
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value.toUpperCase());
+                setError("");
+              }}
+              placeholder={t("signupSecretary.codePlaceholder")}
+              className={`w-full bg-secondary border rounded-lg px-4 py-3 text-sm outline-none transition-colors tracking-wider font-mono ${error ? "border-red-400 text-red-600 focus:ring-2 focus:ring-red-400/20" : "border-border focus:border-primary focus:ring-2 focus:ring-primary/20"}`}
+            />
+            <p className="text-xs text-muted-foreground mt-1.5">
+              {t("signupSecretary.codeHint")}
+            </p>
+          </div>
+          {error && <p className="text-red-500 text-xs">{error}</p>}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="bg-primary text-primary-foreground py-3 rounded-full font-semibold hover:opacity-90 transition-opacity text-sm disabled:opacity-60"
+          >
+            {submitting ? t("signup.submitting") : t("signupSecretary.submit")}
+          </button>
+        </form>
+        <p className="text-center text-sm text-muted-foreground mt-6">
+          {t("signup.hasAccount")}{" "}
+          <a
+            href="#admin"
+            className="text-primary font-semibold hover:underline"
+          >
+            {t("signup.logIn")}
+          </a>
+        </p>
+        <p className="text-center text-sm text-muted-foreground mt-2">
+          {t("signupSecretary.isProfessional")}{" "}
+          <a
+            href="#cadastro"
+            className="text-primary font-semibold hover:underline"
+          >
+            {t("signupSecretary.isProfessionalLink")}
+          </a>
+        </p>
       </div>
     </div>
   );
@@ -8137,6 +8340,13 @@ function SecretaryTeamSection({
     null,
   );
   const [removeError, setRemoveError] = useState(false);
+  // Fase 27 — código de convite da clínica: cadastro autônomo de
+  // secretária sem precisar convidar uma por uma (nome + e-mail).
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [regenerating, setRegenerating] = useState(false);
+  const [confirmingRegenerate, setConfirmingRegenerate] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const isBusinessPlan = plan === "clinic";
 
@@ -8154,6 +8364,57 @@ function SecretaryTeamSection({
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!isBusinessPlan) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("clinics")
+        .select("secretary_invite_code")
+        .eq("id", clinicId)
+        .maybeSingle();
+      if (!cancelled) setInviteCode(data?.secretary_invite_code ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [clinicId, isBusinessPlan]);
+
+  const inviteLink = inviteCode
+    ? `${window.location.origin}${window.location.pathname}#cadastro-secretaria?code=${inviteCode}`
+    : "";
+
+  const copyText = async (
+    text: string,
+    setCopied: (v: boolean) => void,
+  ) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard indisponível — sem tela de erro dedicada, ainda dá pra
+      // selecionar e copiar o texto na mão.
+    }
+  };
+
+  const handleRegenerateCode = async () => {
+    setRegenerating(true);
+    try {
+      const { data, error } = await supabase.rpc(
+        "regenerate_secretary_invite_code",
+        { target_clinic_id: clinicId },
+      );
+      if (error) throw error;
+      setInviteCode(data as string);
+      setConfirmingRegenerate(false);
+    } catch (err) {
+      console.error("Falha ao gerar novo código de convite:", err);
+    } finally {
+      setRegenerating(false);
+    }
+  };
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -8232,6 +8493,75 @@ function SecretaryTeamSection({
         </div>
       ) : (
         <>
+          {inviteCode && (
+            <div className="bg-secondary border border-border rounded-xl p-5 mb-6">
+              <p className="text-sm font-semibold text-foreground mb-1">
+                {t("clinicSettings.secretary.inviteCode.title")}
+              </p>
+              <p className="text-xs text-muted-foreground mb-4">
+                {t("clinicSettings.secretary.inviteCode.hint")}
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-mono text-lg tracking-widest bg-background border border-border rounded-lg px-4 py-2 text-foreground">
+                  {inviteCode}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => copyText(inviteCode, setCopiedCode)}
+                  className="flex items-center gap-1.5 text-xs font-medium border border-border rounded-full px-3 py-1.5 hover:bg-background transition-colors text-muted-foreground"
+                >
+                  <Copy size={12} />
+                  {copiedCode
+                    ? t("clinicSettings.secretary.inviteCode.copied")
+                    : t("clinicSettings.secretary.inviteCode.copyCode")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => copyText(inviteLink, setCopiedLink)}
+                  className="flex items-center gap-1.5 text-xs font-medium border border-border rounded-full px-3 py-1.5 hover:bg-background transition-colors text-muted-foreground"
+                >
+                  <LinkIcon size={12} />
+                  {copiedLink
+                    ? t("clinicSettings.secretary.inviteCode.copied")
+                    : t("clinicSettings.secretary.inviteCode.copyLink")}
+                </button>
+                {confirmingRegenerate ? (
+                  <span className="flex items-center gap-2 text-xs">
+                    <span className="text-muted-foreground">
+                      {t("clinicSettings.secretary.inviteCode.confirmRegenerate")}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRegenerateCode}
+                      disabled={regenerating}
+                      className="font-semibold text-red-600 hover:underline disabled:opacity-50"
+                    >
+                      {regenerating ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        t("clinicSettings.secretary.inviteCode.confirmYes")
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingRegenerate(false)}
+                      className="text-muted-foreground hover:underline"
+                    >
+                      {t("admin.cancel")}
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingRegenerate(true)}
+                    className="text-xs font-medium text-muted-foreground hover:text-red-600 transition-colors"
+                  >
+                    {t("clinicSettings.secretary.inviteCode.regenerate")}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           {loading ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground gap-3">
               <Loader2 size={18} className="animate-spin" />
@@ -8272,6 +8602,9 @@ function SecretaryTeamSection({
             )
           )}
 
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            {t("clinicSettings.secretary.orInviteByEmail")}
+          </p>
           <form
             onSubmit={handleInvite}
             className="flex flex-col sm:flex-row gap-3"
@@ -13894,6 +14227,28 @@ export default function App() {
     if (!authChecked) return null;
     if (!user) return <LoginForm onLogin={setUser} />;
     return renderRoleArea(user);
+  }
+
+  // Cadastro público de secretária por código (Fase 27) — `#cadastro-secretaria`
+  // ou `#cadastro-secretaria?code=XXXXXXXX` (vindo do link que a clínica
+  // compartilha). Checado ANTES de `#cadastro` abaixo — senão o
+  // `startsWith` genérico capturaria essa rota também, por engano.
+  if (hash.startsWith("#cadastro-secretaria")) {
+    if (!authChecked) return null;
+    if (user) return renderRoleArea(user);
+    const queryPart = hash.split("?")[1];
+    const codeParam = queryPart
+      ? new URLSearchParams(queryPart).get("code")
+      : null;
+    return (
+      <SecretarySignupForm
+        initialCode={codeParam}
+        onSignedUp={(u) => {
+          setUser(u);
+          window.location.hash = "#admin";
+        }}
+      />
+    );
   }
 
   // Cadastro público de psicólogo (Fase 15) — `#cadastro` ou

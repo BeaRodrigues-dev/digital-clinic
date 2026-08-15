@@ -283,7 +283,9 @@
     "submit": "Crear cuenta",
     "submitting": "Creando cuenta...",
     "hasAccount": "¿Ya tienes cuenta?",
-    "logIn": "Entrar"
+    "logIn": "Entrar",
+    "isSecretary": "¿Eres secretaria de una clínica?",
+    "isSecretaryLink": "Regístrate con el código de la clínica"
   },
   "publicPlans": {
     "title": "Planes para psicólogos",
@@ -855,7 +857,18 @@
       "remove": "Quitar acceso",
       "removeConfirmTitle": "¿Eliminar secretaria?",
       "removeConfirmBody": "{{name}} pierde el acceso a la agenda, pacientes y financiero de esta clínica de inmediato.",
-      "removeError": "No fue posible eliminar. Intenta de nuevo."
+      "removeError": "No fue posible eliminar. Intenta de nuevo.",
+      "orInviteByEmail": "O invita individualmente por correo",
+      "inviteCode": {
+        "title": "Código de invitación de la clínica",
+        "hint": "Comparte con quien será secretaria — se registra sola y ya entra vinculada, sin que tengas que invitar una por una.",
+        "copyCode": "Copiar código",
+        "copyLink": "Copiar enlace de registro",
+        "copied": "¡Copiado!",
+        "regenerate": "Generar nuevo código",
+        "confirmRegenerate": "El código actual deja de funcionar. ¿Confirmas?",
+        "confirmYes": "Sí, generar nuevo"
+      }
     },
     "nameRequired": "Ingresa el nombre de la clínica antes de guardar.",
     "logoTooLarge": "La imagen supera el tamaño máximo de 5MB.",
@@ -1151,5 +1164,18 @@
     "markContacted": "Marcar como contactado",
     "convertToPatient": "Convertir en paciente",
     "decline": "Rechazar"
+  },
+  "signupSecretary": {
+    "title": "Registro de secretaria",
+    "subtitle": "Pega el código de invitación que te dio la clínica — tu acceso ya nace vinculado.",
+    "requiredError": "Nombre, correo y código de la clínica son obligatorios.",
+    "genericError": "No se pudo completar el registro. Inténtalo de nuevo.",
+    "planRequiredError": "La clínica necesita estar en el plan Clínica para tener secretarias.",
+    "invalidCodeError": "Código de invitación inválido. Verifica con quien te lo dio.",
+    "codePlaceholder": "Código de la clínica (ej.: XZ7K2P9Q)",
+    "codeHint": "Pide este código a quien administra la clínica — está en Configuración → Equipo.",
+    "submit": "Crear mi cuenta",
+    "isProfessional": "¿Eres psicólogo(a)?",
+    "isProfessionalLink": "Regístrate por aquí"
   }
 }

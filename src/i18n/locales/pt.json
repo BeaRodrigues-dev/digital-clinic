@@ -283,7 +283,9 @@
     "submit": "Criar conta",
     "submitting": "Criando conta...",
     "hasAccount": "Já tem conta?",
-    "logIn": "Entrar"
+    "logIn": "Entrar",
+    "isSecretary": "É secretária de uma clínica?",
+    "isSecretaryLink": "Cadastre-se com o código da clínica"
   },
   "publicPlans": {
     "title": "Planos para psicólogos",
@@ -855,7 +857,18 @@
       "remove": "Remover acesso",
       "removeConfirmTitle": "Remover secretária?",
       "removeConfirmBody": "{{name}} perde o acesso à agenda, pacientes e financeiro desta clínica imediatamente.",
-      "removeError": "Não foi possível remover. Tente novamente."
+      "removeError": "Não foi possível remover. Tente novamente.",
+      "orInviteByEmail": "Ou convide individualmente por e-mail",
+      "inviteCode": {
+        "title": "Código de convite da clínica",
+        "hint": "Compartilhe com quem vai ser secretária — ela se cadastra sozinha e já entra vinculada, sem você precisar convidar uma por uma.",
+        "copyCode": "Copiar código",
+        "copyLink": "Copiar link de cadastro",
+        "copied": "Copiado!",
+        "regenerate": "Gerar novo código",
+        "confirmRegenerate": "O código atual para de funcionar. Confirma?",
+        "confirmYes": "Sim, gerar novo"
+      }
     },
     "nameRequired": "Digite o nome da clínica antes de salvar.",
     "logoTooLarge": "A imagem excede o tamanho máximo de 5MB.",
@@ -1151,5 +1164,18 @@
     "markContacted": "Marcar como contatado",
     "convertToPatient": "Converter em paciente",
     "decline": "Recusar"
+  },
+  "signupSecretary": {
+    "title": "Cadastro de secretária",
+    "subtitle": "Cole o código de convite que a clínica te passou — seu acesso já nasce vinculado.",
+    "requiredError": "Nome, e-mail e código da clínica são obrigatórios.",
+    "genericError": "Não foi possível concluir o cadastro. Tente novamente.",
+    "planRequiredError": "A clínica precisa estar no plano Clínica para ter secretárias.",
+    "invalidCodeError": "Código de convite inválido. Confira com quem te passou o código.",
+    "codePlaceholder": "Código da clínica (ex.: XZ7K2P9Q)",
+    "codeHint": "Peça esse código a quem administra a clínica — fica em Configurações → Equipe.",
+    "submit": "Criar minha conta",
+    "isProfessional": "É psicólogo(a)?",
+    "isProfessionalLink": "Cadastre-se por aqui"
   }
 }

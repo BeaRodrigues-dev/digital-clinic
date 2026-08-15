@@ -78,15 +78,23 @@ async function getCallingUser(c: any) {
   // depender de RLS) em vez de expor uma policy nova de `profiles` pra
   // secretária enxergar o psicólogo — menos superfície de RLS depois do
   // susto da recursão na Fase 18.
+  //
+  // Fase 27 — corrigido: antes buscava em `profiles` por
+  // `role = 'psychologist'`, ou seja, olhava qual papel está ATIVO agora.
+  // Com a troca de perfil sem logout (Fase 17), se o próprio psicólogo dono
+  // da clínica estiver navegando com outro papel ativo no momento (ex.:
+  // admin), essa busca não achava ninguém e a secretária ficava "sem
+  // clínica". `clinics.owner_id` não muda com troca de papel — é a fonte de
+  // verdade certa aqui (mesmo ajuste feito em `current_clinic_professional_id()`
+  // no banco, usada pelas policies de INSERT).
   let clinicProfessionalId: string | null = null;
   if ((profile?.role as Role) === "secretary" && profile?.clinic_id) {
-    const { data: owner } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("clinic_id", profile.clinic_id)
-      .eq("role", "psychologist")
+    const { data: clinic } = await supabase
+      .from("clinics")
+      .select("owner_id")
+      .eq("id", profile.clinic_id)
       .maybeSingle();
-    clinicProfessionalId = owner?.id ?? null;
+    clinicProfessionalId = clinic?.owner_id ?? null;
   }
 
   return {
@@ -235,6 +243,114 @@ app.post("/make-server-a65fd448/signup/psychologist", async (c) => {
     return c.json({ success: true });
   } catch (err: any) {
     console.error("Failed to sign up psychologist:", err);
+    return c.json(
+      { error: err?.message ?? "Não foi possível criar a conta." },
+      500,
+    );
+  }
+});
+
+// ── Cadastro público de secretária por código de convite (Fase 27) ──────
+// Rota PÚBLICA (sem requireRole — quem chama ainda não tem conta), mesmo
+// espírito de segurança do /signup/psychologist: cria a conta e promove
+// pra 'secretary' aqui, com a service role, porque um UPDATE feito pelo
+// navegador do próprio usuário cairia na trava de autopromoção
+// (`trg_protect_profile_role`).
+//
+// Antes disso, só existia convite individual (profissional digita nome +
+// e-mail de cada secretária, uma de cada vez). O código de convite da
+// clínica (`clinics.secretary_invite_code`, Fase 27) resolve isso: a
+// secretária se cadastra sozinha com o código que a clínica compartilhou,
+// sem depender de o profissional abrir o sistema e convidar uma por uma.
+app.post("/make-server-a65fd448/signup/secretary", async (c) => {
+  try {
+    const body = await c.req.json();
+    const email = String(body?.email ?? "").trim();
+    const password = String(body?.password ?? "");
+    const fullName = String(body?.full_name ?? "").trim();
+    const inviteCode = String(body?.invite_code ?? "")
+      .trim()
+      .toUpperCase();
+
+    if (!email || !fullName || !inviteCode) {
+      return c.json(
+        { error: "Nome, e-mail e código da clínica são obrigatórios." },
+        400,
+      );
+    }
+    if (password.length < 8) {
+      return c.json(
+        { error: "A senha deve ter pelo menos 8 caracteres." },
+        400,
+      );
+    }
+
+    const { data: clinic, error: clinicErr } = await supabase
+      .from("clinics")
+      .select("id, plan, name")
+      .eq("secretary_invite_code", inviteCode)
+      .maybeSingle();
+
+    if (clinicErr || !clinic) {
+      return c.json({ error: "Código de convite inválido." }, 400);
+    }
+    // Mesma trava de plano do convite manual (`enforce_secretary_plan_gate`,
+    // Fase 18, também valida isso no banco) — checagem aqui só existe pra
+    // dar uma mensagem amigável antes de criar (e ter que desfazer) a conta.
+    if (clinic.plan !== "clinic") {
+      return c.json({ error: "secretary_requires_business_plan" }, 403);
+    }
+
+    const { data: created, error: createErr } =
+      await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: fullName },
+      });
+
+    if (createErr || !created?.user) {
+      const message = (createErr?.message || "").includes("already")
+        ? "Já existe uma conta com este e-mail. Tente entrar em vez de cadastrar."
+        : createErr?.message || "Não foi possível criar a conta.";
+      return c.json({ error: message }, 400);
+    }
+
+    const userId = created.user.id;
+
+    const { error: roleErr } = await supabase
+      .from("profiles")
+      .update({ role: "secretary", clinic_id: clinic.id })
+      .eq("id", userId);
+
+    if (roleErr) {
+      console.error("Failed to set secretary role on self-signup:", roleErr);
+      await supabase.auth.admin.deleteUser(userId);
+      const isPlanGate = (roleErr.message || "").includes(
+        "secretary_requires_business_plan",
+      );
+      return c.json(
+        {
+          error: isPlanGate
+            ? "secretary_requires_business_plan"
+            : "Não foi possível concluir o cadastro.",
+        },
+        isPlanGate ? 403 : 500,
+      );
+    }
+
+    // Mesma limpeza da passagem transitória por 'patient' que o cadastro de
+    // psicólogo já faz (Fase 15/17) — sem isso, sobraria "Paciente" (que
+    // essa conta nunca teve de verdade) na lista de "Alternar perfil".
+    await supabase
+      .from("user_roles")
+      .delete()
+      .eq("user_id", userId)
+      .eq("role", "patient");
+
+    return c.json({ success: true, clinic_name: clinic.name });
+  } catch (err: any) {
+    console.error("Failed to self-signup secretary:", err);
     return c.json(
       { error: err?.message ?? "Não foi possível criar a conta." },
       500,

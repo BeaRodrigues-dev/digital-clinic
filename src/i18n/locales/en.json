@@ -283,7 +283,9 @@
     "submit": "Create account",
     "submitting": "Creating account...",
     "hasAccount": "Already have an account?",
-    "logIn": "Sign in"
+    "logIn": "Sign in",
+    "isSecretary": "Are you a clinic secretary?",
+    "isSecretaryLink": "Sign up with the clinic's code"
   },
   "publicPlans": {
     "title": "Plans for psychologists",
@@ -855,7 +857,18 @@
       "remove": "Remove access",
       "removeConfirmTitle": "Remove secretary?",
       "removeConfirmBody": "{{name}} immediately loses access to this clinic's schedule, patients, and billing.",
-      "removeError": "Couldn't remove. Please try again."
+      "removeError": "Couldn't remove. Please try again.",
+      "orInviteByEmail": "Or invite individually by email",
+      "inviteCode": {
+        "title": "Clinic invite code",
+        "hint": "Share it with whoever will be a secretary — they sign up on their own and are linked automatically, no need to invite one by one.",
+        "copyCode": "Copy code",
+        "copyLink": "Copy sign-up link",
+        "copied": "Copied!",
+        "regenerate": "Generate new code",
+        "confirmRegenerate": "The current code will stop working. Confirm?",
+        "confirmYes": "Yes, generate new"
+      }
     },
     "nameRequired": "Enter the clinic name before saving.",
     "logoTooLarge": "The image exceeds the 5MB size limit.",
@@ -1151,5 +1164,18 @@
     "markContacted": "Mark as contacted",
     "convertToPatient": "Convert to patient",
     "decline": "Decline"
+  },
+  "signupSecretary": {
+    "title": "Secretary sign-up",
+    "subtitle": "Paste the invite code the clinic gave you — your access is linked automatically.",
+    "requiredError": "Name, email, and clinic code are required.",
+    "genericError": "Couldn't complete the sign-up. Please try again.",
+    "planRequiredError": "The clinic needs to be on the Clinic plan to have secretaries.",
+    "invalidCodeError": "Invalid invite code. Check with whoever gave it to you.",
+    "codePlaceholder": "Clinic code (e.g.: XZ7K2P9Q)",
+    "codeHint": "Ask whoever manages the clinic for this code — it's under Settings → Team.",
+    "submit": "Create my account",
+    "isProfessional": "Are you a psychologist?",
+    "isProfessionalLink": "Sign up here"
   }
 }
