@@ -429,7 +429,12 @@
       "emptyText": "When someone fills out the homepage quiz, the lead shows up here.",
       "noName": "No name provided",
       "actionError": "Couldn't complete the action. Please try again.",
-      "markContacted": "Mark as contacted"
+      "markContacted": "Mark as contacted",
+      "suggestPlaceholder": "Select professional...",
+      "suggestButton": "Suggest by email",
+      "suggestError": "Couldn't send the suggestion right now. Please try again.",
+      "suggestedLabel": "Suggestion sent: {{name}} on {{date}}",
+      "emailNotConfigured": "Email sending isn't configured on this installation yet. Set RESEND_API_KEY and RESEND_FROM_EMAIL in the Supabase project's secrets to enable it."
     }
   },
   "profileForm": {

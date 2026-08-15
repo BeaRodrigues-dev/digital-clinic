@@ -1953,4 +1953,150 @@ app.delete(
   },
 );
 
+// ── Sugerir profissional pra um lead do quiz + enviar e-mail (Fase 30) ─────
+// O quiz da Landing (Fase 23) promete "avisamos quando tivermos alguém com
+// esse perfil" — até aqui isso dependia do admin ler as respostas e
+// contatar por fora (e-mail/telefone manual), sem nenhum registro. Esta
+// rota deixa o admin escolher qual profissional aprovado combina com o
+// lead e dispara o e-mail de verdade pro lead. O MATCH em si continua
+// sendo escolha humana, não automática: as respostas do quiz são sobre o
+// momento emocional da pessoa ("sinto que perdi minha identidade" etc.),
+// não mapeiam de forma confiável pra especialidade/localização do
+// profissional pra decidir isso sozinho sem risco de sugestão sem sentido.
+//
+// Isto NÃO é o e-mail padrão de convite/redefinição de senha do Supabase
+// Auth (o lead não tem conta) — é um e-mail de conteúdo livre, que exige
+// um serviço de e-mail transacional configurado à parte. Usamos a API do
+// Resend (endpoint HTTP simples, sem SDK, funciona bem em Edge Function).
+// Enquanto os secrets `RESEND_API_KEY` e `RESEND_FROM_EMAIL` não
+// estiverem configurados no projeto Supabase, a rota retorna um erro
+// claro (`email_not_configured`) em vez de fingir que o e-mail foi
+// enviado — configure em Project Settings → Edge Functions → Secrets.
+app.post(
+  "/make-server-a65fd448/leads/:id/suggest",
+  requireRole("admin"),
+  async (c) => {
+    try {
+      const leadId = c.req.param("id");
+      const body = await c.req.json().catch(() => ({}));
+      const professionalId = String(body?.professional_id ?? "").trim();
+      if (!professionalId) {
+        return c.json({ error: "Selecione um profissional." }, 400);
+      }
+
+      const resendApiKey = Deno.env.get("RESEND_API_KEY");
+      const fromEmail = Deno.env.get("RESEND_FROM_EMAIL");
+      if (!resendApiKey || !fromEmail) {
+        return c.json({ error: "email_not_configured" }, 501);
+      }
+
+      const [
+        { data: lead, error: leadErr },
+        { data: professional, error: profErr },
+      ] = await Promise.all([
+        supabase
+          .from("quiz_leads")
+          .select("id, full_name, email, status")
+          .eq("id", leadId)
+          .maybeSingle(),
+        supabase
+          .from("professionals")
+          .select(
+            "id, title, location, specialties, approved, profiles(full_name)",
+          )
+          .eq("id", professionalId)
+          .maybeSingle(),
+      ]);
+
+      if (leadErr || !lead) {
+        return c.json({ error: "Lead não encontrado." }, 404);
+      }
+      if (profErr || !professional || !professional.approved) {
+        return c.json({ error: "Profissional inválido." }, 400);
+      }
+
+      const professionalName =
+        (professional as any).profiles?.full_name ?? "Psicólogo(a)";
+      const origin = getRedirectOrigin(c);
+      const profileLink = origin
+        ? `${origin}/#psicologos?psych=${professionalId}`
+        : null;
+      const firstName = lead.full_name
+        ? lead.full_name.trim().split(/\s+/)[0]
+        : "";
+      const specialtiesLine =
+        Array.isArray(professional.specialties) &&
+        professional.specialties.length
+          ? professional.specialties.join(", ")
+          : null;
+
+      const html = `
+        <div style="font-family: sans-serif; color: #1f2937; line-height: 1.6; max-width: 480px;">
+          <p>${firstName ? `Oi, ${firstName}!` : "Oi!"}</p>
+          <p>Você preencheu nosso questionário pedindo pra ser avisado(a) quando tivéssemos um psicólogo com o perfil que você busca — encontramos:</p>
+          <p style="font-size: 1.1em; font-weight: 600; margin-bottom: 0;">${professionalName}</p>
+          ${professional.title ? `<p style="margin-top: 2px; color: #6b7280;">${professional.title}</p>` : ""}
+          ${specialtiesLine ? `<p><strong>Especialidades:</strong> ${specialtiesLine}</p>` : ""}
+          ${professional.location ? `<p><strong>Local:</strong> ${professional.location}</p>` : ""}
+          ${profileLink ? `<p><a href="${profileLink}">Ver perfil completo e pedir contato</a></p>` : ""}
+          <p>Um abraço,<br/>Equipe ConecPsi</p>
+        </div>
+      `;
+
+      const resendRes = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: lead.email,
+          subject: `Encontramos um psicólogo pra você — ${professionalName}`,
+          html,
+        }),
+      });
+
+      if (!resendRes.ok) {
+        const detail = await resendRes.text();
+        console.error(
+          "Falha ao enviar e-mail via Resend:",
+          resendRes.status,
+          detail,
+        );
+        return c.json(
+          { error: "Não foi possível enviar o e-mail agora. Tente novamente." },
+          502,
+        );
+      }
+
+      const { error: updateErr } = await supabase
+        .from("quiz_leads")
+        .update({
+          status: "contacted",
+          suggested_professional_id: professionalId,
+          suggested_at: new Date().toISOString(),
+        })
+        .eq("id", leadId);
+
+      if (updateErr) {
+        // O e-mail já foi enviado nesse ponto — não faz sentido devolver
+        // erro pro admin achar que nada aconteceu. Só loga pra investigar.
+        console.error(
+          "E-mail enviado mas falhou ao atualizar o status do lead:",
+          updateErr,
+        );
+      }
+
+      return c.json({ success: true });
+    } catch (err: any) {
+      console.error("Failed to suggest professional to lead:", err);
+      return c.json(
+        { error: err?.message ?? "Não foi possível concluir a sugestão." },
+        500,
+      );
+    }
+  },
+);
+
 Deno.serve(app.fetch);

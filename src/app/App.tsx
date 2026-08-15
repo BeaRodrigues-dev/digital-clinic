@@ -11225,6 +11225,15 @@ type QuizLead = {
   answers: Record<string, string> | null;
   status: QuizLeadStatus;
   created_at: string;
+  suggested_professional_id: string | null;
+  suggested_at: string | null;
+};
+
+// Profissional aprovado pra escolher no seletor "Sugerir profissional"
+// (Fase 30) — só precisa do necessário pra listar e identificar.
+type LeadSuggestOption = {
+  id: string;
+  name: string;
 };
 
 function AdminLeadsView({
@@ -11241,6 +11250,12 @@ function AdminLeadsView({
   );
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [professionals, setProfessionals] = useState<LeadSuggestOption[]>([]);
+  const [pick, setPick] = useState<Record<string, string>>({});
+  const [suggestingId, setSuggestingId] = useState<string | null>(null);
+  const [suggestError, setSuggestError] = useState<Record<string, string>>(
+    {},
+  );
 
   const quizQuestions = t("quiz.questions", {
     returnObjects: true,
@@ -11249,18 +11264,39 @@ function AdminLeadsView({
   const load = useCallback(async () => {
     setLoading(true);
     setError(false);
-    const { data, error: err } = await supabase
-      .from("quiz_leads")
-      .select("id, full_name, email, answers, status, created_at")
-      .order("created_at", { ascending: false });
-    if (err) {
-      console.error("Falha ao carregar leads do quiz:", err);
+    const [leadsRes, professionalsRes] = await Promise.all([
+      supabase
+        .from("quiz_leads")
+        .select(
+          "id, full_name, email, answers, status, created_at, suggested_professional_id, suggested_at",
+        )
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("professionals")
+        .select("id, profiles(full_name)")
+        .eq("approved", true),
+    ]);
+    if (leadsRes.error) {
+      console.error("Falha ao carregar leads do quiz:", leadsRes.error);
       setError(true);
     } else {
-      setLeads((data as QuizLead[]) ?? []);
+      setLeads((leadsRes.data as QuizLead[]) ?? []);
+    }
+    if (professionalsRes.error) {
+      console.error(
+        "Falha ao carregar profissionais pra sugestão:",
+        professionalsRes.error,
+      );
+    } else {
+      setProfessionals(
+        ((professionalsRes.data ?? []) as any[]).map((p) => ({
+          id: p.id,
+          name: p.profiles?.full_name || t("userMenu.noName"),
+        })),
+      );
     }
     setLoading(false);
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     load();
@@ -11274,6 +11310,8 @@ function AdminLeadsView({
       hour: "2-digit",
       minute: "2-digit",
     }).format(new Date(iso));
+
+  const professionalById = new Map(professionals.map((p) => [p.id, p]));
 
   const markContacted = async (lead: QuizLead) => {
     setActioningId(lead.id);
@@ -11292,6 +11330,58 @@ function AdminLeadsView({
       prev.map((l) => (l.id === lead.id ? { ...l, status: "contacted" } : l)),
     );
     onCountChange?.(-1);
+  };
+
+  // Fase 30 — o match continua sendo escolha do admin (o seletor abaixo);
+  // esta função só dispara o e-mail pro profissional escolhido e registra
+  // a sugestão. Ver a rota `/leads/:id/suggest` pra detalhes de por que o
+  // match não é automático e o que acontece se o e-mail ainda não estiver
+  // configurado (`email_not_configured`).
+  const suggestProfessional = async (lead: QuizLead) => {
+    const professionalId = pick[lead.id];
+    if (!professionalId) return;
+    setSuggestingId(lead.id);
+    setSuggestError((prev) => {
+      const next = { ...prev };
+      delete next[lead.id];
+      return next;
+    });
+    try {
+      await apiFetch(`/leads/${lead.id}/suggest`, {
+        method: "POST",
+        body: JSON.stringify({ professional_id: professionalId }),
+      });
+      setLeads((prev) =>
+        prev.map((l) =>
+          l.id === lead.id
+            ? {
+                ...l,
+                status: "contacted",
+                suggested_professional_id: professionalId,
+                suggested_at: new Date().toISOString(),
+              }
+            : l,
+        ),
+      );
+      if (lead.status === "pending") onCountChange?.(-1);
+    } catch (err: any) {
+      let message = err?.message || t("admin.leads.suggestError");
+      try {
+        const parsed = JSON.parse(message);
+        if (parsed?.error) message = parsed.error;
+      } catch {
+        /* fall back to raw message */
+      }
+      setSuggestError((prev) => ({
+        ...prev,
+        [lead.id]:
+          message === "email_not_configured"
+            ? t("admin.leads.emailNotConfigured")
+            : t("admin.leads.suggestError"),
+      }));
+    } finally {
+      setSuggestingId(null);
+    }
   };
 
   const answerLines = (lead: QuizLead) => {
@@ -11402,14 +11492,60 @@ function AdminLeadsView({
                 </div>
               )}
 
+              {lead.suggested_professional_id && (
+                <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1.5">
+                  <Send size={12} className="shrink-0" />
+                  {t("admin.leads.suggestedLabel", {
+                    name:
+                      professionalById.get(lead.suggested_professional_id)
+                        ?.name || t("userMenu.noName"),
+                    date: lead.suggested_at ? dateLabel(lead.suggested_at) : "",
+                  })}
+                </p>
+              )}
+
               {actionError === lead.id && (
                 <p className="text-red-500 text-xs mb-2">
                   {t("admin.leads.actionError")}
                 </p>
               )}
 
+              {suggestError[lead.id] && (
+                <p className="text-red-500 text-xs mb-2">
+                  {suggestError[lead.id]}
+                </p>
+              )}
+
               {lead.status === "pending" && (
-                <div className="flex flex-wrap gap-2 pt-1">
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <select
+                    value={pick[lead.id] ?? ""}
+                    onChange={(e) =>
+                      setPick((prev) => ({ ...prev, [lead.id]: e.target.value }))
+                    }
+                    className="text-xs px-2.5 py-1.5 rounded-lg border border-border bg-secondary text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer transition-colors max-w-[200px]"
+                  >
+                    <option value="">
+                      {t("admin.leads.suggestPlaceholder")}
+                    </option>
+                    {professionals.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => suggestProfessional(lead)}
+                    disabled={!pick[lead.id] || suggestingId === lead.id}
+                    className="text-xs font-medium px-3 py-1.5 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1"
+                  >
+                    {suggestingId === lead.id ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <Send size={12} />
+                    )}
+                    {t("admin.leads.suggestButton")}
+                  </button>
                   <button
                     onClick={() => markContacted(lead)}
                     disabled={actioningId === lead.id}
@@ -12548,6 +12684,27 @@ function Landing() {
       cancelled = true;
     };
   }, []);
+
+  // Fase 30 — link direto pro perfil de um profissional específico
+  // (`#psicologos?psych=<id>`), usado no e-mail de "sugestão" mandado pro
+  // lead do quiz (ver rota `/leads/:id/suggest`). Sem isso o e-mail só
+  // podia apontar pra Landing inteira, deixando a pessoa procurar o nome
+  // sozinha no diretório inteiro.
+  useEffect(() => {
+    if (loadingPsychs || psychologists.length === 0) return;
+    const queryPart = window.location.hash.split("?")[1];
+    const psychId = queryPart
+      ? new URLSearchParams(queryPart).get("psych")
+      : null;
+    if (!psychId) return;
+    const match = psychologists.find((p) => p.id === psychId);
+    if (match) {
+      setProfileModalPsych(match);
+      document
+        .getElementById("psicologos")
+        ?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [loadingPsychs, psychologists]);
 
   const getPhotoSrc = (p: PublicProfessional) => {
     if (p.photo_url) return p.photo_url;

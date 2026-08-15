@@ -429,7 +429,12 @@
       "emptyText": "Quando alguém preencher o questionário da página inicial, o lead aparece aqui.",
       "noName": "Sem nome informado",
       "actionError": "Não foi possível concluir a ação. Tente novamente.",
-      "markContacted": "Marcar como contatado"
+      "markContacted": "Marcar como contatado",
+      "suggestPlaceholder": "Selecionar profissional...",
+      "suggestButton": "Sugerir por e-mail",
+      "suggestError": "Não foi possível enviar a sugestão agora. Tente novamente.",
+      "suggestedLabel": "Sugestão enviada: {{name}} em {{date}}",
+      "emailNotConfigured": "O envio de e-mail ainda não foi configurado nesta instalação. Configure RESEND_API_KEY e RESEND_FROM_EMAIL nos secrets do projeto Supabase para habilitar."
     }
   },
   "profileForm": {
