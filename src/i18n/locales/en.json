@@ -557,7 +557,8 @@
     "navSettings": "Settings",
     "navPlan": "Plan",
     "navRequests": "Requests",
-    "navPayouts": "Payouts"
+    "navPayouts": "Payouts",
+    "navPackages": "Packages"
   },
   "patients": {
     "title": "Patients",
@@ -603,7 +604,10 @@
       "saveNew": "Add patient",
       "saveEdit": "Save changes",
       "planLimitError": "You've reached the free plan's limit of {{limit}} active patients. Go to the \"Plan\" tab to upgrade.",
-      "responsibleLabel": "Responsible psychologist"
+      "responsibleLabel": "Responsible psychologist",
+      "emergencyContactLegend": "Emergency contact (optional)",
+      "emergencyContactNamePlaceholder": "Emergency contact name",
+      "emergencyContactPhonePlaceholder": "Emergency contact phone"
     },
     "detail": {
       "editPatient": "Edit patient",
@@ -611,7 +615,9 @@
       "historyEmpty": "No appointments recorded yet.",
       "historyEmptyHint": "The full scheduling module is coming in the next phase of the project.",
       "noContact": "No contact info on file",
-      "noNotes": "No notes on file."
+      "noNotes": "No notes on file.",
+      "emergencyContactTitle": "Emergency contact",
+      "emergencyContactEmpty": "No emergency contact on file."
     },
     "access": {
       "title": "Patient portal access",
@@ -677,12 +683,18 @@
       "edit": "Edit / reschedule",
       "delete": "Delete",
       "record": "Session record",
-      "recordDone": "View / edit record"
+      "recordDone": "View / edit record",
+      "joinVideo": "Join video room"
     },
     "actionError": "Couldn't complete the action. Please try again.",
     "recurrenceOccurrenceHint": "This appointment is part of a recurring series. This change only affects this occurrence, not the whole series.",
     "monthView": "Month",
-    "monthMore": "+{{count}} more"
+    "monthMore": "+{{count}} more",
+    "reschedule": {
+      "requestTitle": "Patient reschedule request",
+      "accept": "Accept",
+      "decline": "Decline"
+    }
   },
   "records": {
     "title": "Records",
@@ -777,6 +789,12 @@
         "saveEdit": "Save changes",
         "saveNew": "Save document"
       }
+    },
+    "lock": {
+      "lockButton": "Sign & finalize",
+      "lockedBanner": "Session signed and finalized on {{date}} — can no longer be edited.",
+      "signedBadge": "Signed",
+      "error": "Couldn't sign right now. Please try again."
     }
   },
   "finance": {
@@ -832,6 +850,16 @@
       "percentValue": "{{value}}%",
       "paidOutLabel": "Already paid out to you",
       "pendingLabel": "Pending payout"
+    },
+    "receipt": {
+      "button": "Generate receipt",
+      "documentTitle": "Receipt {{number}}",
+      "issuedAt": "Issued on {{date}}",
+      "crpLabel": "License {{crp}}",
+      "patientLabel": "Patient",
+      "paymentDateLabel": "Payment date",
+      "declarationText": "Received from {{patient}} the amount of {{amount}}, for psychology services rendered, paid on {{date}}.",
+      "printButton": "Print / save as PDF"
     }
   },
   "patientArea": {
@@ -859,7 +887,18 @@
     "emailLabel": "Email",
     "phoneLabel": "Phone",
     "noPhone": "Not provided",
-    "infoHint": "To update this information, talk to your psychologist or clinic."
+    "infoHint": "To update this information, talk to your psychologist or clinic.",
+    "joinVideo": "Join video room",
+    "reschedule": "Request reschedule",
+    "reschedulePendingBadge": "Request sent · withdraw",
+    "rescheduleModalTitle": "Request reschedule",
+    "rescheduleModalHint": "Propose a new date and time. Your provider needs to accept before the appointment actually changes.",
+    "rescheduleDateLabel": "New date",
+    "rescheduleTimeLabel": "New time",
+    "rescheduleMessageLabel": "Message (optional)",
+    "rescheduleMessagePlaceholder": "Any detail that helps your provider decide",
+    "rescheduleError": "Couldn't send the request right now. Please try again.",
+    "rescheduleSubmit": "Send request"
   },
   "setPassword": {
     "title": "Set your password",
@@ -945,6 +984,14 @@
       "commissionSave": "Save",
       "commissionError": "Couldn't save. Please try again.",
       "commissionReadOnly": "Clinic commission: {{value}}%"
+    },
+    "reassign": {
+      "title": "Reassign patients",
+      "subtitle": "Change which team professional is responsible for each clinic patient.",
+      "empty": "No patients registered in the clinic yet.",
+      "currentLabel": "Current professional: {{name}}",
+      "button": "Reassign",
+      "error": "Couldn't reassign right now. Please try again."
     }
   },
   "plans": {
@@ -1109,7 +1156,14 @@
       "remindersLabel": "Email appointment reminder",
       "remindersHint": "Sends your patients an automatic email ~24h before each appointment.",
       "remindersError": "Couldn't save right now. Please try again.",
-      "remindersDependencyHint": "Only works once automated email sending is configured on this installation — check with whoever administers the platform if reminders aren't arriving."
+      "remindersDependencyHint": "Only works once automated email sending is configured on this installation — check with whoever administers the platform if reminders aren't arriving.",
+      "waRemindersLabel": "Appointment reminder via WhatsApp/SMS",
+      "waComingSoonTag": "coming soon",
+      "waRemindersHint": "Your preference and phone number are saved, ready for when this channel is turned on.",
+      "waPhoneLabel": "Reminder phone number (WhatsApp/SMS)",
+      "waPhonePlaceholder": "+1 555 123 4567",
+      "waError": "Couldn't save right now. Please try again.",
+      "waDependencyHint": "Doesn't send anything yet: requires configuring a paid WhatsApp/SMS provider on this install. For now, only the email reminder actually works."
     }
   },
   "infoPages": {
@@ -1232,7 +1286,8 @@
   "sessionRecord": {
     "title": "Session record",
     "loadError": "Couldn't load this session's record. Please try again.",
-    "duplicateError": "A record for this session already exists. Close and reopen to edit what was already saved."
+    "duplicateError": "A record for this session already exists. Close and reopen to edit what was already saved.",
+    "close": "Close"
   },
   "requests": {
     "title": "Requests",
@@ -1295,5 +1350,42 @@
     "notesLabel": "Notes (optional)",
     "registerError": "Couldn't register. Check the amount and try again.",
     "registerConfirm": "Register"
+  },
+  "packages": {
+    "title": "Session packages",
+    "subtitle": "Sessions a patient paid for upfront, with the remaining balance.",
+    "newPackage": "New package",
+    "loading": "Loading packages...",
+    "errorLoading": "Couldn't load the packages right now. Please try again.",
+    "noPatientsText": "Add a patient first so you can register a package.",
+    "emptyTitle": "No packages yet",
+    "emptyText": "Click \"New package\" to register sessions paid upfront.",
+    "backToList": "Back to packages",
+    "newTitle": "New session package",
+    "purchasedAt": "Purchased on {{date}}",
+    "progressLabel": "{{used}} of {{total}} sessions used",
+    "useSessionButton": "Log 1 session used",
+    "actionError": "Couldn't update right now. Please try again.",
+    "deleteTitle": "Delete package?",
+    "deleteBody": "This action cannot be undone.",
+    "cancel": "Cancel",
+    "confirmDelete": "Delete",
+    "status": {
+      "active": "Active",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "fields": {
+      "patientLabel": "Patient *",
+      "selectPatientPlaceholder": "Select a patient",
+      "totalSessionsLabel": "Total sessions *",
+      "amountLabel": "Total amount",
+      "amountPlaceholder": "0.00",
+      "notesLabel": "Notes (optional)",
+      "requiredError": "Select a patient and the total number of sessions.",
+      "invalidAmountError": "Enter a valid amount.",
+      "genericSaveError": "Error saving. Please try again.",
+      "saveNew": "Register package"
+    }
   }
 }

@@ -46,6 +46,10 @@ import {
   Search,
   MessageSquare,
   HandCoins,
+  Lock,
+  Package,
+  Receipt,
+  Video,
 } from "lucide-react";
 
 import {
@@ -2742,6 +2746,7 @@ function ProfessionalDashboard({
     | "records"
     | "requests"
     | "finance"
+    | "packages"
     | "payouts"
     | "settings"
   >("overview");
@@ -3032,6 +3037,7 @@ function ProfessionalDashboard({
       | "records"
       | "requests"
       | "finance"
+      | "packages"
       | "payouts"
       | "settings";
     icon: React.ReactNode;
@@ -3075,6 +3081,12 @@ function ProfessionalDashboard({
       icon: <Wallet size={14} />,
       label: t("dashboard.navFinance"),
       onClick: () => setView("finance"),
+    },
+    {
+      key: "packages",
+      icon: <Package size={14} />,
+      label: t("dashboard.navPackages"),
+      onClick: () => setView("packages"),
     },
     ...(showPayouts
       ? [
@@ -3254,15 +3266,17 @@ function ProfessionalDashboard({
                     ? t("requests.title")
                     : view === "finance"
                       ? t("finance.title")
-                      : view === "payouts"
-                        ? t("payouts.title")
-                        : view === "settings"
-                          ? t("settings.title")
-                          : user.fullName
-                            ? t("dashboard.greeting", {
-                                name: user.fullName.trim().split(/\s+/)[0],
-                              })
-                            : t("dashboard.title")}
+                      : view === "packages"
+                        ? t("packages.title")
+                        : view === "payouts"
+                          ? t("payouts.title")
+                          : view === "settings"
+                            ? t("settings.title")
+                            : user.fullName
+                              ? t("dashboard.greeting", {
+                                  name: user.fullName.trim().split(/\s+/)[0],
+                                })
+                              : t("dashboard.title")}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
             {view === "patients"
@@ -3275,11 +3289,13 @@ function ProfessionalDashboard({
                     ? t("requests.subtitle")
                     : view === "finance"
                       ? t("finance.subtitle")
-                      : view === "payouts"
-                        ? t("payouts.subtitle")
-                        : view === "settings"
-                          ? t("settings.subtitle")
-                          : t("dashboard.subtitle")}
+                      : view === "packages"
+                        ? t("packages.subtitle")
+                        : view === "payouts"
+                          ? t("payouts.subtitle")
+                          : view === "settings"
+                            ? t("settings.subtitle")
+                            : t("dashboard.subtitle")}
           </p>
         </div>
 
@@ -3293,6 +3309,8 @@ function ProfessionalDashboard({
           <RequestsView user={user} />
         ) : view === "finance" ? (
           <FinanceView user={user} />
+        ) : view === "packages" ? (
+          <SessionPackagesView user={user} />
         ) : view === "payouts" ? (
           <ClinicPayoutsView user={user} />
         ) : view === "settings" ? (
@@ -3521,6 +3539,9 @@ type Patient = {
   created_at: string;
   patient_user_id: string | null;
   professional_id?: string;
+  // Fase 40 — contato de emergência.
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
 };
 
 type PatientAppointment = {
@@ -3557,6 +3578,8 @@ function PatientForm({
     status: initial?.status ?? "active",
     professional_id:
       initial?.professional_id ?? defaultProfessionalId ?? "",
+    emergency_contact_name: initial?.emergency_contact_name ?? "",
+    emergency_contact_phone: initial?.emergency_contact_phone ?? "",
   });
   const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
@@ -3593,6 +3616,8 @@ function PatientForm({
         notes: form.notes.trim() || null,
         tags: form.tags,
         status: form.status,
+        emergency_contact_name: form.emergency_contact_name.trim() || null,
+        emergency_contact_phone: form.emergency_contact_phone.trim() || null,
         ...(showProfessionalPicker
           ? { professional_id: form.professional_id }
           : {}),
@@ -3686,6 +3711,30 @@ function PatientForm({
             value={form.phone}
             onChange={(e) => set("phone", e.target.value)}
             placeholder={t("patients.fields.phonePlaceholder")}
+            className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+          />
+        </div>
+      </div>
+
+      {/* Fase 40 — contato de emergência, separado do contato do próprio
+          paciente. */}
+      <div>
+        <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+          {t("patients.fields.emergencyContactLegend")}
+        </label>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <input
+            type="text"
+            value={form.emergency_contact_name}
+            onChange={(e) => set("emergency_contact_name", e.target.value)}
+            placeholder={t("patients.fields.emergencyContactNamePlaceholder")}
+            className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+          />
+          <input
+            type="text"
+            value={form.emergency_contact_phone}
+            onChange={(e) => set("emergency_contact_phone", e.target.value)}
+            placeholder={t("patients.fields.emergencyContactPhonePlaceholder")}
             className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
           />
         </div>
@@ -3962,6 +4011,24 @@ function PatientDetail({
         </p>
       </div>
 
+      {/* Fase 40 — contato de emergência. */}
+      <div className="bg-card border border-border rounded-2xl p-6 mb-6">
+        <h3 className="text-sm font-semibold text-foreground mb-3">
+          {t("patients.detail.emergencyContactTitle")}
+        </h3>
+        {patient.emergency_contact_name || patient.emergency_contact_phone ? (
+          <p className="text-sm text-foreground">
+            {[patient.emergency_contact_name, patient.emergency_contact_phone]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {t("patients.detail.emergencyContactEmpty")}
+          </p>
+        )}
+      </div>
+
       <div className="bg-card border border-border rounded-2xl p-6 mb-6">
         <h3 className="text-sm font-semibold text-foreground mb-3">
           {t("patients.access.title")}
@@ -4209,7 +4276,7 @@ function PatientsView({ user }: { user: AppUser }) {
     const { data, error: err } = await supabase
       .from("patients")
       .select(
-        "id, full_name, email, phone, notes, tags, status, created_at, patient_user_id, professional_id",
+        "id, full_name, email, phone, notes, tags, status, created_at, patient_user_id, professional_id, emergency_contact_name, emergency_contact_phone",
       )
       .eq("professional_id", user.id)
       .order("full_name", { ascending: true });
@@ -4601,6 +4668,16 @@ type Appointment = {
 };
 
 type PatientOption = { id: string; full_name: string };
+
+// Fase 44 — teleconsulta via Jitsi Meet público, sem custo e sem credencial
+// nenhuma pra configurar (opção escolhida em vez de um provedor pago). O
+// nome da sala é derivado direto do id da consulta (UUID, mesmo pra
+// paciente e profissional chegarem na mesma sala) — sem coluna nova no
+// banco, sem geração de link em nenhum outro lugar. Proteção só pelo nome
+// da sala (ninguém entra sem saber o UUID da consulta), sem senha extra,
+// como avisado e aceito na escolha desta abordagem.
+const jitsiRoomUrl = (appointmentId: string) =>
+  `https://meet.jit.si/ConecPsi-${appointmentId.replace(/-/g, "")}`;
 
 const toDateInputValue = (d: Date) => {
   const yyyy = d.getFullYear();
@@ -5173,6 +5250,13 @@ function AgendaView({ user }: { user: AppUser }) {
   );
   const [actionError, setActionError] = useState(false);
   const [quickViewAppt, setQuickViewAppt] = useState<Appointment | null>(null);
+  // Fase 45 — pedidos de remarcação pendentes, por id da consulta.
+  const [rescheduleRequests, setRescheduleRequests] = useState<
+    Record<string, RescheduleRequest>
+  >({});
+  const [reschedActioningId, setReschedActioningId] = useState<string | null>(
+    null,
+  );
 
   // A grade do mês mostra semanas completas (segunda a domingo) ao redor do
   // mês, então o intervalo buscado no banco é maior que só "dia 1 ao dia
@@ -5235,8 +5319,22 @@ function AgendaView({ user }: { user: AppUser }) {
               .filter((id): id is string => !!id),
           ),
         );
+        const { data: reschedData } = await supabase
+          .from("appointment_reschedule_requests")
+          .select(
+            "id, appointment_id, requested_starts_at, requested_ends_at, message, status",
+          )
+          .eq("professional_id", user.id)
+          .eq("status", "pending")
+          .in("appointment_id", apptIds);
+        const reschedMap: Record<string, RescheduleRequest> = {};
+        ((reschedData as RescheduleRequest[]) ?? []).forEach((r) => {
+          reschedMap[r.appointment_id] = r;
+        });
+        setRescheduleRequests(reschedMap);
       } else {
         setRecordedApptIds(new Set());
+        setRescheduleRequests({});
       }
     }
     setPatients((patientsRes.data as PatientOption[]) ?? []);
@@ -5317,6 +5415,54 @@ function AgendaView({ user }: { user: AppUser }) {
       return;
     }
     setDeleteId(null);
+    await load();
+  };
+
+  // Fase 45 — aceitar aplica a nova data/hora na consulta de verdade (e
+  // zera `reminder_sent_at`, senão o lembrete por e-mail da Fase 34 acha
+  // que já foi enviado pro horário antigo e não manda um novo pro horário
+  // certo); recusar só fecha o pedido, sem mexer na consulta.
+  const acceptReschedule = async (req: RescheduleRequest) => {
+    setReschedActioningId(req.id);
+    setActionError(false);
+    const { error: apptErr } = await supabase
+      .from("appointments")
+      .update({
+        starts_at: req.requested_starts_at,
+        ends_at: req.requested_ends_at,
+        reminder_sent_at: null,
+      })
+      .eq("id", req.appointment_id);
+    if (apptErr) {
+      console.error("Falha ao aplicar remarcação:", apptErr);
+      setActionError(true);
+      setReschedActioningId(null);
+      return;
+    }
+    const { error: reqErr } = await supabase
+      .from("appointment_reschedule_requests")
+      .update({ status: "accepted", resolved_at: new Date().toISOString() })
+      .eq("id", req.id);
+    if (reqErr) {
+      console.error("Falha ao marcar pedido de remarcação como aceito:", reqErr);
+    }
+    setQuickViewAppt(null);
+    setReschedActioningId(null);
+    await load();
+  };
+
+  const declineReschedule = async (req: RescheduleRequest) => {
+    setReschedActioningId(req.id);
+    setActionError(false);
+    const { error: err } = await supabase
+      .from("appointment_reschedule_requests")
+      .update({ status: "declined", resolved_at: new Date().toISOString() })
+      .eq("id", req.id);
+    if (err) {
+      console.error("Falha ao recusar remarcação:", err);
+      setActionError(true);
+    }
+    setReschedActioningId(null);
     await load();
   };
 
@@ -5657,7 +5803,66 @@ function AgendaView({ user }: { user: AppUser }) {
                 {quickViewAppt.notes}
               </p>
             )}
+            {rescheduleRequests[quickViewAppt.id] && (
+              <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+                <p className="text-xs font-semibold text-amber-800">
+                  {t("agenda.reschedule.requestTitle")}
+                </p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  {new Intl.DateTimeFormat(i18n.language, {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }).format(
+                    new Date(
+                      rescheduleRequests[quickViewAppt.id].requested_starts_at,
+                    ),
+                  )}
+                </p>
+                {rescheduleRequests[quickViewAppt.id].message && (
+                  <p className="text-xs text-amber-700/80 mt-1 italic">
+                    “{rescheduleRequests[quickViewAppt.id].message}”
+                  </p>
+                )}
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={() =>
+                      acceptReschedule(rescheduleRequests[quickViewAppt.id])
+                    }
+                    disabled={
+                      reschedActioningId ===
+                      rescheduleRequests[quickViewAppt.id].id
+                    }
+                    className="flex items-center gap-1 text-xs font-medium px-3 py-1 rounded-full bg-green-600 text-white hover:opacity-90 transition-opacity disabled:opacity-60"
+                  >
+                    <Check size={12} /> {t("agenda.reschedule.accept")}
+                  </button>
+                  <button
+                    onClick={() =>
+                      declineReschedule(rescheduleRequests[quickViewAppt.id])
+                    }
+                    disabled={
+                      reschedActioningId ===
+                      rescheduleRequests[quickViewAppt.id].id
+                    }
+                    className="flex items-center gap-1 text-xs font-medium px-3 py-1 rounded-full border border-amber-300 text-amber-800 hover:bg-amber-100 transition-colors disabled:opacity-60"
+                  >
+                    <X size={12} /> {t("agenda.reschedule.decline")}
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="flex flex-wrap gap-2 mt-5">
+              <a
+                href={jitsiRoomUrl(quickViewAppt.id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+              >
+                <Video size={13} /> {t("agenda.actions.joinVideo")}
+              </a>
               <button
                 onClick={() => {
                   setRecordModalAppt(quickViewAppt);
@@ -5824,6 +6029,11 @@ type ClinicalRecord = {
   private_notes: string | null;
   shared_notes: string | null;
   created_at: string;
+  // Fase 38 — trava/assinatura da sessão concluída: uma vez preenchido,
+  // `locked_at` impede edição/exclusão (RLS reforça isso no banco também,
+  // não é só uma trava de UI).
+  locked_at: string | null;
+  locked_by: string | null;
   patients?: { full_name: string } | null;
 };
 
@@ -5877,6 +6087,7 @@ function RecordForm({
   patients,
   onSave,
   onCancel,
+  onLock,
 }: {
   initial?: ClinicalRecord | null;
   patients: PatientOption[];
@@ -5888,8 +6099,13 @@ function RecordForm({
     shared_notes: string | null;
   }) => Promise<void>;
   onCancel: () => void;
+  // Fase 38 — só passado quando faz sentido assinar (edição de um registro
+  // já existente e ainda não travado); `RecordsView` decide isso, não este
+  // formulário.
+  onLock?: () => Promise<void>;
 }) {
   const { t, i18n } = useTranslation();
+  const isLocked = !!initial?.locked_at;
   const [patientId, setPatientId] = useState(initial?.patient_id ?? "");
   const [appointmentId, setAppointmentId] = useState(
     initial?.appointment_id ?? "",
@@ -5902,6 +6118,8 @@ function RecordForm({
   );
   const [sharedNotes, setSharedNotes] = useState(initial?.shared_notes ?? "");
   const [appointments, setAppointments] = useState<AppointmentOption[]>([]);
+  const [locking, setLocking] = useState(false);
+  const [lockError, setLockError] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [aiLoading, setAiLoading] = useState<"summarize" | "organize" | null>(
@@ -5984,8 +6202,35 @@ function RecordForm({
     }
   };
 
+  const handleLockClick = async () => {
+    if (!onLock) return;
+    setLocking(true);
+    setLockError("");
+    try {
+      await onLock();
+    } catch {
+      setLockError(t("records.lock.error"));
+    } finally {
+      setLocking(false);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {isLocked && (
+        <div className="flex items-center gap-2 bg-secondary border border-border rounded-lg px-4 py-3 text-sm text-muted-foreground">
+          <Lock size={14} className="shrink-0" />
+          {t("records.lock.lockedBanner", {
+            date: new Intl.DateTimeFormat(i18n.language, {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            }).format(new Date(initial!.locked_at as string)),
+          })}
+        </div>
+      )}
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
@@ -5997,7 +6242,7 @@ function RecordForm({
               setPatientId(e.target.value);
               setAppointmentId("");
             }}
-            disabled={!!initial}
+            disabled={!!initial || isLocked}
             className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors disabled:opacity-60"
           >
             <option value="">
@@ -6018,7 +6263,8 @@ function RecordForm({
             type="date"
             value={sessionDate}
             onChange={(e) => setSessionDate(e.target.value)}
-            className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+            disabled={isLocked}
+            className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors disabled:opacity-60"
           />
         </div>
       </div>
@@ -6030,7 +6276,7 @@ function RecordForm({
         <select
           value={appointmentId}
           onChange={(e) => setAppointmentId(e.target.value)}
-          disabled={!patientId}
+          disabled={!patientId || isLocked}
           className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors disabled:opacity-60"
         >
           <option value="">
@@ -6062,9 +6308,11 @@ function RecordForm({
           onChange={(e) => setPrivateNotes(e.target.value)}
           placeholder={t("records.fields.privateNotesPlaceholder")}
           rows={5}
-          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-none"
+          disabled={isLocked}
+          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-none disabled:opacity-60"
         />
 
+        {!isLocked && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -6096,6 +6344,7 @@ function RecordForm({
             {t("records.ai.disclosure")}
           </span>
         </div>
+        )}
 
         {aiError && (
           <p className="text-red-500 text-xs mt-2">{aiError}</p>
@@ -6144,13 +6393,20 @@ function RecordForm({
           onChange={(e) => setSharedNotes(e.target.value)}
           placeholder={t("records.fields.sharedNotesPlaceholder")}
           rows={4}
-          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-none"
+          disabled={isLocked}
+          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-none disabled:opacity-60"
         />
       </div>
 
       {error && (
         <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3">
           {error}
+        </p>
+      )}
+
+      {lockError && (
+        <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          {lockError}
         </p>
       )}
 
@@ -6162,20 +6418,40 @@ function RecordForm({
         >
           {t("records.cancel")}
         </button>
-        <button
-          type="submit"
-          disabled={saving}
-          className="px-6 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-60"
-        >
-          {saving ? (
-            <Loader2 size={14} className="animate-spin" />
-          ) : (
-            <Check size={14} />
-          )}
-          {initial
-            ? t("records.fields.saveEdit")
-            : t("records.fields.saveNew")}
-        </button>
+        {/* Fase 38 — assinar só faz sentido num registro já existente e
+            ainda não travado; um registro novo (`initial` vazio) precisa
+            ser salvo primeiro. */}
+        {!isLocked && initial && onLock && (
+          <button
+            type="button"
+            onClick={handleLockClick}
+            disabled={locking || saving}
+            className="px-6 py-2.5 rounded-full border border-border text-sm font-semibold text-foreground hover:bg-secondary transition-colors flex items-center gap-2 disabled:opacity-60"
+          >
+            {locking ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Lock size={14} />
+            )}
+            {t("records.lock.lockButton")}
+          </button>
+        )}
+        {!isLocked && (
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-6 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-60"
+          >
+            {saving ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Check size={14} />
+            )}
+            {initial
+              ? t("records.fields.saveEdit")
+              : t("records.fields.saveNew")}
+          </button>
+        )}
       </div>
     </form>
   );
@@ -6211,6 +6487,10 @@ function SessionRecordModal({
   const [sharedNotes, setSharedNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  // Fase 38 — trava/assinatura, mesma ideia de RecordForm.
+  const [lockedAt, setLockedAt] = useState<string | null>(null);
+  const [locking, setLocking] = useState(false);
+  const isLocked = !!lockedAt;
   const [aiLoading, setAiLoading] = useState<"summarize" | "organize" | null>(
     null,
   );
@@ -6222,7 +6502,7 @@ function SessionRecordModal({
     (async () => {
       const { data, error: fetchErr } = await supabase
         .from("clinical_records")
-        .select("id, private_notes, shared_notes")
+        .select("id, private_notes, shared_notes, locked_at")
         .eq("appointment_id", appointment.id)
         .maybeSingle();
       if (!cancelled) {
@@ -6237,6 +6517,7 @@ function SessionRecordModal({
           setRecordId(data.id as string);
           setPrivateNotes((data.private_notes as string | null) ?? "");
           setSharedNotes((data.shared_notes as string | null) ?? "");
+          setLockedAt((data.locked_at as string | null) ?? null);
         }
         setLoading(false);
       }
@@ -6317,6 +6598,24 @@ function SessionRecordModal({
     }
   };
 
+  const handleLock = async () => {
+    if (!recordId) return;
+    setLocking(true);
+    setError("");
+    try {
+      const { error: err } = await supabase
+        .from("clinical_records")
+        .update({ locked_at: new Date().toISOString(), locked_by: professionalId })
+        .eq("id", recordId);
+      if (err) throw err;
+      onSaved();
+    } catch {
+      setError(t("records.lock.error"));
+    } finally {
+      setLocking(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6 py-8 overflow-y-auto"
@@ -6361,6 +6660,14 @@ function SessionRecordModal({
           </div>
         ) : (
           <div className="mt-6 space-y-6">
+            {isLocked && (
+              <div className="flex items-center gap-2 bg-secondary border border-border rounded-lg px-4 py-3 text-sm text-muted-foreground">
+                <Lock size={14} className="shrink-0" />
+                {t("records.lock.lockedBanner", {
+                  date: new Intl.DateTimeFormat().format(new Date(lockedAt as string)),
+                })}
+              </div>
+            )}
             <div>
               <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                 {t("records.fields.privateNotesLabel")}
@@ -6373,9 +6680,11 @@ function SessionRecordModal({
                 onChange={(e) => setPrivateNotes(e.target.value)}
                 placeholder={t("records.fields.privateNotesPlaceholder")}
                 rows={5}
-                className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-none"
+                disabled={isLocked}
+                className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-none disabled:opacity-60"
               />
 
+              {!isLocked && (
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
@@ -6407,6 +6716,7 @@ function SessionRecordModal({
                   {t("records.ai.disclosure")}
                 </span>
               </div>
+              )}
 
               {aiError && (
                 <p className="text-red-500 text-xs mt-2">{aiError}</p>
@@ -6455,7 +6765,8 @@ function SessionRecordModal({
                 onChange={(e) => setSharedNotes(e.target.value)}
                 placeholder={t("records.fields.sharedNotesPlaceholder")}
                 rows={4}
-                className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-none"
+                disabled={isLocked}
+                className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-none disabled:opacity-60"
               />
             </div>
 
@@ -6471,8 +6782,24 @@ function SessionRecordModal({
                 onClick={onClose}
                 className="px-6 py-2.5 rounded-full border border-border text-sm font-medium hover:bg-secondary transition-colors"
               >
-                {t("records.cancel")}
+                {isLocked ? t("sessionRecord.close") : t("records.cancel")}
               </button>
+              {!isLocked && recordId && (
+                <button
+                  type="button"
+                  onClick={handleLock}
+                  disabled={locking || saving}
+                  className="px-6 py-2.5 rounded-full border border-border text-sm font-semibold text-foreground hover:bg-secondary transition-colors flex items-center gap-2 disabled:opacity-60"
+                >
+                  {locking ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Lock size={14} />
+                  )}
+                  {t("records.lock.lockButton")}
+                </button>
+              )}
+              {!isLocked && (
               <button
                 type="button"
                 onClick={handleSave}
@@ -6488,6 +6815,7 @@ function SessionRecordModal({
                   ? t("records.fields.saveEdit")
                   : t("records.fields.saveNew")}
               </button>
+              )}
             </div>
           </div>
         )}
@@ -6514,6 +6842,8 @@ function RecordsView({ user }: { user: AppUser }) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [patientFilter, setPatientFilter] = useState("");
   const [deleteError, setDeleteError] = useState(false);
+  // Fase 38 — trava/assinatura de sessão concluída.
+  const [lockingId, setLockingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -6522,7 +6852,7 @@ function RecordsView({ user }: { user: AppUser }) {
       supabase
         .from("clinical_records")
         .select(
-          "id, patient_id, appointment_id, session_date, private_notes, shared_notes, created_at, patients(full_name)",
+          "id, patient_id, appointment_id, session_date, private_notes, shared_notes, created_at, locked_at, locked_by, patients(full_name)",
         )
         .eq("professional_id", user.id)
         .order("session_date", { ascending: false }),
@@ -6590,6 +6920,25 @@ function RecordsView({ user }: { user: AppUser }) {
     await load();
   };
 
+  // Fase 38 — assina/trava o registro (RLS garante, no banco, que depois
+  // disso nenhum UPDATE/DELETE mais passa pra esse profissional — ver
+  // migração da Fase 38).
+  const handleLock = async (id: string) => {
+    setLockingId(id);
+    try {
+      const { error: err } = await supabase
+        .from("clinical_records")
+        .update({ locked_at: new Date().toISOString(), locked_by: user.id })
+        .eq("id", id);
+      if (err) throw err;
+      await load();
+      setView("list");
+      setSelected(null);
+    } finally {
+      setLockingId(null);
+    }
+  };
+
   const dateLabel = (iso: string) =>
     new Intl.DateTimeFormat(i18n.language, {
       day: "2-digit",
@@ -6628,6 +6977,11 @@ function RecordsView({ user }: { user: AppUser }) {
               setView("list");
               setSelected(null);
             }}
+            onLock={
+              selected && !selected.locked_at
+                ? () => handleLock(selected.id)
+                : undefined
+            }
           />
         </div>
       </div>
@@ -6744,6 +7098,11 @@ function RecordsView({ user }: { user: AppUser }) {
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-2">
+                  {r.locked_at && (
+                    <span className="flex items-center gap-1 text-xs bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5 text-green-700">
+                      <Lock size={10} /> {t("records.lock.signedBadge")}
+                    </span>
+                  )}
                   {r.private_notes && (
                     <span className="text-xs bg-secondary border border-border rounded-full px-2.5 py-0.5 text-muted-foreground">
                       {t("records.hasPrivate")}
@@ -6762,15 +7121,19 @@ function RecordsView({ user }: { user: AppUser }) {
                 </div>
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteId(r.id);
-                  }}
-                  className="p-2 rounded-lg border border-border hover:bg-red-50 hover:border-red-200 transition-colors text-muted-foreground hover:text-red-600"
-                >
-                  <Trash2 size={14} />
-                </button>
+                {/* Fase 38 — registro assinado não pode mais ser excluído
+                    (RLS reforça isso; aqui é só coerência de UI). */}
+                {!r.locked_at && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteId(r.id);
+                    }}
+                    className="p-2 rounded-lg border border-border hover:bg-red-50 hover:border-red-200 transition-colors text-muted-foreground hover:text-red-600"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
                 <ChevronRight size={18} className="text-muted-foreground/40" />
               </div>
             </button>
@@ -7629,6 +7992,11 @@ function FinanceView({ user }: { user: AppUser }) {
     number | null
   >(null);
   const [myPaidOut, setMyPaidOut] = useState(0);
+  // Fase 42 — nome de exibição (título profissional) e CRP, usados só no
+  // cabeçalho do recibo impresso. Sem novo endpoint: os dois já vinham
+  // disponíveis via `professionals`, só faltava selecioná-los aqui.
+  const [profTitle, setProfTitle] = useState("");
+  const [profCrp, setProfCrp] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -7649,7 +8017,7 @@ function FinanceView({ user }: { user: AppUser }) {
           .order("full_name", { ascending: true }),
         supabase
           .from("professionals")
-          .select("session_price, currency")
+          .select("session_price, currency, title, crp")
           .eq("id", user.id)
           .maybeSingle(),
         user.clinicId
@@ -7680,6 +8048,8 @@ function FinanceView({ user }: { user: AppUser }) {
     setProfCurrency(
       (professionalRes.data as any)?.currency === "EUR" ? "EUR" : "BRL",
     );
+    setProfTitle((professionalRes.data as any)?.title ?? "");
+    setProfCrp((professionalRes.data as any)?.crp ?? "");
     setMyCommissionPercent(
       typeof (commissionRes.data as any)?.commission_percent === "number"
         ? (commissionRes.data as any).commission_percent
@@ -7764,6 +8134,92 @@ function FinanceView({ user }: { user: AppUser }) {
       month: "2-digit",
       year: "numeric",
     }).format(new Date(iso));
+
+  // Fase 42 — recibo de pagamento em PDF. Sem biblioteca de PDF nova (nenhuma
+  // estava instalada e o ambiente não tem acesso pra instalar uma agora):
+  // abre uma janela só com o recibo formatado pra impressão e chama
+  // `print()`, que em todo navegador oferece "Salvar como PDF" — resultado
+  // igual a gerar o PDF direto, sem dependência nova nem chamada de rede.
+  const handlePrintReceipt = (p: Payment) => {
+    const win = window.open("", "_blank", "width=700,height=900");
+    if (!win) return;
+    const issuedAt = dateLabel(new Date().toISOString());
+    const paidLabel = p.paid_at ? dateLabel(p.paid_at) : dateLabel(p.created_at);
+    const patientName = p.patients?.full_name ?? "—";
+    const professionalName = [profTitle, user.fullName].filter(Boolean).join(" ");
+    const receiptNumber = p.id.slice(0, 8).toUpperCase();
+    const escapeHtml = (s: string) =>
+      s.replace(/[&<>\x22\x27]/g, (c) => {
+        switch (c) {
+          case "&":
+            return "&amp;";
+          case "<":
+            return "&lt;";
+          case ">":
+            return "&gt;";
+          case '"':
+            return "&quot;";
+          case "'":
+            return "&#39;";
+          default:
+            return c;
+        }
+      });
+    const declaration = t("finance.receipt.declarationText", {
+      patient: patientName,
+      amount: currency(Number(p.amount)),
+      date: paidLabel,
+    });
+    win.document.write(`<!doctype html>
+<html lang="${i18n.language}">
+<head>
+<meta charset="utf-8" />
+<title>${escapeHtml(t("finance.receipt.documentTitle", { number: receiptNumber }))}</title>
+<style>
+  body { font-family: Georgia, 'Times New Roman', serif; color: #1f2937; padding: 48px; max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+  .muted { color: #6b7280; font-size: 13px; }
+  .header { border-bottom: 2px solid #1f2937; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+  .field-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 2px; }
+  .field-value { font-size: 15px; font-weight: 500; }
+  .amount { font-size: 28px; font-weight: 700; margin: 24px 0; }
+  .declaration { font-size: 14px; line-height: 1.7; margin: 32px 0; }
+  .signature { margin-top: 64px; border-top: 1px solid #9ca3af; padding-top: 8px; width: 280px; font-size: 13px; }
+  .print-bar { margin-bottom: 24px; }
+  .print-bar button { font-family: inherit; font-size: 13px; padding: 8px 18px; border-radius: 999px; border: 1px solid #1f2937; background: #1f2937; color: #fff; cursor: pointer; }
+  @media print { .print-bar { display: none; } body { padding: 0; } }
+</style>
+</head>
+<body>
+  <div class="print-bar"><button onclick="window.print()">${escapeHtml(t("finance.receipt.printButton"))}</button></div>
+  <div class="header">
+    <div>
+      <h1>${escapeHtml(professionalName || "—")}</h1>
+      ${profCrp ? `<div class="muted">${escapeHtml(t("finance.receipt.crpLabel", { crp: profCrp }))}</div>` : ""}
+    </div>
+    <div class="muted" style="text-align:right">
+      <div>${escapeHtml(t("finance.receipt.documentTitle", { number: receiptNumber }))}</div>
+      <div>${escapeHtml(t("finance.receipt.issuedAt", { date: issuedAt }))}</div>
+    </div>
+  </div>
+  <div class="grid">
+    <div>
+      <div class="field-label">${escapeHtml(t("finance.receipt.patientLabel"))}</div>
+      <div class="field-value">${escapeHtml(patientName)}</div>
+    </div>
+    <div>
+      <div class="field-label">${escapeHtml(t("finance.receipt.paymentDateLabel"))}</div>
+      <div class="field-value">${escapeHtml(paidLabel)}</div>
+    </div>
+  </div>
+  <div class="amount">${escapeHtml(currency(Number(p.amount)))}</div>
+  <p class="declaration">${escapeHtml(declaration)}</p>
+  <div class="signature">${escapeHtml(professionalName || "—")}${profCrp ? ` · ${escapeHtml(profCrp)}` : ""}</div>
+</body>
+</html>`);
+    win.document.close();
+  };
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -8033,6 +8489,15 @@ function FinanceView({ user }: { user: AppUser }) {
                     {t("finance.markPaid")}
                   </button>
                 )}
+                {p.status === "paid" && (
+                  <button
+                    onClick={() => handlePrintReceipt(p)}
+                    title={t("finance.receipt.button")}
+                    className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                  >
+                    <Receipt size={14} />
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setSelected(p);
@@ -8081,6 +8546,463 @@ function FinanceView({ user }: { user: AppUser }) {
                 className="px-5 py-2 rounded-full bg-red-600 text-white text-sm font-semibold hover:opacity-90 transition-opacity"
               >
                 {t("finance.confirmDelete")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Pacotes de sessões (Fase 41) ───────────────────────────────────────────
+// "Este paciente pagou N sessões adiantado" — até aqui `payments` só sabia
+// registrar UM valor por vez, sem noção de saldo de sessões restante. Fica
+// numa tela própria (não uma aba dentro de Financeiro) de propósito: é
+// simples o bastante pra não precisar reestruturar a tela de pagamentos, que
+// já é grande e já funciona.
+type SessionPackage = {
+  id: string;
+  patient_id: string;
+  total_sessions: number;
+  sessions_used: number;
+  amount: number;
+  purchased_at: string;
+  notes: string | null;
+  status: "active" | "completed" | "cancelled";
+  patients?: { full_name: string } | null;
+};
+
+function PackageForm({
+  patients,
+  onSave,
+  onCancel,
+}: {
+  patients: PatientOption[];
+  onSave: (data: {
+    patient_id: string;
+    total_sessions: number;
+    amount: number;
+    notes: string | null;
+  }) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const { t } = useTranslation();
+  const [patientId, setPatientId] = useState("");
+  const [totalSessions, setTotalSessions] = useState("10");
+  const [amount, setAmount] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const total = Number(totalSessions);
+    const amountValue = Number(amount.replace(",", "."));
+    if (!patientId || !Number.isFinite(total) || total <= 0) {
+      setError(t("packages.fields.requiredError"));
+      return;
+    }
+    if (!Number.isFinite(amountValue) || amountValue < 0) {
+      setError(t("packages.fields.invalidAmountError"));
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      await onSave({
+        patient_id: patientId,
+        total_sessions: total,
+        amount: amountValue,
+        notes: notes.trim() || null,
+      });
+    } catch {
+      setError(t("packages.fields.genericSaveError"));
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+          {t("packages.fields.patientLabel")}
+        </label>
+        <select
+          value={patientId}
+          onChange={(e) => setPatientId(e.target.value)}
+          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+        >
+          <option value="">{t("packages.fields.selectPatientPlaceholder")}</option>
+          {patients.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.full_name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+            {t("packages.fields.totalSessionsLabel")}
+          </label>
+          <input
+            type="number"
+            min={1}
+            step="1"
+            value={totalSessions}
+            onChange={(e) => setTotalSessions(e.target.value)}
+            className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+            {t("packages.fields.amountLabel")}
+          </label>
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder={t("packages.fields.amountPlaceholder")}
+            className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+          {t("packages.fields.notesLabel")}
+        </label>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={2}
+          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-none"
+        />
+      </div>
+
+      {error && (
+        <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          {error}
+        </p>
+      )}
+
+      <div className="flex justify-end gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-6 py-2.5 rounded-full border border-border text-sm font-medium hover:bg-secondary transition-colors"
+        >
+          {t("packages.cancel")}
+        </button>
+        <button
+          type="submit"
+          disabled={saving}
+          className="px-6 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-60"
+        >
+          {saving ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <Check size={14} />
+          )}
+          {t("packages.fields.saveNew")}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function SessionPackagesView({ user }: { user: AppUser }) {
+  const { t, i18n } = useTranslation();
+  const [packages, setPackages] = useState<SessionPackage[]>([]);
+  const [patients, setPatients] = useState<PatientOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [view, setView] = useState<"list" | "new">("list");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [profCurrency, setProfCurrency] = useState("BRL");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    const [packagesRes, patientsRes, professionalRes] = await Promise.all([
+      supabase
+        .from("session_packages")
+        .select(
+          "id, patient_id, total_sessions, sessions_used, amount, purchased_at, notes, status, patients(full_name)",
+        )
+        .eq("professional_id", user.id)
+        .order("purchased_at", { ascending: false }),
+      supabase
+        .from("patients")
+        .select("id, full_name")
+        .eq("professional_id", user.id)
+        .order("full_name", { ascending: true }),
+      supabase
+        .from("professionals")
+        .select("currency")
+        .eq("id", user.id)
+        .maybeSingle(),
+    ]);
+    if (packagesRes.error) {
+      setError(true);
+    } else {
+      setPackages((packagesRes.data as any as SessionPackage[]) ?? []);
+    }
+    setPatients((patientsRes.data as PatientOption[]) ?? []);
+    setProfCurrency(
+      (professionalRes.data as any)?.currency === "EUR" ? "EUR" : "BRL",
+    );
+    setLoading(false);
+  }, [user.id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handleCreate = async (data: {
+    patient_id: string;
+    total_sessions: number;
+    amount: number;
+    notes: string | null;
+  }) => {
+    const { error: err } = await supabase.from("session_packages").insert({
+      ...data,
+      professional_id: user.id,
+      clinic_id: user.clinicId,
+    });
+    if (err) throw err;
+    await load();
+    setView("list");
+  };
+
+  // Fase 41 — "usar uma sessão" abate o saldo do pacote; ao chegar no
+  // total, marca como concluído sozinho (sem precisar de uma ação manual
+  // separada pra "fechar" o pacote).
+  const handleUseSession = async (pkg: SessionPackage) => {
+    if (pkg.sessions_used >= pkg.total_sessions) return;
+    setActionError(false);
+    setBusyId(pkg.id);
+    const nextUsed = pkg.sessions_used + 1;
+    const { error: err } = await supabase
+      .from("session_packages")
+      .update({
+        sessions_used: nextUsed,
+        status: nextUsed >= pkg.total_sessions ? "completed" : pkg.status,
+      })
+      .eq("id", pkg.id);
+    setBusyId(null);
+    if (err) {
+      console.error("Falha ao registrar uso de sessão do pacote:", err);
+      setActionError(true);
+      return;
+    }
+    await load();
+  };
+
+  const handleDelete = async (id: string) => {
+    setActionError(false);
+    const { error: err } = await supabase
+      .from("session_packages")
+      .delete()
+      .eq("id", id);
+    if (err) {
+      console.error("Falha ao excluir pacote:", err);
+      setActionError(true);
+      return;
+    }
+    setDeleteId(null);
+    await load();
+  };
+
+  const currency = (value: number) =>
+    new Intl.NumberFormat(i18n.language, {
+      style: "currency",
+      currency: profCurrency,
+      maximumFractionDigits: 2,
+    }).format(value);
+
+  const dateLabel = (iso: string) =>
+    new Intl.DateTimeFormat(i18n.language, {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(new Date(iso));
+
+  const statusStyles: Record<string, string> = {
+    active: "bg-secondary text-muted-foreground",
+    completed: "bg-green-100 text-green-700",
+    cancelled: "bg-red-100 text-red-700",
+  };
+
+  if (view === "new") {
+    return (
+      <div>
+        <button
+          onClick={() => setView("list")}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+        >
+          <ChevronLeft size={16} /> {t("packages.backToList")}
+        </button>
+        <h2
+          className="text-2xl font-light mb-8 text-foreground"
+          style={{ fontFamily: "'Fraunces', serif" }}
+        >
+          {t("packages.newTitle")}
+        </h2>
+        <div className="bg-card border border-border rounded-2xl p-8">
+          <PackageForm
+            patients={patients}
+            onSave={handleCreate}
+            onCancel={() => setView("list")}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-end mb-6">
+        <button
+          onClick={() => setView("new")}
+          disabled={patients.length === 0}
+          className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+        >
+          <Plus size={16} /> {t("packages.newPackage")}
+        </button>
+      </div>
+
+      {actionError && (
+        <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
+          {t("packages.actionError")}
+        </p>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center py-24 text-muted-foreground gap-3">
+          <Loader2 size={20} className="animate-spin" /> {t("packages.loading")}
+        </div>
+      ) : error ? (
+        <div className="text-center py-24 text-muted-foreground text-sm">
+          {t("packages.errorLoading")}
+        </div>
+      ) : patients.length === 0 ? (
+        <div className="text-center py-24 border-2 border-dashed border-border rounded-2xl">
+          <p className="text-4xl mb-4">🌿</p>
+          <p className="text-muted-foreground text-sm">
+            {t("packages.noPatientsText")}
+          </p>
+        </div>
+      ) : packages.length === 0 ? (
+        <div className="text-center py-24 border-2 border-dashed border-border rounded-2xl">
+          <p className="text-4xl mb-4">📦</p>
+          <p className="font-semibold text-foreground mb-2">
+            {t("packages.emptyTitle")}
+          </p>
+          <p className="text-muted-foreground text-sm">
+            {t("packages.emptyText")}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {packages.map((pkg) => (
+            <div
+              key={pkg.id}
+              className="bg-card border border-border rounded-xl p-5 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-foreground">
+                      {pkg.patients?.full_name ?? "—"}
+                    </span>
+                    <span
+                      className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${statusStyles[pkg.status]}`}
+                    >
+                      {t(`packages.status.${pkg.status}`)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {t("packages.purchasedAt", { date: dateLabel(pkg.purchased_at) })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setDeleteId(pkg.id)}
+                  className="p-2 rounded-lg border border-border hover:bg-red-50 hover:border-red-200 transition-colors text-muted-foreground hover:text-red-600"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-secondary rounded-lg px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    {t("packages.progressLabel", {
+                      used: pkg.sessions_used,
+                      total: pkg.total_sessions,
+                    })}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {currency(pkg.amount)}
+                  </p>
+                </div>
+                {pkg.status === "active" && (
+                  <button
+                    onClick={() => handleUseSession(pkg)}
+                    disabled={busyId === pkg.id}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center gap-1.5"
+                  >
+                    {busyId === pkg.id && (
+                      <Loader2 size={12} className="animate-spin" />
+                    )}
+                    {t("packages.useSessionButton")}
+                  </button>
+                )}
+              </div>
+
+              {pkg.notes && (
+                <p className="text-sm text-muted-foreground mt-3">
+                  {pkg.notes}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {deleteId && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6"
+          onClick={() => setDeleteId(null)}
+        >
+          <div
+            className="bg-card rounded-2xl p-8 max-w-sm w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-semibold text-lg text-foreground mb-2">
+              {t("packages.deleteTitle")}
+            </h3>
+            <p className="text-muted-foreground text-sm mb-6">
+              {t("packages.deleteBody")}
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteId(null)}
+                className="px-5 py-2 rounded-full border border-border text-sm font-medium hover:bg-secondary transition-colors"
+              >
+                {t("packages.cancel")}
+              </button>
+              <button
+                onClick={() => handleDelete(deleteId)}
+                className="px-5 py-2 rounded-full bg-red-600 text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+              >
+                {t("packages.confirmDelete")}
               </button>
             </div>
           </div>
@@ -8434,6 +9356,12 @@ function ClinicSettingsView({ user }: { user: AppUser }) {
         ownerId={clinic.owner_id}
         currentUserId={user.id}
       />
+      <ClinicPatientReassignSection
+        clinicId={clinic.id}
+        plan={clinic.plan}
+        ownerId={clinic.owner_id}
+        currentUserId={user.id}
+      />
       <SecretaryTeamSection clinicId={clinic.id} plan={clinic.plan} />
     </div>
   );
@@ -8780,6 +9708,190 @@ function ProfessionalTeamSection({
               </button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Reatribuir paciente entre profissionais da clínica (Fase 39) ─────────
+// Até aqui só o admin da plataforma conseguia mudar o profissional
+// responsável por um paciente já cadastrado (`AdminPatientsView`). Isso
+// obrigava a clínica a pedir suporte pra mover um paciente entre membros da
+// própria equipe — algo que o dono devia poder fazer sozinho. A tela normal
+// de pacientes (`PatientsView`) não serve pra isso: ela só existe do ponto
+// de vista de UM profissional logado (`.eq("professional_id", user.id)`),
+// então esta seção é separada, dentro de Configurações → Clínica, só pro
+// dono.
+type ClinicPatientRow = {
+  id: string;
+  full_name: string;
+  professional_id: string;
+};
+
+function ClinicPatientReassignSection({
+  clinicId,
+  plan,
+  ownerId,
+  currentUserId,
+}: {
+  clinicId: string;
+  plan: PlanTier;
+  ownerId: string | null;
+  currentUserId: string;
+}) {
+  const { t } = useTranslation();
+  const isOwner = currentUserId === ownerId;
+  const isBusinessPlan = plan === "clinic";
+  const [patients, setPatients] = useState<ClinicPatientRow[]>([]);
+  const [team, setTeam] = useState<{ id: string; name: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [pick, setPick] = useState<Record<string, string>>({});
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccessId, setActionSuccessId] = useState<string | null>(null);
+
+  // Só é útil pro dono, com plano empresarial — o resto nem carrega os
+  // dados (evita uma query que a RLS ia negar de qualquer forma pra
+  // quem não é dono).
+  const shouldLoad = isOwner && isBusinessPlan;
+
+  const load = useCallback(async () => {
+    if (!shouldLoad) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const [patientsRes, teamRes] = await Promise.all([
+      supabase
+        .from("patients")
+        .select("id, full_name, professional_id")
+        .eq("clinic_id", clinicId)
+        .order("full_name", { ascending: true }),
+      supabase
+        .from("professionals")
+        .select("id, profiles(full_name)")
+        .eq("clinic_id", clinicId),
+    ]);
+    setPatients((patientsRes.data as ClinicPatientRow[]) ?? []);
+    setTeam(
+      ((teamRes.data ?? []) as any[]).map((p) => ({
+        id: p.id,
+        name: p.profiles?.full_name || t("userMenu.noName"),
+      })),
+    );
+    setLoading(false);
+  }, [shouldLoad, clinicId, t]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const teamById = new Map(team.map((p) => [p.id, p.name]));
+
+  const handleReassign = async (patient: ClinicPatientRow) => {
+    const targetId = pick[patient.id];
+    if (!targetId || targetId === patient.professional_id) return;
+    setBusyId(patient.id);
+    setActionError(null);
+    setActionSuccessId(null);
+    try {
+      await apiFetch(`/clinic/patient/${patient.id}/reassign`, {
+        method: "PUT",
+        body: JSON.stringify({ professional_id: targetId }),
+      });
+      setActionSuccessId(patient.id);
+      await load();
+    } catch (err) {
+      console.error("Falha ao reatribuir paciente:", err);
+      setActionError(patient.id);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  // Não mostra nada pra quem não é dono, nem no plano gratuito/profissional
+  // (não faz sentido reatribuir com um profissional só), nem quando a
+  // equipe ainda não tem ninguém além do próprio dono.
+  if (!isOwner || !isBusinessPlan || (!loading && team.length < 2)) {
+    return null;
+  }
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-8">
+      <h3 className="text-lg font-semibold text-foreground mb-1">
+        {t("clinicSettings.reassign.title")}
+      </h3>
+      <p className="text-muted-foreground text-sm mb-6">
+        {t("clinicSettings.reassign.subtitle")}
+      </p>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-8 text-muted-foreground gap-3">
+          <Loader2 size={18} className="animate-spin" />
+        </div>
+      ) : patients.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {t("clinicSettings.reassign.empty")}
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {actionError && (
+            <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-2">
+              {t("clinicSettings.reassign.error")}
+            </p>
+          )}
+          {patients.map((p) => (
+            <div
+              key={p.id}
+              className="flex flex-wrap items-center justify-between gap-3 bg-secondary rounded-lg px-4 py-3"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {p.full_name}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {t("clinicSettings.reassign.currentLabel", {
+                    name: teamById.get(p.professional_id) || "—",
+                  })}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {actionSuccessId === p.id && (
+                  <Check size={14} className="text-green-600" />
+                )}
+                <select
+                  value={pick[p.id] ?? p.professional_id}
+                  onChange={(e) =>
+                    setPick((prev) => ({ ...prev, [p.id]: e.target.value }))
+                  }
+                  className="text-xs px-2.5 py-1.5 rounded-lg border border-border bg-background text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer transition-colors max-w-[200px]"
+                >
+                  {team.map((prof) => (
+                    <option key={prof.id} value={prof.id}>
+                      {prof.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => handleReassign(p)}
+                  disabled={
+                    !pick[p.id] ||
+                    pick[p.id] === p.professional_id ||
+                    busyId === p.id
+                  }
+                  className="text-xs font-semibold px-3 py-1.5 rounded-full border border-foreground text-foreground hover:bg-secondary transition-colors disabled:opacity-50 flex items-center gap-1"
+                >
+                  {busyId === p.id ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    <LinkIcon size={12} />
+                  )}
+                  {t("clinicSettings.reassign.button")}
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -10596,6 +11708,14 @@ function PreferencesView({
   );
   const [remindersSaving, setRemindersSaving] = useState(false);
   const [remindersError, setRemindersError] = useState(false);
+  // Fase 43 — estrutura de lembrete por WhatsApp/SMS: preferência e
+  // telefone ficam salvos, mas nenhuma mensagem é enviada de verdade (sem
+  // provedor pago configurado no backend). Ver nota completa na migração.
+  const [waEnabled, setWaEnabled] = useState(false);
+  const [waPhone, setWaPhone] = useState("");
+  const [waLoading, setWaLoading] = useState(!!professionalUserId);
+  const [waSaving, setWaSaving] = useState(false);
+  const [waError, setWaError] = useState(false);
 
   useEffect(() => {
     if (!professionalUserId) return;
@@ -10619,6 +11739,29 @@ function PreferencesView({
     };
   }, [professionalUserId]);
 
+  useEffect(() => {
+    if (!professionalUserId) return;
+    let cancelled = false;
+    (async () => {
+      setWaLoading(true);
+      const { data, error } = await supabase
+        .from("professional_reminder_settings")
+        .select("whatsapp_reminders_enabled, reminder_phone")
+        .eq("professional_id", professionalUserId)
+        .maybeSingle();
+      if (!cancelled) {
+        if (!error && data) {
+          setWaEnabled(!!data.whatsapp_reminders_enabled);
+          setWaPhone(data.reminder_phone ?? "");
+        }
+        setWaLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [professionalUserId]);
+
   const toggleReminders = async () => {
     if (!professionalUserId || remindersSaving) return;
     const next = !remindersEnabled;
@@ -10635,6 +11778,49 @@ function PreferencesView({
       setRemindersEnabled(next);
     }
     setRemindersSaving(false);
+  };
+
+  const toggleWaReminders = async () => {
+    if (!professionalUserId || waSaving) return;
+    const next = !waEnabled;
+    setWaSaving(true);
+    setWaError(false);
+    const { error } = await supabase.from("professional_reminder_settings").upsert(
+      {
+        professional_id: professionalUserId,
+        whatsapp_reminders_enabled: next,
+        reminder_phone: waPhone.trim() || null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "professional_id" },
+    );
+    if (error) {
+      console.error("Falha ao atualizar lembrete por WhatsApp/SMS:", error);
+      setWaError(true);
+    } else {
+      setWaEnabled(next);
+    }
+    setWaSaving(false);
+  };
+
+  const saveWaPhone = async () => {
+    if (!professionalUserId || waSaving) return;
+    setWaSaving(true);
+    setWaError(false);
+    const { error } = await supabase.from("professional_reminder_settings").upsert(
+      {
+        professional_id: professionalUserId,
+        whatsapp_reminders_enabled: waEnabled,
+        reminder_phone: waPhone.trim() || null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "professional_id" },
+    );
+    if (error) {
+      console.error("Falha ao salvar telefone de lembrete:", error);
+      setWaError(true);
+    }
+    setWaSaving(false);
   };
 
   return (
@@ -10689,6 +11875,57 @@ function PreferencesView({
           )}
           <p className="text-xs text-muted-foreground mt-3">
             {t("settings.preferences.remindersDependencyHint")}
+          </p>
+        </div>
+      ) : null}
+      {professionalUserId ? (
+        <div className="bg-card border border-border rounded-2xl p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                {t("settings.preferences.waRemindersLabel")}
+                <span className="text-[10px] font-medium uppercase tracking-wide px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
+                  {t("settings.preferences.waComingSoonTag")}
+                </span>
+              </h4>
+              <p className="text-xs text-muted-foreground mt-0.5 max-w-sm">
+                {t("settings.preferences.waRemindersHint")}
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={waEnabled}
+              disabled={waLoading || waSaving}
+              onClick={toggleWaReminders}
+              className={`relative shrink-0 w-11 h-6 rounded-full transition-colors disabled:opacity-60 ${waEnabled ? "bg-primary" : "bg-muted"}`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${waEnabled ? "translate-x-5" : "translate-x-0"}`}
+              />
+            </button>
+          </div>
+          <div className="mt-4">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+              {t("settings.preferences.waPhoneLabel")}
+            </label>
+            <input
+              type="tel"
+              value={waPhone}
+              onChange={(e) => setWaPhone(e.target.value)}
+              onBlur={saveWaPhone}
+              disabled={waLoading}
+              placeholder={t("settings.preferences.waPhonePlaceholder")}
+              className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors disabled:opacity-60"
+            />
+          </div>
+          {waError && (
+            <p className="text-red-500 text-xs mt-3">
+              {t("settings.preferences.waError")}
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground mt-3">
+            {t("settings.preferences.waDependencyHint")}
           </p>
         </div>
       ) : (
@@ -15105,6 +16342,17 @@ type OwnAppointment = {
   status: string;
 };
 
+// Fase 45 — pedido de remarcação, criado pelo paciente e revisado pelo
+// profissional/secretária (ver nota completa na migração).
+type RescheduleRequest = {
+  id: string;
+  appointment_id: string;
+  requested_starts_at: string;
+  requested_ends_at: string;
+  message: string | null;
+  status: "pending" | "accepted" | "declined" | "cancelled";
+};
+
 type SharedRecord = {
   id: string;
   session_date: string;
@@ -15361,6 +16609,19 @@ function PatientArea({
   const [error, setError] = useState(false);
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [actionError, setActionError] = useState(false);
+  // Fase 45 — pedidos de remarcação em aberto (pendentes), por id da
+  // consulta, pra saber qual consulta já tem um pedido enviado e não
+  // deixar mandar dois de uma vez.
+  const [rescheduleRequests, setRescheduleRequests] = useState<
+    Record<string, RescheduleRequest>
+  >({});
+  const [rescheduleModalAppt, setRescheduleModalAppt] =
+    useState<OwnAppointment | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("");
+  const [rescheduleMessage, setRescheduleMessage] = useState("");
+  const [rescheduleSaving, setRescheduleSaving] = useState(false);
+  const [rescheduleError, setRescheduleError] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -15380,7 +16641,7 @@ function PatientArea({
     setProfile(ownProfile);
 
     if (ownProfile) {
-      const [apptRes, recordsRes] = await Promise.all([
+      const [apptRes, recordsRes, reschedRes] = await Promise.all([
         supabase
           .from("appointments")
           .select("id, starts_at, ends_at, status")
@@ -15391,9 +16652,21 @@ function PatientArea({
           .select("id, session_date, shared_notes, created_at")
           .not("shared_notes", "is", null)
           .order("session_date", { ascending: false }),
+        supabase
+          .from("appointment_reschedule_requests")
+          .select(
+            "id, appointment_id, requested_starts_at, requested_ends_at, message, status",
+          )
+          .eq("patient_id", ownProfile.id)
+          .eq("status", "pending"),
       ]);
       setAllAppointments((apptRes.data as OwnAppointment[]) ?? []);
       setRecords((recordsRes.data as SharedRecord[]) ?? []);
+      const reschedMap: Record<string, RescheduleRequest> = {};
+      ((reschedRes.data as RescheduleRequest[]) ?? []).forEach((r) => {
+        reschedMap[r.appointment_id] = r;
+      });
+      setRescheduleRequests(reschedMap);
     }
     setLoading(false);
   }, [user.id]);
@@ -15439,6 +16712,60 @@ function PatientArea({
       "patient_set_appointment_status",
       { p_appointment_id: id, p_new_status: status },
     );
+    if (err) {
+      setActionError(true);
+    } else {
+      await load();
+    }
+    setActioningId(null);
+  };
+
+  const openRescheduleModal = (appt: OwnAppointment) => {
+    const d = new Date(appt.starts_at);
+    setRescheduleDate(toDateInputValue(d));
+    setRescheduleTime(toTimeInputValue(d));
+    setRescheduleMessage("");
+    setRescheduleError(false);
+    setRescheduleModalAppt(appt);
+  };
+
+  const submitReschedule = async () => {
+    if (!rescheduleModalAppt || !profile || !rescheduleDate || !rescheduleTime) return;
+    setRescheduleSaving(true);
+    setRescheduleError(false);
+    const original = rescheduleModalAppt;
+    const durationMs =
+      new Date(original.ends_at).getTime() -
+      new Date(original.starts_at).getTime();
+    const newStart = new Date(`${rescheduleDate}T${rescheduleTime}:00`);
+    const newEnd = new Date(newStart.getTime() + (durationMs > 0 ? durationMs : 50 * 60 * 1000));
+    const { error: err } = await supabase
+      .from("appointment_reschedule_requests")
+      .insert({
+        appointment_id: original.id,
+        patient_id: profile.id,
+        requested_starts_at: newStart.toISOString(),
+        requested_ends_at: newEnd.toISOString(),
+        message: rescheduleMessage.trim() || null,
+      });
+    if (err) {
+      console.error("Falha ao pedir remarcação:", err);
+      setRescheduleError(true);
+      setRescheduleSaving(false);
+      return;
+    }
+    setRescheduleSaving(false);
+    setRescheduleModalAppt(null);
+    await load();
+  };
+
+  const cancelRescheduleRequest = async (requestId: string) => {
+    setActioningId(requestId);
+    setActionError(false);
+    const { error: err } = await supabase
+      .from("appointment_reschedule_requests")
+      .update({ status: "cancelled" })
+      .eq("id", requestId);
     if (err) {
       setActionError(true);
     } else {
@@ -15761,7 +17088,15 @@ function PatientArea({
                       </div>
                       {(appt.status === "scheduled" ||
                         appt.status === "confirmed") && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap justify-end">
+                          <a
+                            href={jitsiRoomUrl(appt.id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                          >
+                            <Video size={13} /> {t("patientArea.joinVideo")}
+                          </a>
                           {appt.status === "scheduled" && (
                             <button
                               onClick={() =>
@@ -15771,6 +17106,28 @@ function PatientArea({
                               className="text-xs font-medium px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-60"
                             >
                               {t("patientArea.confirm")}
+                            </button>
+                          )}
+                          {rescheduleRequests[appt.id] ? (
+                            <button
+                              onClick={() =>
+                                cancelRescheduleRequest(
+                                  rescheduleRequests[appt.id].id,
+                                )
+                              }
+                              disabled={
+                                actioningId === rescheduleRequests[appt.id].id
+                              }
+                              className="text-xs font-medium px-3 py-1.5 rounded-full border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-60"
+                            >
+                              {t("patientArea.reschedulePendingBadge")}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => openRescheduleModal(appt)}
+                              className="text-xs font-medium px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:bg-secondary transition-colors"
+                            >
+                              {t("patientArea.reschedule")}
                             </button>
                           )}
                           <button
@@ -15792,6 +17149,89 @@ function PatientArea({
                 </p>
               )}
             </div>
+
+            {rescheduleModalAppt && (
+              <div
+                className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6"
+                onClick={() => setRescheduleModalAppt(null)}
+              >
+                <div
+                  className="bg-card rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <h3 className="font-semibold text-foreground mb-1">
+                    {t("patientArea.rescheduleModalTitle")}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    {t("patientArea.rescheduleModalHint")}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                        {t("patientArea.rescheduleDateLabel")}
+                      </label>
+                      <input
+                        type="date"
+                        value={rescheduleDate}
+                        onChange={(e) => setRescheduleDate(e.target.value)}
+                        className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                        {t("patientArea.rescheduleTimeLabel")}
+                      </label>
+                      <input
+                        type="time"
+                        value={rescheduleTime}
+                        onChange={(e) => setRescheduleTime(e.target.value)}
+                        className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                      {t("patientArea.rescheduleMessageLabel")}
+                    </label>
+                    <textarea
+                      value={rescheduleMessage}
+                      onChange={(e) => setRescheduleMessage(e.target.value)}
+                      rows={3}
+                      placeholder={t(
+                        "patientArea.rescheduleMessagePlaceholder",
+                      )}
+                      className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-none"
+                    />
+                  </div>
+                  {rescheduleError && (
+                    <p className="text-red-500 text-xs mt-3">
+                      {t("patientArea.rescheduleError")}
+                    </p>
+                  )}
+                  <div className="flex gap-3 justify-end mt-5">
+                    <button
+                      onClick={() => setRescheduleModalAppt(null)}
+                      className="px-5 py-2 rounded-full border border-border text-sm font-medium hover:bg-secondary transition-colors"
+                    >
+                      {t("patientArea.cancel")}
+                    </button>
+                    <button
+                      onClick={submitReschedule}
+                      disabled={
+                        rescheduleSaving || !rescheduleDate || !rescheduleTime
+                      }
+                      className="px-5 py-2 rounded-full bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
+                    >
+                      {rescheduleSaving ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        t("patientArea.rescheduleSubmit")
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="bg-card border border-border rounded-2xl p-6">
               <h3 className="text-sm font-semibold text-foreground mb-4">

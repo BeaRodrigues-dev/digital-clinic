@@ -557,7 +557,8 @@
     "navPlan": "Plano",
     "navSettings": "Configurações",
     "navRequests": "Solicitações",
-    "navPayouts": "Repasses"
+    "navPayouts": "Repasses",
+    "navPackages": "Pacotes"
   },
   "patients": {
     "title": "Pacientes",
@@ -603,7 +604,10 @@
       "saveNew": "Cadastrar paciente",
       "saveEdit": "Salvar alterações",
       "planLimitError": "Limite de {{limit}} pacientes ativos do plano gratuito atingido. Acesse a aba \"Plano\" para fazer upgrade.",
-      "responsibleLabel": "Psicólogo responsável"
+      "responsibleLabel": "Psicólogo responsável",
+      "emergencyContactLegend": "Contato de emergência (opcional)",
+      "emergencyContactNamePlaceholder": "Nome do contato de emergência",
+      "emergencyContactPhonePlaceholder": "Telefone do contato de emergência"
     },
     "detail": {
       "editPatient": "Editar paciente",
@@ -611,7 +615,9 @@
       "historyEmpty": "Nenhuma consulta registrada ainda.",
       "historyEmptyHint": "A agenda completa chega na próxima fase do projeto.",
       "noContact": "Sem contato cadastrado",
-      "noNotes": "Sem observações registradas."
+      "noNotes": "Sem observações registradas.",
+      "emergencyContactTitle": "Contato de emergência",
+      "emergencyContactEmpty": "Nenhum contato de emergência cadastrado."
     },
     "access": {
       "title": "Acesso à área do paciente",
@@ -677,12 +683,18 @@
       "edit": "Editar / reagendar",
       "delete": "Excluir",
       "record": "Prontuário da sessão",
-      "recordDone": "Ver / editar prontuário"
+      "recordDone": "Ver / editar prontuário",
+      "joinVideo": "Entrar na sala de vídeo"
     },
     "actionError": "Não foi possível concluir a ação. Tente novamente.",
     "recurrenceOccurrenceHint": "Esta consulta faz parte de uma série recorrente. A alteração afeta só esta ocorrência, não a série inteira.",
     "monthView": "Mês",
-    "monthMore": "+{{count}} mais"
+    "monthMore": "+{{count}} mais",
+    "reschedule": {
+      "requestTitle": "Pedido de remarcação do paciente",
+      "accept": "Aceitar",
+      "decline": "Recusar"
+    }
   },
   "records": {
     "title": "Prontuário",
@@ -777,6 +789,12 @@
         "saveEdit": "Salvar alterações",
         "saveNew": "Salvar documento"
       }
+    },
+    "lock": {
+      "lockButton": "Assinar e finalizar",
+      "lockedBanner": "Sessão assinada e finalizada em {{date}} — não pode mais ser editada.",
+      "signedBadge": "Assinado",
+      "error": "Não foi possível assinar agora. Tente novamente."
     }
   },
   "finance": {
@@ -832,6 +850,16 @@
       "percentValue": "{{value}}%",
       "paidOutLabel": "Já repassado a você",
       "pendingLabel": "Pendente de repasse"
+    },
+    "receipt": {
+      "button": "Gerar recibo",
+      "documentTitle": "Recibo {{number}}",
+      "issuedAt": "Emitido em {{date}}",
+      "crpLabel": "CRP {{crp}}",
+      "patientLabel": "Paciente",
+      "paymentDateLabel": "Data do pagamento",
+      "declarationText": "Recebi de {{patient}} a quantia de {{amount}}, referente a serviços de psicologia prestados, pago em {{date}}.",
+      "printButton": "Imprimir / salvar como PDF"
     }
   },
   "patientArea": {
@@ -859,7 +887,18 @@
     "emailLabel": "E-mail",
     "phoneLabel": "Telefone",
     "noPhone": "Não informado",
-    "infoHint": "Para atualizar essas informações, fale com seu psicólogo ou clínica."
+    "infoHint": "Para atualizar essas informações, fale com seu psicólogo ou clínica.",
+    "joinVideo": "Entrar na sala de vídeo",
+    "reschedule": "Pedir remarcação",
+    "reschedulePendingBadge": "Pedido enviado · desistir",
+    "rescheduleModalTitle": "Pedir remarcação",
+    "rescheduleModalHint": "Proponha uma nova data e horário. O profissional precisa aceitar antes da consulta mudar de verdade.",
+    "rescheduleDateLabel": "Nova data",
+    "rescheduleTimeLabel": "Novo horário",
+    "rescheduleMessageLabel": "Mensagem (opcional)",
+    "rescheduleMessagePlaceholder": "Algum detalhe pra ajudar seu psicólogo(a) a decidir",
+    "rescheduleError": "Não foi possível enviar o pedido agora. Tente novamente.",
+    "rescheduleSubmit": "Enviar pedido"
   },
   "setPassword": {
     "title": "Defina sua senha",
@@ -945,6 +984,14 @@
       "commissionSave": "Salvar",
       "commissionError": "Não foi possível salvar. Tente novamente.",
       "commissionReadOnly": "Comissão da clínica: {{value}}%"
+    },
+    "reassign": {
+      "title": "Reatribuir pacientes",
+      "subtitle": "Mude qual profissional da equipe é responsável por cada paciente da clínica.",
+      "empty": "Nenhum paciente cadastrado na clínica ainda.",
+      "currentLabel": "Responsável atual: {{name}}",
+      "button": "Reatribuir",
+      "error": "Não foi possível reatribuir agora. Tente novamente."
     }
   },
   "plans": {
@@ -1109,7 +1156,14 @@
       "remindersLabel": "Lembrete de consulta por e-mail",
       "remindersHint": "Manda um e-mail automático pros seus pacientes ~24h antes de cada consulta.",
       "remindersError": "Não foi possível salvar agora. Tente novamente.",
-      "remindersDependencyHint": "Só funciona depois que o envio automático de e-mail estiver configurado nesta instalação — fale com quem administra a plataforma se os lembretes não estiverem chegando."
+      "remindersDependencyHint": "Só funciona depois que o envio automático de e-mail estiver configurado nesta instalação — fale com quem administra a plataforma se os lembretes não estiverem chegando.",
+      "waRemindersLabel": "Lembrete de consulta por WhatsApp/SMS",
+      "waComingSoonTag": "em breve",
+      "waRemindersHint": "Sua preferência e telefone ficam salvos, prontos pra quando esse canal for ativado.",
+      "waPhoneLabel": "Telefone para lembrete (WhatsApp/SMS)",
+      "waPhonePlaceholder": "+55 11 91234-5678",
+      "waError": "Não foi possível salvar agora. Tente novamente.",
+      "waDependencyHint": "Ainda não envia nada: requer configurar um provedor pago de WhatsApp/SMS nesta instalação. Por enquanto, só o lembrete por e-mail funciona de verdade."
     }
   },
   "infoPages": {
@@ -1232,7 +1286,8 @@
   "sessionRecord": {
     "title": "Prontuário da sessão",
     "loadError": "Não foi possível carregar o prontuário desta sessão. Tente novamente.",
-    "duplicateError": "Já existe um prontuário para esta sessão. Feche e abra de novo pra editar o que já foi salvo."
+    "duplicateError": "Já existe um prontuário para esta sessão. Feche e abra de novo pra editar o que já foi salvo.",
+    "close": "Fechar"
   },
   "requests": {
     "title": "Solicitações",
@@ -1295,5 +1350,42 @@
     "notesLabel": "Observações (opcional)",
     "registerError": "Não foi possível registrar. Confira o valor e tente novamente.",
     "registerConfirm": "Registrar"
+  },
+  "packages": {
+    "title": "Pacotes de sessões",
+    "subtitle": "Sessões pagas adiantado por um paciente, com o saldo restante.",
+    "newPackage": "Novo pacote",
+    "loading": "Carregando pacotes...",
+    "errorLoading": "Não foi possível carregar os pacotes agora. Tente novamente.",
+    "noPatientsText": "Cadastre um paciente primeiro pra poder registrar um pacote.",
+    "emptyTitle": "Nenhum pacote ainda",
+    "emptyText": "Clique em \"Novo pacote\" pra registrar sessões pagas adiantado.",
+    "backToList": "Voltar aos pacotes",
+    "newTitle": "Novo pacote de sessões",
+    "purchasedAt": "Comprado em {{date}}",
+    "progressLabel": "{{used}} de {{total}} sessões usadas",
+    "useSessionButton": "Registrar uso de 1 sessão",
+    "actionError": "Não foi possível atualizar agora. Tente novamente.",
+    "deleteTitle": "Excluir pacote?",
+    "deleteBody": "Esta ação não pode ser desfeita.",
+    "cancel": "Cancelar",
+    "confirmDelete": "Excluir",
+    "status": {
+      "active": "Ativo",
+      "completed": "Concluído",
+      "cancelled": "Cancelado"
+    },
+    "fields": {
+      "patientLabel": "Paciente *",
+      "selectPatientPlaceholder": "Selecione um paciente",
+      "totalSessionsLabel": "Total de sessões *",
+      "amountLabel": "Valor total",
+      "amountPlaceholder": "0,00",
+      "notesLabel": "Observações (opcional)",
+      "requiredError": "Selecione um paciente e informe o total de sessões.",
+      "invalidAmountError": "Informe um valor válido.",
+      "genericSaveError": "Erro ao salvar. Tente novamente.",
+      "saveNew": "Registrar pacote"
+    }
   }
 }

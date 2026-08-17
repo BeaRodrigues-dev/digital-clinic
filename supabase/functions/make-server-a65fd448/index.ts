@@ -2655,6 +2655,16 @@ app.post(
   },
 );
 
+// ── Lembrete por WhatsApp/SMS — estrutura pronta, desligada (Fase 43) ──────
+// A preferência (`whatsapp_reminders_enabled`) e o telefone do paciente já
+// ficam salvos em `professional_reminder_settings` (ver migração da Fase
+// 43) e o toggle já existe em Configurações → Preferências. Não existe
+// nenhuma rota de envio aqui de propósito: nenhum provedor pago (Twilio,
+// Zenvia, Meta Cloud API etc.) está configurado nesta instalação, então
+// não há credencial real pra integrar. Quando um provedor for escolhido e
+// configurado, a rota de envio entra aqui do lado da varredura de e-mail
+// acima, lendo os profissionais com `whatsapp_reminders_enabled = true`.
+
 // ── Exportar meus dados (Fase 35) ───────────────────────────────────────────
 // "Direito de acesso/portabilidade" básico: devolve o que a PRÓPRIA conta
 // tem cadastrado. NÃO inclui dados de outras pessoas que um profissional
@@ -2886,6 +2896,93 @@ app.put(
       console.error("Failed to set professional commission:", err);
       return c.json(
         { error: err?.message ?? "Erro ao salvar a comissão." },
+        500,
+      );
+    }
+  },
+);
+
+// ── Reatribuir paciente pra outro profissional da mesma clínica (Fase 39) ──
+// Só o dono da clínica (ou admin) pode reatribuir — mesmo raciocínio da
+// comissão logo acima: passa por rota própria, não por uma policy de
+// UPDATE ampla em `patients`, pra garantir que só `professional_id` (e
+// `clinic_id`, que não muda de verdade aqui — continua a mesma clínica)
+// são alterados, nunca nome/notas/tags do paciente.
+app.put(
+  "/make-server-a65fd448/clinic/patient/:id/reassign",
+  requireRole("psychologist", "admin"),
+  async (c) => {
+    try {
+      const user = c.get("user");
+      const patientId = c.req.param("id");
+      const body = await c.req.json().catch(() => ({}));
+      const targetProfessionalId = body?.professional_id;
+
+      if (!targetProfessionalId || typeof targetProfessionalId !== "string") {
+        return c.json({ error: "Informe o profissional de destino." }, 400);
+      }
+
+      const { data: patient } = await supabase
+        .from("patients")
+        .select("id, clinic_id, professional_id")
+        .eq("id", patientId)
+        .maybeSingle();
+
+      if (!patient) {
+        return c.json({ error: "Paciente não encontrado." }, 404);
+      }
+
+      if (user.role !== "admin") {
+        if (!user.clinicId || patient.clinic_id !== user.clinicId) {
+          return c.json({ error: "Sem permissão para esta conta." }, 403);
+        }
+        const { data: clinic } = await supabase
+          .from("clinics")
+          .select("owner_id")
+          .eq("id", user.clinicId)
+          .maybeSingle();
+        if (!clinic || clinic.owner_id !== user.id) {
+          return c.json(
+            { error: "Só o dono da clínica pode reatribuir pacientes." },
+            403,
+          );
+        }
+      }
+
+      // O profissional de destino precisa estar na MESMA clínica do
+      // paciente — senão o dono conseguiria "empurrar" um paciente pra
+      // fora da própria clínica reatribuindo pra qualquer id da plataforma.
+      const { data: targetProfessional } = await supabase
+        .from("professionals")
+        .select("id, clinic_id")
+        .eq("id", targetProfessionalId)
+        .maybeSingle();
+
+      if (
+        !targetProfessional ||
+        targetProfessional.clinic_id !== patient.clinic_id
+      ) {
+        return c.json(
+          { error: "O profissional de destino precisa ser da mesma clínica." },
+          400,
+        );
+      }
+
+      const { error: updateErr } = await supabase
+        .from("patients")
+        .update({ professional_id: targetProfessionalId })
+        .eq("id", patientId);
+
+      if (updateErr) {
+        console.error("Failed to reassign patient:", updateErr);
+        return c.json({ error: "Não foi possível reatribuir agora." }, 500);
+      }
+
+      return c.json({ success: true });
+    } catch (err: any) {
+      console.error("Failed to reassign patient:", err);
+      return c.json(
+        { error: err?.message ?? "Erro ao reatribuir paciente." },
         500,
       );
     }
