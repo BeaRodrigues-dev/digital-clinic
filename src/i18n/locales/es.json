@@ -558,7 +558,8 @@
     "navSettings": "Configuración",
     "navRequests": "Solicitudes",
     "navPayouts": "Repartos",
-    "navPackages": "Paquetes"
+    "navPackages": "Paquetes",
+    "navReports": "Informes"
   },
   "patients": {
     "title": "Pacientes",
@@ -767,7 +768,10 @@
         "psychological_report": "Informe psicológico",
         "referral": "Derivación",
         "attendance_declaration": "Constancia de asistencia",
-        "medical_certificate": "Certificado"
+        "medical_certificate": "Certificado",
+        "psychological_appraisal": "Informe pericial psicológico",
+        "professional_opinion": "Dictamen psicológico",
+        "informed_consent": "Consentimiento Informado (CI)"
       },
       "fields": {
         "patientLabel": "Paciente",
@@ -787,7 +791,10 @@
         "requiredError": "Selecciona un paciente y completa el contenido del documento.",
         "genericSaveError": "No se pudo guardar el documento. Inténtalo de nuevo.",
         "saveEdit": "Guardar cambios",
-        "saveNew": "Guardar documento"
+        "saveNew": "Guardar documento",
+        "downloadPdfButton": "Descargar PDF",
+        "printPdfButton": "Imprimir / guardar como PDF",
+        "pdfMeta": "Paciente: {{patient}} · Tipo: {{type}}"
       }
     },
     "lock": {
@@ -1386,6 +1393,94 @@
       "invalidAmountError": "Indica un monto válido.",
       "genericSaveError": "Error al guardar. Intenta de nuevo.",
       "saveNew": "Registrar paquete"
+    }
+  },
+  "assessments": {
+    "options": {
+      "0": "Nunca",
+      "1": "Varios días",
+      "2": "Más de la mitad de los días",
+      "3": "Casi todos los días"
+    },
+    "phq9": {
+      "q1": "Poco interés o placer en hacer las cosas",
+      "q2": "Sentirse decaído(a), deprimido(a) o sin esperanza",
+      "q3": "Dificultad para dormir o permanecer dormido(a), o dormir demasiado",
+      "q4": "Sentirse cansado(a) o con poca energía",
+      "q5": "Poco apetito o comer en exceso",
+      "q6": "Sentirse mal consigo mismo(a) — o pensar que es un fracaso o que decepcionó a su familia o a usted mismo(a)",
+      "q7": "Dificultad para concentrarse, como al leer el periódico o ver televisión",
+      "q8": "Moverse o hablar tan despacio que otras personas lo notarían, o lo contrario: estar tan inquieto(a) que se movió mucho más de lo habitual",
+      "q9": "Pensar que estaría mejor muerto(a) o querer hacerse daño de alguna manera"
+    },
+    "gad7": {
+      "q1": "Sentirse nervioso(a), ansioso(a) o muy tenso(a)",
+      "q2": "No poder dejar de preocuparse o controlar la preocupación",
+      "q3": "Preocuparse demasiado por diferentes cosas",
+      "q4": "Dificultad para relajarse",
+      "q5": "Estar tan inquieto(a) que es difícil quedarse quieto(a)",
+      "q6": "Molestarse o irritarse fácilmente",
+      "q7": "Sentir miedo, como si algo terrible fuera a pasar"
+    }
+  },
+  "intersession": {
+    "moodTitle": "Diario de ánimo",
+    "moodSubtitle": "Registra cómo te sientes hoy, en pocos segundos.",
+    "moodScale": {
+      "1": "Muy mal",
+      "2": "Mal",
+      "3": "Neutral",
+      "4": "Bien",
+      "5": "Muy bien"
+    },
+    "moodNotePlaceholder": "Algo que quieras anotar (opcional)",
+    "moodSubmit": "Registrar ánimo de hoy",
+    "moodError": "No se pudo registrar ahora. Intenta de nuevo.",
+    "scalesTitle": "Escalas psicométricas",
+    "scalesSubtitle": "PHQ-9 (depresión) y GAD-7 (ansiedad) — instrumentos estandarizados y de uso libre, sin costo. Las respuestas quedan visibles para tu profesional.",
+    "startPhq9": "Responder PHQ-9",
+    "startGad7": "Responder GAD-7",
+    "scaleName": {
+      "phq9": "PHQ-9",
+      "gad7": "GAD-7"
+    },
+    "severity": {
+      "minimal": "Mínimo",
+      "mild": "Leve",
+      "moderate": "Moderado",
+      "moderatelySevere": "Moderadamente grave",
+      "severe": "Grave"
+    },
+    "scaleCancel": "Cancelar",
+    "scaleSubmit": "Enviar respuestas",
+    "scaleError": "No se pudo guardar ahora. Intenta de nuevo.",
+    "noAssessments": "Todavía no hay ninguna escala respondida.",
+    "flaggedNotice": "Una de tus respuestas indica pensamientos de hacerte daño. Esto ya fue compartido con tu profesional. Si estás en peligro ahora, busca ayuda de emergencia de inmediato.",
+    "professionalTitle": "Diario de ánimo y escalas (entre sesiones)",
+    "flaggedProfessionalNotice": "Atención: una respuesta reciente del PHQ-9 indica ideación de autolesión (ítem 9). Revísala con prioridad."
+  },
+  "clinicReports": {
+    "title": "Informes de la clínica",
+    "subtitle": "Facturación y retención agregadas de todo el equipo.",
+    "loading": "Cargando informes...",
+    "errorLoading": "No se pudieron cargar los informes ahora. Intenta de nuevo.",
+    "noClinic": "Esta área es solo para quien administra una clínica.",
+    "kpi": {
+      "revenueThisMonth": "Facturación este mes",
+      "activePatients": "Pacientes activos",
+      "retentionRate": "Tasa de retención",
+      "completedThisMonth": "Sesiones completadas este mes"
+    },
+    "chartTitle": "Facturación por mes",
+    "chartHint": "Últimos 6 meses, suma de todos los profesionales de la clínica.",
+    "byProfessionalTitle": "Por profesional",
+    "noProfessionals": "Todavía no hay profesionales en el equipo.",
+    "table": {
+      "professional": "Profesional",
+      "revenueThisMonth": "Este mes",
+      "revenueTotal": "Total recibido",
+      "activePatients": "Pacientes activos",
+      "completedThisMonth": "Sesiones este mes"
     }
   }
 }

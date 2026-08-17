@@ -50,6 +50,10 @@ import {
   Package,
   Receipt,
   Video,
+  Activity,
+  Smile,
+  ClipboardCheck,
+  FileSignature,
 } from "lucide-react";
 
 import {
@@ -2748,6 +2752,7 @@ function ProfessionalDashboard({
     | "finance"
     | "packages"
     | "payouts"
+    | "reports"
     | "settings"
   >("overview");
   // Fase 28 — sidebar fixa nas telas internas em vez das abas no topo (ver
@@ -3039,6 +3044,7 @@ function ProfessionalDashboard({
       | "finance"
       | "packages"
       | "payouts"
+      | "reports"
       | "settings";
     icon: React.ReactNode;
     label: string;
@@ -3095,6 +3101,12 @@ function ProfessionalDashboard({
             icon: <HandCoins size={14} />,
             label: t("dashboard.navPayouts"),
             onClick: () => setView("payouts"),
+          },
+          {
+            key: "reports" as const,
+            icon: <Activity size={14} />,
+            label: t("dashboard.navReports"),
+            onClick: () => setView("reports"),
           },
         ]
       : []),
@@ -3270,13 +3282,15 @@ function ProfessionalDashboard({
                         ? t("packages.title")
                         : view === "payouts"
                           ? t("payouts.title")
-                          : view === "settings"
-                            ? t("settings.title")
-                            : user.fullName
-                              ? t("dashboard.greeting", {
-                                  name: user.fullName.trim().split(/\s+/)[0],
-                                })
-                              : t("dashboard.title")}
+                          : view === "reports"
+                            ? t("clinicReports.title")
+                            : view === "settings"
+                              ? t("settings.title")
+                              : user.fullName
+                                ? t("dashboard.greeting", {
+                                    name: user.fullName.trim().split(/\s+/)[0],
+                                  })
+                                : t("dashboard.title")}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
             {view === "patients"
@@ -3293,9 +3307,11 @@ function ProfessionalDashboard({
                         ? t("packages.subtitle")
                         : view === "payouts"
                           ? t("payouts.subtitle")
-                          : view === "settings"
-                            ? t("settings.subtitle")
-                            : t("dashboard.subtitle")}
+                          : view === "reports"
+                            ? t("clinicReports.subtitle")
+                            : view === "settings"
+                              ? t("settings.subtitle")
+                              : t("dashboard.subtitle")}
           </p>
         </div>
 
@@ -3313,6 +3329,8 @@ function ProfessionalDashboard({
           <SessionPackagesView user={user} />
         ) : view === "payouts" ? (
           <ClinicPayoutsView user={user} />
+        ) : view === "reports" ? (
+          <ClinicReportsView user={user} />
         ) : view === "settings" ? (
           <SettingsView
             user={user}
@@ -3826,6 +3844,147 @@ function PatientForm({
   );
 }
 
+// Fase 46 — diário de humor + escalas psicométricas, lado do profissional:
+// só leitura (RLS já garante isso — nem precisaria checar aqui — mas a UI
+// também não oferece nenhum jeito de editar, pra não sugerir que dá).
+// Autorrelato do paciente, sem edição pelo profissional, de propósito —
+// ver nota completa na migração da Fase 46.
+function PatientClinicalWellbeingSummary({
+  patientId,
+}: {
+  patientId: string;
+}) {
+  const { t, i18n } = useTranslation();
+  const [entries, setEntries] = useState<MoodEntry[]>([]);
+  const [assessments, setAssessments] = useState<PsychometricAssessment[]>(
+    [],
+  );
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const [entriesRes, assessmentsRes] = await Promise.all([
+        supabase
+          .from("mood_entries")
+          .select("id, entry_date, mood_score, note, created_at")
+          .eq("patient_id", patientId)
+          .order("entry_date", { ascending: false })
+          .limit(14),
+        supabase
+          .from("psychometric_assessments")
+          .select(
+            "id, scale, answers, total_score, severity, flagged, created_at",
+          )
+          .eq("patient_id", patientId)
+          .order("created_at", { ascending: false })
+          .limit(10),
+      ]);
+      if (cancelled) return;
+      setEntries((entriesRes.data as MoodEntry[]) ?? []);
+      setAssessments((assessmentsRes.data as PsychometricAssessment[]) ?? []);
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [patientId]);
+
+  const moodEmojis = ["😞", "🙁", "😐", "🙂", "😄"];
+  const dateLabel = (iso: string) =>
+    new Intl.DateTimeFormat(i18n.language, {
+      day: "2-digit",
+      month: "2-digit",
+    }).format(new Date(`${iso}T00:00:00`));
+
+  if (loading) {
+    return (
+      <div className="bg-card border border-border rounded-2xl p-6 flex items-center justify-center text-muted-foreground py-8">
+        <Loader2 size={18} className="animate-spin" />
+      </div>
+    );
+  }
+
+  if (entries.length === 0 && assessments.length === 0) return null;
+
+  const flaggedAssessments = assessments.filter((a) => a.flagged);
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-6">
+      <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+        <Activity size={16} className="text-primary" />
+        {t("intersession.professionalTitle")}
+      </h3>
+
+      {flaggedAssessments.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 mb-4">
+          <p className="text-xs font-semibold text-red-700">
+            {t("intersession.flaggedProfessionalNotice")}
+          </p>
+        </div>
+      )}
+
+      {entries.length > 0 && (
+        <div className="mb-5">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            {t("intersession.moodTitle")}
+          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            {entries.map((e) => (
+              <div
+                key={e.id}
+                title={e.note ?? ""}
+                className="flex flex-col items-center gap-0.5 bg-secondary rounded-lg px-2.5 py-1.5"
+              >
+                <span className="text-base leading-none">
+                  {moodEmojis[e.mood_score - 1]}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {dateLabel(e.entry_date)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {assessments.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            {t("intersession.scalesTitle")}
+          </p>
+          <div className="divide-y divide-border">
+            {assessments.map((a) => (
+              <div
+                key={a.id}
+                className="py-2 flex items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-foreground">
+                    {t(`intersession.scaleName.${a.scale}`)}
+                  </span>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${severityBadgeStyles[a.severity] ?? ""}`}
+                  >
+                    {a.total_score} · {t(`intersession.severity.${a.severity}`)}
+                  </span>
+                  {a.flagged && (
+                    <AlertTriangle size={13} className="text-red-600" />
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {dateLabel(a.created_at.slice(0, 10))}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PatientDetail({
   patient,
   onBack,
@@ -4027,6 +4186,10 @@ function PatientDetail({
             {t("patients.detail.emergencyContactEmpty")}
           </p>
         )}
+      </div>
+
+      <div className="mb-6">
+        <PatientClinicalWellbeingSummary patientId={patient.id} />
       </div>
 
       <div className="bg-card border border-border rounded-2xl p-6 mb-6">
@@ -4678,6 +4841,57 @@ type PatientOption = { id: string; full_name: string };
 // como avisado e aceito na escolha desta abordagem.
 const jitsiRoomUrl = (appointmentId: string) =>
   `https://meet.jit.si/ConecPsi-${appointmentId.replace(/-/g, "")}`;
+
+// Fase 46 — módulo inter-sessões: diário de humor + escalas psicométricas
+// padronizadas (PHQ-9 e GAD-7, ambas de domínio público — desenvolvidas
+// pela Pfizer e de uso livre). Perguntas e opções vêm de i18n (chaves
+// `assessments.*`), só a estrutura (quantidade de itens, pontuação, faixas
+// de gravidade) fica fixa aqui.
+type MoodEntry = {
+  id: string;
+  entry_date: string;
+  mood_score: number;
+  note: string | null;
+  created_at: string;
+};
+
+type PsychometricAssessment = {
+  id: string;
+  scale: "phq9" | "gad7";
+  answers: number[];
+  total_score: number;
+  severity: string;
+  flagged: boolean;
+  created_at: string;
+};
+
+const ASSESSMENT_QUESTION_COUNT: Record<"phq9" | "gad7", number> = {
+  phq9: 9,
+  gad7: 7,
+};
+
+// Faixas de gravidade padrão publicadas dos dois instrumentos.
+const severityForScore = (scale: "phq9" | "gad7", score: number): string => {
+  if (scale === "phq9") {
+    if (score <= 4) return "minimal";
+    if (score <= 9) return "mild";
+    if (score <= 14) return "moderate";
+    if (score <= 19) return "moderatelySevere";
+    return "severe";
+  }
+  if (score <= 4) return "minimal";
+  if (score <= 9) return "mild";
+  if (score <= 14) return "moderate";
+  return "severe";
+};
+
+const severityBadgeStyles: Record<string, string> = {
+  minimal: "bg-green-100 text-green-700",
+  mild: "bg-yellow-100 text-yellow-700",
+  moderate: "bg-orange-100 text-orange-700",
+  moderatelySevere: "bg-red-100 text-red-700",
+  severe: "bg-red-100 text-red-700",
+};
 
 const toDateInputValue = (d: Date) => {
   const yyyy = d.getFullYear();
@@ -6046,13 +6260,22 @@ type DocType =
   | "psychological_report"
   | "referral"
   | "attendance_declaration"
-  | "medical_certificate";
+  | "medical_certificate"
+  // Fase 48 — laudo, parecer e TCI (Termo de Consentimento Informado),
+  // peças com finalidade própria pela Resolução CFP Nº 06/2019, distintas
+  // do relatório psicológico que já existia.
+  | "psychological_appraisal"
+  | "professional_opinion"
+  | "informed_consent";
 
 const DOC_TYPE_LIST: DocType[] = [
   "psychological_report",
   "referral",
   "attendance_declaration",
   "medical_certificate",
+  "psychological_appraisal",
+  "professional_opinion",
+  "informed_consent",
 ];
 
 function docTypeIcon(type: DocType, size = 14) {
@@ -6065,6 +6288,12 @@ function docTypeIcon(type: DocType, size = 14) {
       return <BadgeCheck size={size} />;
     case "medical_certificate":
       return <Stamp size={size} />;
+    case "psychological_appraisal":
+      return <ClipboardCheck size={size} />;
+    case "professional_opinion":
+      return <FileSignature size={size} />;
+    case "informed_consent":
+      return <Shield size={size} />;
   }
 }
 
@@ -7310,6 +7539,7 @@ function DocumentsView({
           <DocumentForm
             initial={selected}
             patients={patients}
+            user={user}
             onSave={handleSave}
             onCancel={() => {
               setView("list");
@@ -7481,11 +7711,13 @@ function DocumentsView({
 function DocumentForm({
   initial,
   patients,
+  user,
   onSave,
   onCancel,
 }: {
   initial?: PsychDocument | null;
   patients: PatientOption[];
+  user: AppUser;
   onSave: (data: {
     patient_id: string;
     doc_type: DocType;
@@ -7494,7 +7726,7 @@ function DocumentForm({
   }) => Promise<void>;
   onCancel: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [patientId, setPatientId] = useState(initial?.patient_id ?? "");
   const [docType, setDocType] = useState<DocType>(
     initial?.doc_type ?? "psychological_report",
@@ -7507,6 +7739,27 @@ function DocumentForm({
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // Fase 48 — CRP só pro cabeçalho do PDF (mesmo dado já usado no recibo
+  // da Fase 42).
+  const [profTitle, setProfTitle] = useState("");
+  const [profCrp, setProfCrp] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("professionals")
+      .select("title, crp")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        setProfTitle((data as any)?.title ?? "");
+        setProfCrp((data as any)?.crp ?? "");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user.id]);
 
   const runAi = async () => {
     if (!patientId) return;
@@ -7579,6 +7832,75 @@ function DocumentForm({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  // Fase 48 — PDF de verdade em vez de só .txt. Mesma técnica do recibo da
+  // Fase 42 (sem biblioteca de PDF nova): janela formatada + `print()`,
+  // que em qualquer navegador oferece "Salvar como PDF".
+  const handlePrintPdf = () => {
+    const win = window.open("", "_blank", "width=760,height=1000");
+    if (!win) return;
+    const patientName =
+      patients.find((p) => p.id === patientId)?.full_name ?? "—";
+    const professionalName = [profTitle, user.fullName].filter(Boolean).join(" ");
+    const docTitle = title.trim() || t(`records.documents.types.${docType}`);
+    const issuedAt = new Intl.DateTimeFormat(i18n.language, {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(new Date());
+    const escapeHtml = (s: string) =>
+      s.replace(/[&<>\x22\x27]/g, (c) => {
+        switch (c) {
+          case "&":
+            return "&amp;";
+          case "<":
+            return "&lt;";
+          case ">":
+            return "&gt;";
+          case '"':
+            return "&quot;";
+          case "'":
+            return "&#39;";
+          default:
+            return c;
+        }
+      });
+    win.document.write(`<!doctype html>
+<html lang="${i18n.language}">
+<head>
+<meta charset="utf-8" />
+<title>${escapeHtml(docTitle)}</title>
+<style>
+  body { font-family: Georgia, 'Times New Roman', serif; color: #1f2937; padding: 56px; max-width: 680px; margin: 0 auto; line-height: 1.7; }
+  .header { border-bottom: 2px solid #1f2937; padding-bottom: 16px; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .header h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+  .muted { color: #6b7280; font-size: 12px; }
+  .doc-title { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+  .doc-meta { font-size: 13px; color: #6b7280; margin-bottom: 24px; }
+  .content { white-space: pre-wrap; font-size: 14px; }
+  .signature { margin-top: 72px; border-top: 1px solid #9ca3af; padding-top: 8px; width: 320px; font-size: 13px; }
+  .print-bar { margin-bottom: 24px; }
+  .print-bar button { font-family: inherit; font-size: 13px; padding: 8px 18px; border-radius: 999px; border: 1px solid #1f2937; background: #1f2937; color: #fff; cursor: pointer; }
+  @media print { .print-bar { display: none; } body { padding: 0; } }
+</style>
+</head>
+<body>
+  <div class="print-bar"><button onclick="window.print()">${escapeHtml(t("records.documents.fields.printPdfButton"))}</button></div>
+  <div class="header">
+    <div>
+      <h1>${escapeHtml(professionalName || "—")}</h1>
+      ${profCrp ? `<div class="muted">${escapeHtml(t("finance.receipt.crpLabel", { crp: profCrp }))}</div>` : ""}
+    </div>
+    <div class="muted" style="text-align:right">${escapeHtml(t("finance.receipt.issuedAt", { date: issuedAt }))}</div>
+  </div>
+  <p class="doc-title">${escapeHtml(docTitle)}</p>
+  <p class="doc-meta">${escapeHtml(t("records.documents.fields.pdfMeta", { patient: patientName, type: t(`records.documents.types.${docType}`) }))}</p>
+  <div class="content">${escapeHtml(content)}</div>
+  <div class="signature">${escapeHtml(professionalName || "—")}${profCrp ? ` · ${escapeHtml(profCrp)}` : ""}</div>
+</body>
+</html>`);
+    win.document.close();
   };
 
   return (
@@ -7702,6 +8024,15 @@ function DocumentForm({
               className="flex items-center gap-1.5 text-xs font-medium border border-border rounded-full px-3 py-1.5 hover:bg-secondary transition-colors text-muted-foreground"
             >
               <Download size={12} /> {t("records.documents.fields.downloadButton")}
+            </button>
+            <button
+              type="button"
+              onClick={handlePrintPdf}
+              disabled={!patientId}
+              className="flex items-center gap-1.5 text-xs font-medium border border-primary/40 bg-primary/5 text-primary rounded-full px-3 py-1.5 hover:bg-primary/10 transition-colors disabled:opacity-50"
+            >
+              <FileSignature size={12} />{" "}
+              {t("records.documents.fields.downloadPdfButton")}
             </button>
           </div>
         )}
@@ -9924,6 +10255,388 @@ type ClinicPayoutRecord = {
   commission_percent_snapshot: number | null;
   created_at: string;
 };
+
+// Fase 47 — relatórios agregados da CLÍNICA (faturamento e retenção do
+// time todo), diferente do `FinanceView` (individual, só o próprio
+// profissional) e do `ClinicPayoutsView` (comissão/repasse, não
+// faturamento bruto nem retenção). Moeda de referência dos totais é a do
+// dono da clínica — clínicas normalmente operam numa moeda só; se algum
+// dia a equipe tiver moedas diferentes, os totais viram uma aproximação
+// (soma bruta sem conversão), o que já é bem mais raro que o caso comum.
+type ClinicReportProfessionalRow = {
+  professionalId: string;
+  fullName: string | null;
+  revenueThisMonth: number;
+  revenueTotal: number;
+  activePatients: number;
+  completedThisMonth: number;
+};
+
+function ClinicReportsView({ user }: { user: AppUser }) {
+  const { t, i18n } = useTranslation();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [currency, setCurrency] = useState("BRL");
+  const [rows, setRows] = useState<ClinicReportProfessionalRow[]>([]);
+  const [revenueByMonth, setRevenueByMonth] = useState<
+    { month: string; total: number }[]
+  >([]);
+  const [retentionRate, setRetentionRate] = useState<number | null>(null);
+  const [totalActivePatients, setTotalActivePatients] = useState(0);
+  const [totalRevenueThisMonth, setTotalRevenueThisMonth] = useState(0);
+  const [totalCompletedThisMonth, setTotalCompletedThisMonth] = useState(0);
+
+  const load = useCallback(async () => {
+    if (!user.clinicId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(false);
+
+    const [ownerRes, professionalsRes] = await Promise.all([
+      supabase
+        .from("professionals")
+        .select("currency")
+        .eq("id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("professionals")
+        .select("id, profiles(full_name)")
+        .eq("clinic_id", user.clinicId),
+    ]);
+
+    setCurrency(
+      (ownerRes.data as any)?.currency === "EUR" ? "EUR" : "BRL",
+    );
+
+    if (professionalsRes.error) {
+      console.error(
+        "Falha ao carregar equipe pros relatórios:",
+        professionalsRes.error,
+      );
+      setError(true);
+      setLoading(false);
+      return;
+    }
+
+    const team = (professionalsRes.data ?? []) as any[];
+    const teamIds = team.map((p) => p.id);
+    if (teamIds.length === 0) {
+      setRows([]);
+      setLoading(false);
+      return;
+    }
+
+    const [paymentsRes, patientsRes, appointmentsRes] = await Promise.all([
+      supabase
+        .from("payments")
+        .select("professional_id, amount, status, paid_at")
+        .in("professional_id", teamIds),
+      supabase
+        .from("patients")
+        .select("id, professional_id, status")
+        .eq("clinic_id", user.clinicId),
+      supabase
+        .from("appointments")
+        .select("professional_id, patient_id, status, starts_at")
+        .eq("clinic_id", user.clinicId),
+    ]);
+
+    if (paymentsRes.error || patientsRes.error || appointmentsRes.error) {
+      console.error(
+        "Falha ao carregar dados dos relatórios:",
+        paymentsRes.error || patientsRes.error || appointmentsRes.error,
+      );
+      setError(true);
+      setLoading(false);
+      return;
+    }
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const payments = (paymentsRes.data ?? []) as any[];
+    const patients = (patientsRes.data ?? []) as any[];
+    const appointments = (appointmentsRes.data ?? []) as any[];
+
+    // Faturamento por mês (últimos 6), clínica toda — mesmo padrão de
+    // bucket usado em `FinanceView`/`PatientArea`.
+    const buckets = new Map<string, number>();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      buckets.set(`${d.getFullYear()}-${d.getMonth()}`, 0);
+    }
+    payments.forEach((p) => {
+      if (p.status !== "paid" || !p.paid_at) return;
+      const d = new Date(p.paid_at);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (buckets.has(key)) {
+        buckets.set(key, (buckets.get(key) ?? 0) + Number(p.amount));
+      }
+    });
+    setRevenueByMonth(
+      Array.from(buckets.entries()).map(([key, total]) => {
+        const [y, m] = key.split("-").map(Number);
+        return { month: new Date(y, m, 1).toISOString(), total };
+      }),
+    );
+
+    // Retenção: entre os pacientes que já tiveram ao menos 1 sessão
+    // concluída, quantos voltaram pra uma 2ª (ou mais) — proxy simples e
+    // padrão de "cliente que retorna" pra terapia.
+    const completedByPatient = new Map<string, number>();
+    appointments.forEach((a) => {
+      if (a.status !== "completed") return;
+      completedByPatient.set(
+        a.patient_id,
+        (completedByPatient.get(a.patient_id) ?? 0) + 1,
+      );
+    });
+    const patientsWithSession = completedByPatient.size;
+    const patientsReturning = Array.from(completedByPatient.values()).filter(
+      (c) => c >= 2,
+    ).length;
+    setRetentionRate(
+      patientsWithSession > 0
+        ? (patientsReturning / patientsWithSession) * 100
+        : null,
+    );
+
+    setTotalActivePatients(
+      patients.filter((p) => p.status === "active").length,
+    );
+    setTotalRevenueThisMonth(
+      payments
+        .filter(
+          (p) =>
+            p.status === "paid" && p.paid_at && new Date(p.paid_at) >= monthStart,
+        )
+        .reduce((sum, p) => sum + Number(p.amount), 0),
+    );
+    setTotalCompletedThisMonth(
+      appointments.filter(
+        (a) => a.status === "completed" && new Date(a.starts_at) >= monthStart,
+      ).length,
+    );
+
+    const nextRows: ClinicReportProfessionalRow[] = team.map((p) => {
+      const profPayments = payments.filter((x) => x.professional_id === p.id);
+      const profPatients = patients.filter((x) => x.professional_id === p.id);
+      const profAppointments = appointments.filter(
+        (x) => x.professional_id === p.id,
+      );
+      return {
+        professionalId: p.id,
+        fullName: p.profiles?.full_name ?? null,
+        revenueThisMonth: profPayments
+          .filter(
+            (x) =>
+              x.status === "paid" &&
+              x.paid_at &&
+              new Date(x.paid_at) >= monthStart,
+          )
+          .reduce((sum, x) => sum + Number(x.amount), 0),
+        revenueTotal: profPayments
+          .filter((x) => x.status === "paid")
+          .reduce((sum, x) => sum + Number(x.amount), 0),
+        activePatients: profPatients.filter((x) => x.status === "active")
+          .length,
+        completedThisMonth: profAppointments.filter(
+          (x) =>
+            x.status === "completed" && new Date(x.starts_at) >= monthStart,
+        ).length,
+      };
+    });
+    setRows(nextRows);
+    setLoading(false);
+  }, [user.clinicId, user.id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const money = (value: number) =>
+    new Intl.NumberFormat(i18n.language, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(value);
+
+  const monthLabel = (iso: string) =>
+    new Intl.DateTimeFormat(i18n.language, { month: "short" }).format(
+      new Date(iso),
+    );
+
+  if (!user.clinicId) {
+    return (
+      <p className="text-muted-foreground text-sm">
+        {t("clinicReports.noClinic")}
+      </p>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20 text-muted-foreground gap-3">
+        <Loader2 size={20} className="animate-spin" />
+        {t("clinicReports.loading")}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <p className="text-red-500 text-sm">{t("clinicReports.errorLoading")}</p>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-card border border-border rounded-2xl p-5">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">
+            {t("clinicReports.kpi.revenueThisMonth")}
+          </p>
+          <p
+            className="text-2xl font-light text-foreground mt-1"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            {money(totalRevenueThisMonth)}
+          </p>
+        </div>
+        <div className="bg-card border border-border rounded-2xl p-5">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">
+            {t("clinicReports.kpi.activePatients")}
+          </p>
+          <p
+            className="text-2xl font-light text-foreground mt-1"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            {totalActivePatients}
+          </p>
+        </div>
+        <div className="bg-card border border-border rounded-2xl p-5">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">
+            {t("clinicReports.kpi.retentionRate")}
+          </p>
+          <p
+            className="text-2xl font-light text-foreground mt-1"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            {retentionRate == null ? "—" : `${retentionRate.toFixed(0)}%`}
+          </p>
+        </div>
+        <div className="bg-card border border-border rounded-2xl p-5">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">
+            {t("clinicReports.kpi.completedThisMonth")}
+          </p>
+          <p
+            className="text-2xl font-light text-foreground mt-1"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            {totalCompletedThisMonth}
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-card border border-border rounded-2xl p-6">
+        <h3 className="text-sm font-semibold text-foreground mb-1">
+          {t("clinicReports.chartTitle")}
+        </h3>
+        <p className="text-xs text-muted-foreground mb-2">
+          {t("clinicReports.chartHint")}
+        </p>
+        <div className="h-56 mt-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={revenueByMonth}>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="var(--border)"
+              />
+              <XAxis
+                dataKey="month"
+                tickFormatter={monthLabel}
+                tick={{ fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+                width={48}
+                tickFormatter={(v) => money(Number(v))}
+              />
+              <RechartsTooltip
+                labelFormatter={(v) => monthLabel(String(v))}
+                formatter={(v: number) => money(v)}
+              />
+              <Bar dataKey="total" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="bg-card border border-border rounded-2xl p-6">
+        <h3 className="text-sm font-semibold text-foreground mb-4">
+          {t("clinicReports.byProfessionalTitle")}
+        </h3>
+        {rows.length === 0 ? (
+          <p className="text-muted-foreground text-sm">
+            {t("clinicReports.noProfessionals")}
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider border-b border-border">
+                  <th className="pb-2 pr-3 font-semibold">
+                    {t("clinicReports.table.professional")}
+                  </th>
+                  <th className="pb-2 pr-3 font-semibold">
+                    {t("clinicReports.table.revenueThisMonth")}
+                  </th>
+                  <th className="pb-2 pr-3 font-semibold">
+                    {t("clinicReports.table.revenueTotal")}
+                  </th>
+                  <th className="pb-2 pr-3 font-semibold">
+                    {t("clinicReports.table.activePatients")}
+                  </th>
+                  <th className="pb-2 font-semibold">
+                    {t("clinicReports.table.completedThisMonth")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {rows.map((r) => (
+                  <tr key={r.professionalId}>
+                    <td className="py-2.5 pr-3 text-foreground">
+                      {r.fullName ?? "—"}
+                    </td>
+                    <td className="py-2.5 pr-3 text-foreground">
+                      {money(r.revenueThisMonth)}
+                    </td>
+                    <td className="py-2.5 pr-3 text-muted-foreground">
+                      {money(r.revenueTotal)}
+                    </td>
+                    <td className="py-2.5 pr-3 text-foreground">
+                      {r.activePatients}
+                    </td>
+                    <td className="py-2.5 text-foreground">
+                      {r.completedThisMonth}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function ClinicPayoutsView({ user }: { user: AppUser }) {
   const { t, i18n } = useTranslation();
@@ -16580,6 +17293,325 @@ function PatientSettingsView({
   );
 }
 
+// Fase 46 — diário de humor + escalas psicométricas, lado do paciente:
+// registra o próprio humor do dia e responde PHQ-9/GAD-7 quando quiser,
+// sem depender de nenhuma sessão marcada.
+function PatientMoodAndScales({ patientId }: { patientId: string }) {
+  const { t, i18n } = useTranslation();
+  const [entries, setEntries] = useState<MoodEntry[]>([]);
+  const [assessments, setAssessments] = useState<PsychometricAssessment[]>(
+    [],
+  );
+  const [loading, setLoading] = useState(true);
+  const [moodScore, setMoodScore] = useState<number | null>(null);
+  const [moodNote, setMoodNote] = useState("");
+  const [moodSaving, setMoodSaving] = useState(false);
+  const [moodError, setMoodError] = useState(false);
+  const [activeScale, setActiveScale] = useState<"phq9" | "gad7" | null>(
+    null,
+  );
+  const [scaleAnswers, setScaleAnswers] = useState<number[]>([]);
+  const [scaleSaving, setScaleSaving] = useState(false);
+  const [scaleError, setScaleError] = useState(false);
+  const [lastResult, setLastResult] = useState<PsychometricAssessment | null>(
+    null,
+  );
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [entriesRes, assessmentsRes] = await Promise.all([
+      supabase
+        .from("mood_entries")
+        .select("id, entry_date, mood_score, note, created_at")
+        .eq("patient_id", patientId)
+        .order("entry_date", { ascending: false })
+        .limit(14),
+      supabase
+        .from("psychometric_assessments")
+        .select("id, scale, answers, total_score, severity, flagged, created_at")
+        .eq("patient_id", patientId)
+        .order("created_at", { ascending: false })
+        .limit(10),
+    ]);
+    setEntries((entriesRes.data as MoodEntry[]) ?? []);
+    setAssessments((assessmentsRes.data as PsychometricAssessment[]) ?? []);
+    setLoading(false);
+  }, [patientId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const submitMood = async () => {
+    if (moodScore == null) return;
+    setMoodSaving(true);
+    setMoodError(false);
+    const { error: err } = await supabase.from("mood_entries").insert({
+      patient_id: patientId,
+      mood_score: moodScore,
+      note: moodNote.trim() || null,
+    });
+    if (err) {
+      console.error("Falha ao registrar humor:", err);
+      setMoodError(true);
+    } else {
+      setMoodScore(null);
+      setMoodNote("");
+      await load();
+    }
+    setMoodSaving(false);
+  };
+
+  const startScale = (scale: "phq9" | "gad7") => {
+    setActiveScale(scale);
+    setScaleAnswers(new Array(ASSESSMENT_QUESTION_COUNT[scale]).fill(-1));
+    setScaleError(false);
+    setLastResult(null);
+  };
+
+  const submitScale = async () => {
+    if (!activeScale) return;
+    if (scaleAnswers.some((a) => a < 0)) return;
+    setScaleSaving(true);
+    setScaleError(false);
+    const totalScore = scaleAnswers.reduce((sum, a) => sum + a, 0);
+    const severity = severityForScore(activeScale, totalScore);
+    const flagged = activeScale === "phq9" && scaleAnswers[8] > 0;
+    const { data, error: err } = await supabase
+      .from("psychometric_assessments")
+      .insert({
+        patient_id: patientId,
+        scale: activeScale,
+        answers: scaleAnswers,
+        total_score: totalScore,
+        severity,
+        flagged,
+      })
+      .select("id, scale, answers, total_score, severity, flagged, created_at")
+      .maybeSingle();
+    if (err) {
+      console.error("Falha ao salvar escala:", err);
+      setScaleError(true);
+      setScaleSaving(false);
+      return;
+    }
+    setLastResult(data as PsychometricAssessment);
+    setActiveScale(null);
+    setScaleSaving(false);
+    await load();
+  };
+
+  const dateLabel = (iso: string) =>
+    new Intl.DateTimeFormat(i18n.language, {
+      day: "2-digit",
+      month: "2-digit",
+    }).format(new Date(`${iso}T00:00:00`));
+
+  const moodEmojis = ["😞", "🙁", "😐", "🙂", "😄"];
+
+  return (
+    <>
+      <div className="bg-card border border-border rounded-2xl p-6">
+        <h3 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
+          <Smile size={16} className="text-primary" />
+          {t("intersession.moodTitle")}
+        </h3>
+        <p className="text-xs text-muted-foreground mb-4">
+          {t("intersession.moodSubtitle")}
+        </p>
+        <div className="flex items-center gap-2 mb-3">
+          {moodEmojis.map((emoji, i) => {
+            const score = i + 1;
+            return (
+              <button
+                key={score}
+                type="button"
+                onClick={() => setMoodScore(score)}
+                className={`w-11 h-11 rounded-full text-xl flex items-center justify-center border transition-colors ${moodScore === score ? "border-primary bg-primary/10" : "border-border hover:bg-secondary"}`}
+                aria-label={t(`intersession.moodScale.${score}`)}
+              >
+                {emoji}
+              </button>
+            );
+          })}
+        </div>
+        <input
+          type="text"
+          value={moodNote}
+          onChange={(e) => setMoodNote(e.target.value)}
+          placeholder={t("intersession.moodNotePlaceholder")}
+          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors mb-3"
+        />
+        <button
+          onClick={submitMood}
+          disabled={moodScore == null || moodSaving}
+          className="flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground px-4 py-2 rounded-full hover:opacity-90 transition-opacity disabled:opacity-60"
+        >
+          {moodSaving && <Loader2 size={12} className="animate-spin" />}
+          {t("intersession.moodSubmit")}
+        </button>
+        {moodError && (
+          <p className="text-red-500 text-xs mt-2">
+            {t("intersession.moodError")}
+          </p>
+        )}
+        {!loading && entries.length > 0 && (
+          <div className="flex items-center gap-2 mt-5 flex-wrap">
+            {entries.map((e) => (
+              <div
+                key={e.id}
+                title={e.note ?? ""}
+                className="flex flex-col items-center gap-0.5 bg-secondary rounded-lg px-2.5 py-1.5"
+              >
+                <span className="text-base leading-none">
+                  {moodEmojis[e.mood_score - 1]}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {dateLabel(e.entry_date)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="bg-card border border-border rounded-2xl p-6">
+        <h3 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
+          <Activity size={16} className="text-primary" />
+          {t("intersession.scalesTitle")}
+        </h3>
+        <p className="text-xs text-muted-foreground mb-4">
+          {t("intersession.scalesSubtitle")}
+        </p>
+
+        {activeScale ? (
+          <div>
+            <div className="space-y-4">
+              {Array.from({ length: ASSESSMENT_QUESTION_COUNT[activeScale] }).map(
+                (_, i) => (
+                  <div key={i}>
+                    <p className="text-sm text-foreground mb-2">
+                      {i + 1}. {t(`assessments.${activeScale}.q${i + 1}`)}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {[0, 1, 2, 3].map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() =>
+                            setScaleAnswers((prev) => {
+                              const next = [...prev];
+                              next[i] = opt;
+                              return next;
+                            })
+                          }
+                          className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${scaleAnswers[i] === opt ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}
+                        >
+                          {t(`assessments.options.${opt}`)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ),
+              )}
+            </div>
+            {scaleError && (
+              <p className="text-red-500 text-xs mt-4">
+                {t("intersession.scaleError")}
+              </p>
+            )}
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setActiveScale(null)}
+                className="px-5 py-2 rounded-full border border-border text-sm font-medium hover:bg-secondary transition-colors"
+              >
+                {t("intersession.scaleCancel")}
+              </button>
+              <button
+                onClick={submitScale}
+                disabled={scaleAnswers.some((a) => a < 0) || scaleSaving}
+                className="px-5 py-2 rounded-full bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
+              >
+                {scaleSaving ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  t("intersession.scaleSubmit")
+                )}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex gap-2 mb-5">
+              <button
+                onClick={() => startScale("phq9")}
+                className="text-xs font-medium px-4 py-2 rounded-full border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+              >
+                {t("intersession.startPhq9")}
+              </button>
+              <button
+                onClick={() => startScale("gad7")}
+                className="text-xs font-medium px-4 py-2 rounded-full border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+              >
+                {t("intersession.startGad7")}
+              </button>
+            </div>
+
+            {lastResult && (
+              <div className="bg-secondary rounded-lg p-4 mb-4">
+                <p className="text-sm font-semibold text-foreground">
+                  {t(`intersession.scaleName.${lastResult.scale}`)} ·{" "}
+                  {lastResult.total_score}{" "}
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${severityBadgeStyles[lastResult.severity] ?? ""}`}
+                  >
+                    {t(`intersession.severity.${lastResult.severity}`)}
+                  </span>
+                </p>
+                {lastResult.flagged && (
+                  <p className="text-xs text-red-600 mt-2 leading-relaxed">
+                    {t("intersession.flaggedNotice")}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {assessments.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                {t("intersession.noAssessments")}
+              </p>
+            ) : (
+              <div className="divide-y divide-border">
+                {assessments.map((a) => (
+                  <div
+                    key={a.id}
+                    className="py-2.5 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-foreground">
+                        {t(`intersession.scaleName.${a.scale}`)}
+                      </span>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium ${severityBadgeStyles[a.severity] ?? ""}`}
+                      >
+                        {a.total_score} ·{" "}
+                        {t(`intersession.severity.${a.severity}`)}
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {dateLabel(a.created_at.slice(0, 10))}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
 function PatientArea({
   user,
   onLogout,
@@ -17232,6 +18264,8 @@ function PatientArea({
                 </div>
               </div>
             )}
+
+            {profile && <PatientMoodAndScales patientId={profile.id} />}
 
             <div className="bg-card border border-border rounded-2xl p-6">
               <h3 className="text-sm font-semibold text-foreground mb-4">

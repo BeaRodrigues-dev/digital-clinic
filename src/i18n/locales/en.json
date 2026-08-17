@@ -558,7 +558,8 @@
     "navPlan": "Plan",
     "navRequests": "Requests",
     "navPayouts": "Payouts",
-    "navPackages": "Packages"
+    "navPackages": "Packages",
+    "navReports": "Reports"
   },
   "patients": {
     "title": "Patients",
@@ -767,7 +768,10 @@
         "psychological_report": "Psychological report",
         "referral": "Referral",
         "attendance_declaration": "Attendance certificate",
-        "medical_certificate": "Medical certificate"
+        "medical_certificate": "Medical certificate",
+        "psychological_appraisal": "Psychological appraisal",
+        "professional_opinion": "Professional opinion",
+        "informed_consent": "Informed Consent Form"
       },
       "fields": {
         "patientLabel": "Patient",
@@ -787,7 +791,10 @@
         "requiredError": "Select a patient and fill in the document content.",
         "genericSaveError": "Couldn't save the document. Please try again.",
         "saveEdit": "Save changes",
-        "saveNew": "Save document"
+        "saveNew": "Save document",
+        "downloadPdfButton": "Download PDF",
+        "printPdfButton": "Print / save as PDF",
+        "pdfMeta": "Patient: {{patient}} · Type: {{type}}"
       }
     },
     "lock": {
@@ -1386,6 +1393,94 @@
       "invalidAmountError": "Enter a valid amount.",
       "genericSaveError": "Error saving. Please try again.",
       "saveNew": "Register package"
+    }
+  },
+  "assessments": {
+    "options": {
+      "0": "Not at all",
+      "1": "Several days",
+      "2": "More than half the days",
+      "3": "Nearly every day"
+    },
+    "phq9": {
+      "q1": "Little interest or pleasure in doing things",
+      "q2": "Feeling down, depressed, or hopeless",
+      "q3": "Trouble falling or staying asleep, or sleeping too much",
+      "q4": "Feeling tired or having little energy",
+      "q5": "Poor appetite or overeating",
+      "q6": "Feeling bad about yourself — or that you are a failure or have let yourself or your family down",
+      "q7": "Trouble concentrating on things, such as reading the newspaper or watching television",
+      "q8": "Moving or speaking so slowly that other people could have noticed, or the opposite — being so fidgety or restless that you moved around a lot more than usual",
+      "q9": "Thoughts that you would be better off dead, or of hurting yourself in some way"
+    },
+    "gad7": {
+      "q1": "Feeling nervous, anxious, or on edge",
+      "q2": "Not being able to stop or control worrying",
+      "q3": "Worrying too much about different things",
+      "q4": "Trouble relaxing",
+      "q5": "Being so restless that it's hard to sit still",
+      "q6": "Becoming easily annoyed or irritable",
+      "q7": "Feeling afraid, as if something awful might happen"
+    }
+  },
+  "intersession": {
+    "moodTitle": "Mood diary",
+    "moodSubtitle": "Log how you're feeling today, in a few seconds.",
+    "moodScale": {
+      "1": "Very bad",
+      "2": "Bad",
+      "3": "Neutral",
+      "4": "Good",
+      "5": "Very good"
+    },
+    "moodNotePlaceholder": "Anything you'd like to jot down (optional)",
+    "moodSubmit": "Log today's mood",
+    "moodError": "Couldn't log it right now. Please try again.",
+    "scalesTitle": "Psychometric scales",
+    "scalesSubtitle": "PHQ-9 (depression) and GAD-7 (anxiety) — standardized, freely available instruments at no cost. Answers are visible to your provider.",
+    "startPhq9": "Take PHQ-9",
+    "startGad7": "Take GAD-7",
+    "scaleName": {
+      "phq9": "PHQ-9",
+      "gad7": "GAD-7"
+    },
+    "severity": {
+      "minimal": "Minimal",
+      "mild": "Mild",
+      "moderate": "Moderate",
+      "moderatelySevere": "Moderately severe",
+      "severe": "Severe"
+    },
+    "scaleCancel": "Cancel",
+    "scaleSubmit": "Submit answers",
+    "scaleError": "Couldn't save right now. Please try again.",
+    "noAssessments": "No scales answered yet.",
+    "flaggedNotice": "One of your answers indicates thoughts of self-harm. This has already been shared with your provider. If you're in danger right now, please seek emergency help immediately.",
+    "professionalTitle": "Mood diary and scales (between sessions)",
+    "flaggedProfessionalNotice": "Attention: a recent PHQ-9 answer indicates self-harm ideation (item 9). Please review with priority."
+  },
+  "clinicReports": {
+    "title": "Clinic reports",
+    "subtitle": "Aggregated revenue and retention across the whole team.",
+    "loading": "Loading reports...",
+    "errorLoading": "Couldn't load the reports right now. Please try again.",
+    "noClinic": "This area is only for clinic administrators.",
+    "kpi": {
+      "revenueThisMonth": "Revenue this month",
+      "activePatients": "Active patients",
+      "retentionRate": "Retention rate",
+      "completedThisMonth": "Completed sessions this month"
+    },
+    "chartTitle": "Revenue by month",
+    "chartHint": "Last 6 months, summed across every professional in the clinic.",
+    "byProfessionalTitle": "By professional",
+    "noProfessionals": "No professionals on the team yet.",
+    "table": {
+      "professional": "Professional",
+      "revenueThisMonth": "This month",
+      "revenueTotal": "Total received",
+      "activePatients": "Active patients",
+      "completedThisMonth": "Sessions this month"
     }
   }
 }

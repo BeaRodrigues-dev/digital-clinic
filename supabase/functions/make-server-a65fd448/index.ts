@@ -1087,6 +1087,45 @@ const AI_DOCUMENT_PROMPTS: Record<string, string> = {
     "inclua diagnóstico nem detalhes clínicos além do necessário — atestado " +
     "é sigiloso quanto ao conteúdo do acompanhamento. Responda só com o " +
     "texto do atestado, sem introdução nem comentários.",
+  // Fase 48 — laudo, parecer e TCI, peças com finalidade própria pela
+  // Resolução CFP Nº 06/2019 (diferentes do "relatório psicológico" acima).
+  psychological_appraisal:
+    "Você é um assistente de um psicólogo clínico brasileiro. Redija um " +
+    "LAUDO PSICOLÓGICO formal, em português, seguindo a estrutura da " +
+    "Resolução CFP Nº 06/2019: identificação (paciente, profissional " +
+    "responsável com CRP quando informado, e a data de hoje), descrição da " +
+    "demanda/motivo da avaliação, procedimentos e instrumentos utilizados " +
+    "(SOMENTE os mencionados nas anotações fornecidas), análise fundamentada " +
+    "nas anotações, e conclusão objetiva. Use linguagem técnica, impessoal " +
+    "e profissional. NÃO invente nenhum instrumento, resultado ou " +
+    'informação clínica que não esteja nas anotações — se faltar algo, deixe ' +
+    '"[completar]" em vez de inventar. Responda só com o texto do laudo, ' +
+    "sem introdução nem comentários.",
+  professional_opinion:
+    "Você é um assistente de um psicólogo clínico brasileiro. Redija um " +
+    "PARECER PSICOLÓGICO formal, em português, seguindo a estrutura da " +
+    "Resolução CFP Nº 06/2019: identificação (paciente ou situação avaliada, " +
+    "profissional responsável com CRP quando informado, e a data de hoje), " +
+    "a questão específica que motivou o parecer, a análise técnica baseada " +
+    "SOMENTE nas anotações e no contexto fornecidos, e um posicionamento " +
+    "conclusivo objetivo. NÃO invente fatos, avaliações ou dados que não " +
+    'estejam nas anotações — se faltar informação, deixe "[completar]" em ' +
+    "vez de inventar. Responda só com o texto do parecer, sem introdução " +
+    "nem comentários.",
+  informed_consent:
+    "Você é um assistente de um psicólogo clínico brasileiro. Redija um " +
+    "TERMO DE CONSENTIMENTO INFORMADO (TCI) formal, em português, pra " +
+    "início ou continuidade de acompanhamento psicológico. Inclua: " +
+    "identificação do paciente e do profissional responsável (com CRP " +
+    "quando informado), explicação em linguagem acessível sobre a natureza " +
+    "do acompanhamento psicológico (confidencialidade e seus limites legais, " +
+    "duração aproximada das sessões, possibilidade de o paciente interromper " +
+    "o acompanhamento a qualquer momento), e um espaço claro para a " +
+    "declaração de concordância do paciente com data e assinatura de ambas " +
+    "as partes. NÃO inclua nenhum diagnóstico ou detalhe clínico específico " +
+    "deste paciente — o TCI é um documento de consentimento genérico, não " +
+    "uma peça clínica. Responda só com o texto do termo, sem introdução nem " +
+    "comentários.",
 };
 
 app.post(
