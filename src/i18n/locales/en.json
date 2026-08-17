@@ -556,7 +556,8 @@
     "navClinic": "Clinic",
     "navSettings": "Settings",
     "navPlan": "Plan",
-    "navRequests": "Requests"
+    "navRequests": "Requests",
+    "navPayouts": "Payouts"
   },
   "patients": {
     "title": "Patients",
@@ -825,7 +826,13 @@
       "saveEdit": "Save changes",
       "amountPlaceholder": "150.00"
     },
-    "actionError": "Couldn't complete the action. Please try again."
+    "actionError": "Couldn't complete the action. Please try again.",
+    "myCommission": {
+      "percentLabel": "Your commission at this clinic",
+      "percentValue": "{{value}}%",
+      "paidOutLabel": "Already paid out to you",
+      "pendingLabel": "Pending payout"
+    }
   },
   "patientArea": {
     "title": "My area",
@@ -933,7 +940,11 @@
       "remove": "Remove from clinic",
       "removeConfirmTitle": "Remove professional from the clinic?",
       "removeConfirmBody": "{{name}} leaves this clinic and automatically gets their own clinic, so they keep access to their own schedule and patients.",
-      "removeError": "Couldn't remove them. Please try again."
+      "removeError": "Couldn't remove them. Please try again.",
+      "commissionLabel": "Clinic commission",
+      "commissionSave": "Save",
+      "commissionError": "Couldn't save. Please try again.",
+      "commissionReadOnly": "Clinic commission: {{value}}%"
     }
   },
   "plans": {
@@ -990,10 +1001,11 @@
       "price": "Contact us",
       "features": [
         "Unlimited active patients",
-        "Multiple professionals (coming soon)",
+        "Multiple professionals",
         "Scheduling, records, and billing",
         "Patient portal",
-        "AI note summarizing and organizing"
+        "AI note summarizing and organizing",
+        "Commission & payout management"
       ]
     },
     "downgradeConfirmTitle": "Switch to the {{plan}} plan?",
@@ -1254,5 +1266,34 @@
     "submit": "Create my account",
     "isProfessional": "Are you a psychologist?",
     "isProfessionalLink": "Sign up here"
+  },
+  "payouts": {
+    "title": "Payouts",
+    "subtitle": "Track how much each team professional has earned, how much has been paid out, and how much is still owed.",
+    "loading": "Loading payouts...",
+    "errorLoading": "Couldn't load the payouts.",
+    "emptyTeamTitle": "No team yet",
+    "emptyTeamBody": "Link another professional in Settings → Clinic to start tracking payouts.",
+    "commissionBadge": "Commission: {{value}}%",
+    "commissionMissingBadge": "Commission not set",
+    "grossPaidLabel": "Received by professional",
+    "paidOutLabel": "Already paid out",
+    "pendingLabel": "Pending payout",
+    "registerButton": "Register payout",
+    "historyTitle": "Payout history",
+    "historyEmpty": "No payouts registered yet.",
+    "historyPaidAt": "Paid on {{date}}",
+    "historyRegisteredAt": "Registered on {{date}}",
+    "actionError": "Couldn't update right now. Please try again.",
+    "markPaid": "Mark as paid",
+    "status": {
+      "pending": "Pending",
+      "paid": "Paid"
+    },
+    "registerModalTitle": "Register payout",
+    "amountLabel": "Amount",
+    "notesLabel": "Notes (optional)",
+    "registerError": "Couldn't register. Check the amount and try again.",
+    "registerConfirm": "Register"
   }
 }

@@ -556,7 +556,8 @@
     "navClinic": "Clínica",
     "navPlan": "Plano",
     "navSettings": "Configurações",
-    "navRequests": "Solicitações"
+    "navRequests": "Solicitações",
+    "navPayouts": "Repasses"
   },
   "patients": {
     "title": "Pacientes",
@@ -825,7 +826,13 @@
       "saveEdit": "Salvar alterações",
       "amountPlaceholder": "150,00"
     },
-    "actionError": "Não foi possível concluir a ação. Tente novamente."
+    "actionError": "Não foi possível concluir a ação. Tente novamente.",
+    "myCommission": {
+      "percentLabel": "Sua comissão nesta clínica",
+      "percentValue": "{{value}}%",
+      "paidOutLabel": "Já repassado a você",
+      "pendingLabel": "Pendente de repasse"
+    }
   },
   "patientArea": {
     "title": "Minha área",
@@ -933,7 +940,11 @@
       "remove": "Remover da clínica",
       "removeConfirmTitle": "Remover profissional da clínica?",
       "removeConfirmBody": "{{name}} sai desta clínica e ganha uma clínica própria automaticamente, pra continuar com acesso à própria agenda e pacientes.",
-      "removeError": "Não foi possível remover. Tente novamente."
+      "removeError": "Não foi possível remover. Tente novamente.",
+      "commissionLabel": "Comissão da clínica",
+      "commissionSave": "Salvar",
+      "commissionError": "Não foi possível salvar. Tente novamente.",
+      "commissionReadOnly": "Comissão da clínica: {{value}}%"
     }
   },
   "plans": {
@@ -990,10 +1001,11 @@
       "price": "Fale conosco",
       "features": [
         "Pacientes ativos ilimitados",
-        "Vários profissionais (em breve)",
+        "Vários profissionais",
         "Agenda, prontuário e financeiro",
         "Portal do paciente",
-        "Resumo e organização de anotações com IA"
+        "Resumo e organização de anotações com IA",
+        "Gestão de repasses e comissões"
       ]
     },
     "downgradeConfirmTitle": "Trocar para o plano {{plan}}?",
@@ -1254,5 +1266,34 @@
     "submit": "Criar minha conta",
     "isProfessional": "É psicólogo(a)?",
     "isProfessionalLink": "Cadastre-se por aqui"
+  },
+  "payouts": {
+    "title": "Repasses",
+    "subtitle": "Acompanhe quanto cada profissional da equipe já recebeu, quanto já foi repassado e quanto ainda falta.",
+    "loading": "Carregando repasses...",
+    "errorLoading": "Não foi possível carregar os repasses.",
+    "emptyTeamTitle": "Ainda não há equipe",
+    "emptyTeamBody": "Vincule outro profissional em Configurações → Clínica para começar a acompanhar repasses.",
+    "commissionBadge": "Comissão: {{value}}%",
+    "commissionMissingBadge": "Comissão não configurada",
+    "grossPaidLabel": "Recebido pelo profissional",
+    "paidOutLabel": "Já repassado",
+    "pendingLabel": "Pendente de repasse",
+    "registerButton": "Registrar repasse",
+    "historyTitle": "Histórico de repasses",
+    "historyEmpty": "Nenhum repasse registrado ainda.",
+    "historyPaidAt": "Pago em {{date}}",
+    "historyRegisteredAt": "Registrado em {{date}}",
+    "actionError": "Não foi possível atualizar agora. Tente novamente.",
+    "markPaid": "Marcar como pago",
+    "status": {
+      "pending": "Pendente",
+      "paid": "Pago"
+    },
+    "registerModalTitle": "Registrar repasse",
+    "amountLabel": "Valor",
+    "notesLabel": "Observações (opcional)",
+    "registerError": "Não foi possível registrar. Confira o valor e tente novamente.",
+    "registerConfirm": "Registrar"
   }
 }

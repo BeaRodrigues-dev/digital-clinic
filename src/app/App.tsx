@@ -45,6 +45,7 @@ import {
   Mail,
   Search,
   MessageSquare,
+  HandCoins,
 } from "lucide-react";
 
 import {
@@ -2587,18 +2588,28 @@ function SecretaryDashboard({
       style={{ fontFamily: "'Nunito', sans-serif" }}
     >
       {/* Sidebar — desktop */}
-      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground h-screen sticky top-0 overflow-y-auto">
-        <div className="flex items-center gap-2 px-6 h-16 shrink-0">
-          <BrandMark size={16} light />
-          <span
-            className="font-bold text-sm"
-            style={{ fontFamily: "'Fraunces', serif" }}
-          >
-            {t("secretary.navTitle")}
-          </span>
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground h-screen sticky top-0">
+        {/* Fase 36 — antes o `overflow-y-auto` ficava no `<aside>` inteiro,
+            então o menu do usuário (que abre PRA CIMA, `openUp`, a partir
+            deste rodapé) era cortado pela própria sidebar: um elemento com
+            overflow clipa qualquer descendente posicionado `absolute` que
+            tente desenhar fora da caixa, mesmo abrindo pra cima. Isolando o
+            scroll só no bloco de cima (marca + navegação) e deixando o
+            rodapé (com o menu) FORA da área com overflow, o menu passa a
+            desenhar por cima de tudo sem ser cortado. */}
+        <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
+          <div className="flex items-center gap-2 px-6 h-16 shrink-0">
+            <BrandMark size={16} light />
+            <span
+              className="font-bold text-sm"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              {t("secretary.navTitle")}
+            </span>
+          </div>
+          {sidebarNav()}
         </div>
-        {sidebarNav()}
-        <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3">
+        <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3 shrink-0">
           <button
             onClick={() => {
               window.location.hash = "";
@@ -2731,11 +2742,38 @@ function ProfessionalDashboard({
     | "records"
     | "requests"
     | "finance"
+    | "payouts"
     | "settings"
   >("overview");
   // Fase 28 — sidebar fixa nas telas internas em vez das abas no topo (ver
   // nota equivalente em `SecretaryDashboard`).
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Fase 37 — "Repasses" só aparece pra quem é dono de uma clínica no
+  // plano empresarial (única situação em que faz sentido gerenciar
+  // comissão/repasse de equipe). Buscado à parte porque `AppUser` não
+  // carrega plano nem `owner_id` da clínica.
+  const [showPayouts, setShowPayouts] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    if (!user.clinicId) {
+      setShowPayouts(false);
+      return;
+    }
+    (async () => {
+      const { data } = await supabase
+        .from("clinics")
+        .select("plan, owner_id")
+        .eq("id", user.clinicId)
+        .maybeSingle();
+      if (!cancelled) {
+        setShowPayouts(!!data && data.plan === "clinic" && data.owner_id === user.id);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user.clinicId, user.id]);
 
   // Fase 29 — contagem de solicitações pendentes pro badge no menu
   // "Solicitações" (ver nota equivalente em `SecretaryDashboard`).
@@ -2994,6 +3032,7 @@ function ProfessionalDashboard({
       | "records"
       | "requests"
       | "finance"
+      | "payouts"
       | "settings";
     icon: React.ReactNode;
     label: string;
@@ -3037,6 +3076,16 @@ function ProfessionalDashboard({
       label: t("dashboard.navFinance"),
       onClick: () => setView("finance"),
     },
+    ...(showPayouts
+      ? [
+          {
+            key: "payouts" as const,
+            icon: <HandCoins size={14} />,
+            label: t("dashboard.navPayouts"),
+            onClick: () => setView("payouts"),
+          },
+        ]
+      : []),
     {
       key: "settings",
       icon: <UserCircle size={14} />,
@@ -3085,18 +3134,23 @@ function ProfessionalDashboard({
       style={{ fontFamily: "'Nunito', sans-serif" }}
     >
       {/* Sidebar — desktop */}
-      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground h-screen sticky top-0 overflow-y-auto">
-        <div className="flex items-center gap-2 px-6 h-16 shrink-0">
-          <BrandMark size={16} light />
-          <span
-            className="font-bold text-sm"
-            style={{ fontFamily: "'Fraunces', serif" }}
-          >
-            {t("dashboard.title")}
-          </span>
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground h-screen sticky top-0">
+        {/* Fase 36 — ver nota equivalente em SecretaryDashboard: o scroll
+            precisa ficar isolado no bloco de cima, senão o menu do usuário
+            (que abre pra cima) é cortado pelo overflow da própria sidebar. */}
+        <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
+          <div className="flex items-center gap-2 px-6 h-16 shrink-0">
+            <BrandMark size={16} light />
+            <span
+              className="font-bold text-sm"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              {t("dashboard.title")}
+            </span>
+          </div>
+          {proSidebarNav()}
         </div>
-        {proSidebarNav()}
-        <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3">
+        <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3 shrink-0">
           <button
             onClick={() => {
               window.location.hash = "";
@@ -3200,13 +3254,15 @@ function ProfessionalDashboard({
                     ? t("requests.title")
                     : view === "finance"
                       ? t("finance.title")
-                      : view === "settings"
-                        ? t("settings.title")
-                        : user.fullName
-                          ? t("dashboard.greeting", {
-                              name: user.fullName.trim().split(/\s+/)[0],
-                            })
-                          : t("dashboard.title")}
+                      : view === "payouts"
+                        ? t("payouts.title")
+                        : view === "settings"
+                          ? t("settings.title")
+                          : user.fullName
+                            ? t("dashboard.greeting", {
+                                name: user.fullName.trim().split(/\s+/)[0],
+                              })
+                            : t("dashboard.title")}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
             {view === "patients"
@@ -3219,9 +3275,11 @@ function ProfessionalDashboard({
                     ? t("requests.subtitle")
                     : view === "finance"
                       ? t("finance.subtitle")
-                      : view === "settings"
-                        ? t("settings.subtitle")
-                        : t("dashboard.subtitle")}
+                      : view === "payouts"
+                        ? t("payouts.subtitle")
+                        : view === "settings"
+                          ? t("settings.subtitle")
+                          : t("dashboard.subtitle")}
           </p>
         </div>
 
@@ -3235,6 +3293,8 @@ function ProfessionalDashboard({
           <RequestsView user={user} />
         ) : view === "finance" ? (
           <FinanceView user={user} />
+        ) : view === "payouts" ? (
+          <ClinicPayoutsView user={user} />
         ) : view === "settings" ? (
           <SettingsView
             user={user}
@@ -7561,29 +7621,51 @@ function FinanceView({ user }: { user: AppUser }) {
   // Fase 32 — moeda de cobrança do profissional, usada em toda formatação
   // monetária desta tela.
   const [profCurrency, setProfCurrency] = useState("BRL");
+  // Fase 37 — pra quem é profissional de equipe (não dono) numa clínica
+  // que configurou comissão: mostra, só pra informação, quanto já foi
+  // repassado a ele. Continua sem poder editar nada disso (RLS: só lê a
+  // própria comissão/os próprios repasses).
+  const [myCommissionPercent, setMyCommissionPercent] = useState<
+    number | null
+  >(null);
+  const [myPaidOut, setMyPaidOut] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(false);
-    const [paymentsRes, patientsRes, professionalRes] = await Promise.all([
-      supabase
-        .from("payments")
-        .select(
-          "id, patient_id, appointment_id, amount, status, paid_at, created_at, patients(full_name)",
-        )
-        .eq("professional_id", user.id)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("patients")
-        .select("id, full_name")
-        .eq("professional_id", user.id)
-        .order("full_name", { ascending: true }),
-      supabase
-        .from("professionals")
-        .select("session_price, currency")
-        .eq("id", user.id)
-        .maybeSingle(),
-    ]);
+    const [paymentsRes, patientsRes, professionalRes, commissionRes, payoutsRes] =
+      await Promise.all([
+        supabase
+          .from("payments")
+          .select(
+            "id, patient_id, appointment_id, amount, status, paid_at, created_at, patients(full_name)",
+          )
+          .eq("professional_id", user.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("patients")
+          .select("id, full_name")
+          .eq("professional_id", user.id)
+          .order("full_name", { ascending: true }),
+        supabase
+          .from("professionals")
+          .select("session_price, currency")
+          .eq("id", user.id)
+          .maybeSingle(),
+        user.clinicId
+          ? supabase
+              .from("professional_commissions")
+              .select("commission_percent")
+              .eq("professional_id", user.id)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+        user.clinicId
+          ? supabase
+              .from("payouts")
+              .select("amount, status")
+              .eq("professional_id", user.id)
+          : Promise.resolve({ data: null }),
+      ]);
     if (paymentsRes.error) {
       setError(true);
     } else {
@@ -7598,8 +7680,18 @@ function FinanceView({ user }: { user: AppUser }) {
     setProfCurrency(
       (professionalRes.data as any)?.currency === "EUR" ? "EUR" : "BRL",
     );
+    setMyCommissionPercent(
+      typeof (commissionRes.data as any)?.commission_percent === "number"
+        ? (commissionRes.data as any).commission_percent
+        : null,
+    );
+    setMyPaidOut(
+      ((payoutsRes.data as any[]) ?? [])
+        .filter((p) => p.status === "paid")
+        .reduce((sum, p) => sum + Number(p.amount), 0),
+    );
     setLoading(false);
-  }, [user.id]);
+  }, [user.id, user.clinicId]);
 
   useEffect(() => {
     load();
@@ -7689,6 +7781,19 @@ function FinanceView({ user }: { user: AppUser }) {
   const totalOverdue = payments
     .filter((p) => p.status === "overdue")
     .reduce((sum, p) => sum + Number(p.amount), 0);
+  // Fase 37 — mesmo cálculo usado em ClinicPayoutsView (lado da clínica),
+  // aqui do lado do profissional: total histórico recebido × (1 −
+  // comissão) − o que já foi repassado, nunca negativo.
+  const myTotalReceived = payments
+    .filter((p) => p.status === "paid")
+    .reduce((sum, p) => sum + Number(p.amount), 0);
+  const myPendingPayout =
+    myCommissionPercent != null
+      ? Math.max(
+          0,
+          myTotalReceived * (1 - myCommissionPercent / 100) - myPaidOut,
+        )
+      : 0;
 
   const filtered = payments.filter((p) => {
     if (patientFilter && p.patient_id !== patientFilter) return false;
@@ -7764,6 +7869,40 @@ function FinanceView({ user }: { user: AppUser }) {
           </p>
         </div>
       </div>
+
+      {/* Fase 37 — só aparece pra quem tem comissão configurada (equipe de
+          clínica, não dono); é informativo, quem registra/confirma repasse
+          é a clínica em ClinicPayoutsView. */}
+      {myCommissionPercent != null && (
+        <div className="bg-secondary border border-border rounded-2xl px-6 py-4 mb-8 flex flex-wrap items-center gap-x-8 gap-y-2">
+          <div>
+            <p className="text-xs text-muted-foreground">
+              {t("finance.myCommission.percentLabel")}
+            </p>
+            <p className="text-sm font-semibold text-foreground">
+              {t("finance.myCommission.percentValue", {
+                value: myCommissionPercent,
+              })}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">
+              {t("finance.myCommission.paidOutLabel")}
+            </p>
+            <p className="text-sm font-semibold text-foreground">
+              {currency(myPaidOut)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">
+              {t("finance.myCommission.pendingLabel")}
+            </p>
+            <p className="text-sm font-semibold text-foreground">
+              {currency(myPendingPayout)}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex flex-wrap gap-2">
@@ -8313,6 +8452,9 @@ type ClinicProfessionalRow = {
   id: string;
   full_name: string | null;
   email: string | null;
+  // Fase 37 — % que fica com a clínica sobre o que este profissional
+  // recebe dos próprios pacientes. Null = ainda não configurado.
+  commission_percent: number | null;
 };
 
 function ProfessionalTeamSection({
@@ -8336,19 +8478,96 @@ function ProfessionalTeamSection({
   const [removeTarget, setRemoveTarget] =
     useState<ClinicProfessionalRow | null>(null);
   const [removeError, setRemoveError] = useState(false);
+  // Fase 37 — rascunho do % de comissão por profissional (chave = id),
+  // separado do valor já salvo em `professionals` pra permitir editar sem
+  // disparar save a cada tecla; e o estado de "salvando"/"erro" por linha.
+  const [commissionDrafts, setCommissionDrafts] = useState<
+    Record<string, string>
+  >({});
+  const [savingCommissionId, setSavingCommissionId] = useState<string | null>(
+    null,
+  );
+  const [commissionErrorId, setCommissionErrorId] = useState<string | null>(
+    null,
+  );
 
   const isBusinessPlan = plan === "clinic";
 
   const load = useCallback(async () => {
     setLoading(true);
+    // Fase 37 — busca a partir de `professionals` (não `profiles`) porque
+    // é o mesmo sentido de embed já usado no resto do app (ver
+    // mapProfessionalRow e afins); `professionals.clinic_id` já filtra só
+    // quem é psicólogo desta clínica, então o `.eq("role", "psychologist")`
+    // de antes era redundante. `commission_percent` mora numa tabela à
+    // parte (`professional_commissions`, não coluna aqui) — ver comentário
+    // na migração da Fase 37 — mas dá pra embutir do mesmo jeito porque
+    // existe FK entre as duas; a RLS dessa tabela garante que só o dono da
+    // clínica (ou o próprio profissional) recebe algo aqui, sem precisar
+    // de nenhum filtro extra no frontend.
     const { data } = await supabase
-      .from("profiles")
-      .select("id, full_name, email")
-      .eq("clinic_id", clinicId)
-      .eq("role", "psychologist");
-    setProfessionals((data as ClinicProfessionalRow[]) ?? []);
+      .from("professionals")
+      .select(
+        "id, profiles(full_name, email), professional_commissions(commission_percent)",
+      )
+      .eq("clinic_id", clinicId);
+    const rows: ClinicProfessionalRow[] = ((data ?? []) as any[]).map(
+      (p) => ({
+        id: p.id,
+        full_name: p.profiles?.full_name ?? null,
+        email: p.profiles?.email ?? null,
+        commission_percent:
+          typeof p.professional_commissions?.commission_percent === "number"
+            ? p.professional_commissions.commission_percent
+            : null,
+      }),
+    );
+    setProfessionals(rows);
+    setCommissionDrafts((prev) => {
+      const next: Record<string, string> = {};
+      for (const r of rows) {
+        next[r.id] =
+          prev[r.id] !== undefined
+            ? prev[r.id]
+            : r.commission_percent != null
+              ? String(r.commission_percent)
+              : "";
+      }
+      return next;
+    });
     setLoading(false);
   }, [clinicId]);
+
+  const handleSaveCommission = async (id: string) => {
+    const raw = (commissionDrafts[id] ?? "").trim();
+    let value: number | null = null;
+    if (raw !== "") {
+      const parsed = Number(raw.replace(",", "."));
+      if (Number.isNaN(parsed) || parsed < 0 || parsed > 100) {
+        setCommissionErrorId(id);
+        return;
+      }
+      value = parsed;
+    }
+    setCommissionErrorId(null);
+    setSavingCommissionId(id);
+    try {
+      await apiFetch(`/clinic/professional/${id}/commission`, {
+        method: "PUT",
+        body: JSON.stringify({ commission_percent: value }),
+      });
+      setProfessionals((prev) =>
+        prev.map((p) =>
+          p.id === id ? { ...p, commission_percent: value } : p,
+        ),
+      );
+    } catch (err) {
+      console.error("Falha ao salvar comissão do profissional:", err);
+      setCommissionErrorId(id);
+    } finally {
+      setSavingCommissionId(null);
+    }
+  };
 
   useEffect(() => {
     load();
@@ -8406,39 +8625,99 @@ function ProfessionalTeamSection({
             {professionals.map((p) => {
               const isOwner = p.id === ownerId;
               const isSelf = p.id === currentUserId;
+              // Fase 37 — só o dono da clínica pode ver/editar o campo de
+              // comissão; pro backend, tentativa de outra pessoa salvar é
+              // rejeitada de qualquer forma (ver rota PUT .../commission),
+              // isso aqui é só pra não mostrar um campo que não vai
+              // funcionar pra quem não é dono.
+              const viewerIsOwner = currentUserId === ownerId;
               return (
                 <div
                   key={p.id}
-                  className="flex items-center justify-between gap-3 bg-secondary rounded-lg px-4 py-3"
+                  className="flex flex-col gap-3 bg-secondary rounded-lg px-4 py-3"
                 >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate flex items-center gap-2">
-                      {p.full_name || t("userMenu.noName")}
-                      {isOwner && (
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-accent shrink-0">
-                          {t("clinicSettings.professionals.ownerBadge")}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate flex items-center gap-2">
+                        {p.full_name || t("userMenu.noName")}
+                        {isOwner && (
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-accent shrink-0">
+                            {t("clinicSettings.professionals.ownerBadge")}
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {p.email}
+                      </p>
+                    </div>
+                    {!isOwner && !isSelf && (
+                      <button
+                        onClick={() => {
+                          setRemoveError(false);
+                          setRemoveTarget(p);
+                        }}
+                        disabled={removingId === p.id}
+                        className="text-xs font-medium text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-50 shrink-0"
+                      >
+                        {removingId === p.id ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          t("clinicSettings.professionals.remove")
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  {/* Fase 37 — % de comissão só faz sentido pra quem não é o
+                      dono (o dono não tem repasse consigo mesmo). */}
+                  {!isOwner && viewerIsOwner && (
+                    <div className="flex items-center gap-2 pt-2 border-t border-border/60">
+                      <label className="text-xs text-muted-foreground shrink-0">
+                        {t("clinicSettings.professionals.commissionLabel")}
+                      </label>
+                      <div className="relative w-24">
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step="0.01"
+                          value={commissionDrafts[p.id] ?? ""}
+                          onChange={(e) =>
+                            setCommissionDrafts((prev) => ({
+                              ...prev,
+                              [p.id]: e.target.value,
+                            }))
+                          }
+                          className="w-full pl-2 pr-5 py-1 text-sm rounded-md border border-border bg-background text-foreground"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                          %
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleSaveCommission(p.id)}
+                        disabled={savingCommissionId === p.id}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-60 shrink-0 flex items-center gap-1.5"
+                      >
+                        {savingCommissionId === p.id && (
+                          <Loader2 size={12} className="animate-spin" />
+                        )}
+                        {t("clinicSettings.professionals.commissionSave")}
+                      </button>
+                      {commissionErrorId === p.id && (
+                        <span className="text-xs text-red-500">
+                          {t("clinicSettings.professionals.commissionError")}
                         </span>
                       )}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {p.email}
-                    </p>
-                  </div>
-                  {!isOwner && !isSelf && (
-                    <button
-                      onClick={() => {
-                        setRemoveError(false);
-                        setRemoveTarget(p);
-                      }}
-                      disabled={removingId === p.id}
-                      className="text-xs font-medium text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-50 shrink-0"
-                    >
-                      {removingId === p.id ? (
-                        <Loader2 size={14} className="animate-spin" />
-                      ) : (
-                        t("clinicSettings.professionals.remove")
-                      )}
-                    </button>
+                    </div>
+                  )}
+                  {!isOwner && !viewerIsOwner && p.commission_percent != null && (
+                    <div className="pt-2 border-t border-border/60">
+                      <span className="text-xs text-muted-foreground">
+                        {t("clinicSettings.professionals.commissionReadOnly", {
+                          value: p.commission_percent,
+                        })}
+                      </span>
+                    </div>
                   )}
                 </div>
               );
@@ -8498,6 +8777,473 @@ function ProfessionalTeamSection({
                   <Loader2 size={14} className="animate-spin" />
                 )}
                 {t("clinicSettings.professionals.remove")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Repasses e comissões (Fase 37 — só o dono da clínica, plano
+// empresarial com mais de um profissional) ──────────────────────────────
+// "Quanto cada profissional da equipe já recebeu dos próprios pacientes,
+// quanto disso é comissão da clínica, quanto já foi repassado e quanto
+// ainda falta" — só existe pra quem tem `commission_percent` configurado
+// (ver ProfessionalTeamSection); sem isso não dá pra calcular nada.
+type ClinicPayoutSummary = {
+  professionalId: string;
+  fullName: string | null;
+  currency: string;
+  commissionPercent: number | null;
+  grossPaid: number;
+  paidOut: number;
+  pending: number;
+};
+
+type ClinicPayoutRecord = {
+  id: string;
+  professional_id: string;
+  amount: number;
+  status: "pending" | "paid";
+  paid_at: string | null;
+  notes: string | null;
+  commission_percent_snapshot: number | null;
+  created_at: string;
+};
+
+function ClinicPayoutsView({ user }: { user: AppUser }) {
+  const { t, i18n } = useTranslation();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [summaries, setSummaries] = useState<ClinicPayoutSummary[]>([]);
+  const [records, setRecords] = useState<ClinicPayoutRecord[]>([]);
+  const [namesById, setNamesById] = useState<Record<string, string | null>>(
+    {},
+  );
+
+  const [registerTarget, setRegisterTarget] =
+    useState<ClinicPayoutSummary | null>(null);
+  const [registerAmount, setRegisterAmount] = useState("");
+  const [registerNotes, setRegisterNotes] = useState("");
+  const [registerSaving, setRegisterSaving] = useState(false);
+  const [registerError, setRegisterError] = useState(false);
+
+  const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!user.clinicId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(false);
+
+    const professionalsRes = await supabase
+      .from("professionals")
+      .select(
+        "id, currency, profiles(full_name), professional_commissions(commission_percent)",
+      )
+      .eq("clinic_id", user.clinicId);
+
+    if (professionalsRes.error) {
+      console.error(
+        "Falha ao carregar equipe pra repasses:",
+        professionalsRes.error,
+      );
+      setError(true);
+      setLoading(false);
+      return;
+    }
+
+    // O dono não tem comissão consigo mesmo (ver mesma regra em
+    // ProfessionalTeamSection) — fora dele da lista de repasses.
+    const team = ((professionalsRes.data ?? []) as any[]).filter(
+      (p) => p.id !== user.id,
+    );
+    const teamIds = team.map((p) => p.id);
+    const namesMap: Record<string, string | null> = {};
+    team.forEach((p) => {
+      namesMap[p.id] = p.profiles?.full_name ?? null;
+    });
+    setNamesById(namesMap);
+
+    if (teamIds.length === 0) {
+      setSummaries([]);
+      setRecords([]);
+      setLoading(false);
+      return;
+    }
+
+    const [paymentsRes, payoutsRes] = await Promise.all([
+      supabase
+        .from("payments")
+        .select("professional_id, amount, status")
+        .in("professional_id", teamIds),
+      supabase
+        .from("payouts")
+        .select(
+          "id, professional_id, amount, status, paid_at, notes, commission_percent_snapshot, created_at",
+        )
+        .eq("clinic_id", user.clinicId)
+        .order("created_at", { ascending: false }),
+    ]);
+
+    if (paymentsRes.error || payoutsRes.error) {
+      console.error(
+        "Falha ao carregar pagamentos/repasses da equipe:",
+        paymentsRes.error || payoutsRes.error,
+      );
+      setError(true);
+      setLoading(false);
+      return;
+    }
+
+    const grossByProf = new Map<string, number>();
+    (paymentsRes.data ?? []).forEach((p: any) => {
+      if (p.status !== "paid") return;
+      grossByProf.set(
+        p.professional_id,
+        (grossByProf.get(p.professional_id) ?? 0) + Number(p.amount),
+      );
+    });
+
+    const paidOutByProf = new Map<string, number>();
+    (payoutsRes.data ?? []).forEach((p: any) => {
+      if (p.status !== "paid") return;
+      paidOutByProf.set(
+        p.professional_id,
+        (paidOutByProf.get(p.professional_id) ?? 0) + Number(p.amount),
+      );
+    });
+
+    const nextSummaries: ClinicPayoutSummary[] = team.map((p) => {
+      const gross = grossByProf.get(p.id) ?? 0;
+      const commission =
+        typeof p.professional_commissions?.commission_percent === "number"
+          ? p.professional_commissions.commission_percent
+          : null;
+      // Repasse pendente é calculado sobre o total histórico (não
+      // período), pra não contar duas vezes — ver nota no início da Fase
+      // 37: (recebido líquido de comissão) − (já pago), nunca negativo.
+      const netOwed = commission != null ? gross * (1 - commission / 100) : 0;
+      const paidOut = paidOutByProf.get(p.id) ?? 0;
+      const pending = Math.max(0, netOwed - paidOut);
+      return {
+        professionalId: p.id,
+        fullName: p.profiles?.full_name ?? null,
+        currency: p.currency === "EUR" ? "EUR" : "BRL",
+        commissionPercent: commission,
+        grossPaid: gross,
+        paidOut,
+        pending,
+      };
+    });
+    setSummaries(nextSummaries);
+    setRecords((payoutsRes.data as ClinicPayoutRecord[]) ?? []);
+    setLoading(false);
+  }, [user.clinicId, user.id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const openRegister = (summary: ClinicPayoutSummary) => {
+    setRegisterTarget(summary);
+    setRegisterAmount(summary.pending > 0 ? summary.pending.toFixed(2) : "");
+    setRegisterNotes("");
+    setRegisterError(false);
+  };
+
+  const handleRegister = async () => {
+    if (!registerTarget || !user.clinicId) return;
+    const parsed = Number(registerAmount.replace(",", "."));
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setRegisterError(true);
+      return;
+    }
+    setRegisterSaving(true);
+    setRegisterError(false);
+    // Repasse nasce "pendente" (espelha handleSave de FinanceView) — vira
+    // "pago" só quando alguém confirma via markPaid, ação separada.
+    const { error: err } = await supabase.from("payouts").insert({
+      professional_id: registerTarget.professionalId,
+      clinic_id: user.clinicId,
+      amount: parsed,
+      commission_percent_snapshot: registerTarget.commissionPercent,
+      status: "pending",
+      notes: registerNotes.trim() || null,
+      created_by: user.id,
+    });
+    if (err) {
+      console.error("Falha ao registrar repasse:", err);
+      setRegisterError(true);
+      setRegisterSaving(false);
+      return;
+    }
+    setRegisterSaving(false);
+    setRegisterTarget(null);
+    await load();
+  };
+
+  const markPaid = async (id: string) => {
+    setActionError(false);
+    setMarkingPaidId(id);
+    const { error: err } = await supabase
+      .from("payouts")
+      .update({ status: "paid", paid_at: new Date().toISOString() })
+      .eq("id", id);
+    if (err) {
+      console.error("Falha ao marcar repasse como pago:", err);
+      setActionError(true);
+    } else {
+      await load();
+    }
+    setMarkingPaidId(null);
+  };
+
+  const currency = (value: number, curr: string) =>
+    new Intl.NumberFormat(i18n.language, {
+      style: "currency",
+      currency: curr === "EUR" ? "EUR" : "BRL",
+      maximumFractionDigits: 2,
+    }).format(value);
+
+  const dateLabel = (iso: string) =>
+    new Intl.DateTimeFormat(i18n.language, {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(new Date(iso));
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-24 text-muted-foreground gap-3">
+        <Loader2 size={20} className="animate-spin" /> {t("payouts.loading")}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-24 text-muted-foreground text-sm">
+        {t("payouts.errorLoading")}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-8">
+      {summaries.length === 0 ? (
+        <div className="text-center py-24 border-2 border-dashed border-border rounded-2xl">
+          <p className="text-4xl mb-4">🤝</p>
+          <p className="font-semibold text-foreground mb-2">
+            {t("payouts.emptyTeamTitle")}
+          </p>
+          <p className="text-muted-foreground text-sm">
+            {t("payouts.emptyTeamBody")}
+          </p>
+        </div>
+      ) : (
+        <div className="grid sm:grid-cols-2 gap-4">
+          {summaries.map((s) => (
+            <div
+              key={s.professionalId}
+              className="bg-card border border-border rounded-2xl p-6 flex flex-col gap-3"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-semibold text-foreground truncate">
+                  {s.fullName || t("userMenu.noName")}
+                </p>
+                {s.commissionPercent != null ? (
+                  <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-secondary text-muted-foreground shrink-0">
+                    {t("payouts.commissionBadge", {
+                      value: s.commissionPercent,
+                    })}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 shrink-0">
+                    {t("payouts.commissionMissingBadge")}
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-muted-foreground text-xs">
+                    {t("payouts.grossPaidLabel")}
+                  </p>
+                  <p className="font-medium text-foreground">
+                    {currency(s.grossPaid, s.currency)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">
+                    {t("payouts.paidOutLabel")}
+                  </p>
+                  <p className="font-medium text-foreground">
+                    {currency(s.paidOut, s.currency)}
+                  </p>
+                </div>
+              </div>
+              <div className="bg-secondary rounded-lg px-4 py-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-muted-foreground text-xs">
+                    {t("payouts.pendingLabel")}
+                  </p>
+                  <p className="text-lg font-semibold text-foreground">
+                    {currency(s.pending, s.currency)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => openRegister(s)}
+                  disabled={s.commissionPercent == null}
+                  className="text-xs font-semibold px-4 py-2 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                >
+                  {t("payouts.registerButton")}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div>
+        <h3 className="text-lg font-semibold text-foreground mb-4">
+          {t("payouts.historyTitle")}
+        </h3>
+        {actionError && (
+          <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
+            {t("payouts.actionError")}
+          </p>
+        )}
+        {records.length === 0 ? (
+          <p className="text-muted-foreground text-sm">
+            {t("payouts.historyEmpty")}
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {records.map((r) => (
+              <div
+                key={r.id}
+                className="flex items-center justify-between gap-3 bg-card border border-border rounded-xl px-4 py-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {namesById[r.professional_id] || t("userMenu.noName")}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {r.status === "paid" && r.paid_at
+                      ? t("payouts.historyPaidAt", {
+                          date: dateLabel(r.paid_at),
+                        })
+                      : t("payouts.historyRegisteredAt", {
+                          date: dateLabel(r.created_at),
+                        })}
+                    {r.notes ? ` · ${r.notes}` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-sm font-semibold text-foreground">
+                    {currency(
+                      Number(r.amount),
+                      summaries.find(
+                        (s) => s.professionalId === r.professional_id,
+                      )?.currency ?? "BRL",
+                    )}
+                  </span>
+                  <span
+                    className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${
+                      r.status === "paid"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-secondary text-muted-foreground"
+                    }`}
+                  >
+                    {t(
+                      r.status === "paid"
+                        ? "payouts.status.paid"
+                        : "payouts.status.pending",
+                    )}
+                  </span>
+                  {r.status === "pending" && (
+                    <button
+                      onClick={() => markPaid(r.id)}
+                      disabled={markingPaidId === r.id}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-full border border-border hover:bg-secondary transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      {markingPaidId === r.id && (
+                        <Loader2 size={12} className="animate-spin" />
+                      )}
+                      {t("payouts.markPaid")}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {registerTarget && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6"
+          onClick={() => {
+            if (!registerSaving) setRegisterTarget(null);
+          }}
+        >
+          <div
+            className="bg-card rounded-2xl p-8 max-w-sm w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-semibold text-lg text-foreground mb-1">
+              {t("payouts.registerModalTitle")}
+            </h3>
+            <p className="text-muted-foreground text-sm mb-6">
+              {registerTarget.fullName || t("userMenu.noName")}
+            </p>
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+              {t("payouts.amountLabel")}
+            </label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              value={registerAmount}
+              onChange={(e) => setRegisterAmount(e.target.value)}
+              className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors mb-4"
+            />
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+              {t("payouts.notesLabel")}
+            </label>
+            <textarea
+              value={registerNotes}
+              onChange={(e) => setRegisterNotes(e.target.value)}
+              rows={2}
+              className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors mb-4 resize-none"
+            />
+            {registerError && (
+              <p className="text-red-500 text-xs mb-4">
+                {t("payouts.registerError")}
+              </p>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setRegisterTarget(null)}
+                disabled={registerSaving}
+                className="px-5 py-2 rounded-full border border-border text-sm font-medium hover:bg-secondary transition-colors disabled:opacity-50"
+              >
+                {t("admin.cancel")}
+              </button>
+              <button
+                onClick={handleRegister}
+                disabled={registerSaving}
+                className="px-5 py-2 rounded-full bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center gap-2"
+              >
+                {registerSaving && (
+                  <Loader2 size={14} className="animate-spin" />
+                )}
+                {t("payouts.registerConfirm")}
               </button>
             </div>
           </div>
@@ -12784,22 +13530,27 @@ function AdminPanel({
       {/* Sidebar — desktop. Fica sempre visível, inclusive durante a edição
           de um perfil (diferente das abas no topo de antes, que sumiam
           nesse momento — uma sidebar fixa faz mais sentido continuar ali). */}
-      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground h-screen sticky top-0 overflow-y-auto">
-        <div className="flex items-center gap-2 px-6 h-16 shrink-0">
-          <BrandMark size={16} light />
-          <span
-            className="font-bold text-sm"
-            style={{ fontFamily: "'Fraunces', serif" }}
-          >
-            {t("admin.navTitle")}
-          </span>
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground h-screen sticky top-0">
+        {/* Fase 36 — ver nota equivalente em SecretaryDashboard: o scroll
+            precisa ficar isolado no bloco de cima, senão o menu do usuário
+            (que abre pra cima) é cortado pelo overflow da própria sidebar. */}
+        <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
+          <div className="flex items-center gap-2 px-6 h-16 shrink-0">
+            <BrandMark size={16} light />
+            <span
+              className="font-bold text-sm"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              {t("admin.navTitle")}
+            </span>
+          </div>
+          <p className="px-6 text-[0.65rem] text-primary-foreground/60">
+            {approved} {t("admin.published")} ·{" "}
+            {psychologists.length - approved} {t("admin.pending")}
+          </p>
+          {adminSidebarNav()}
         </div>
-        <p className="px-6 text-[0.65rem] text-primary-foreground/60">
-          {approved} {t("admin.published")} ·{" "}
-          {psychologists.length - approved} {t("admin.pending")}
-        </p>
-        {adminSidebarNav()}
-        <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3">
+        <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3 shrink-0">
           <button
             onClick={() => {
               window.location.hash = "";
@@ -14783,18 +15534,23 @@ function PatientArea({
       style={{ fontFamily: "'Nunito', sans-serif" }}
     >
       {/* Sidebar — desktop */}
-      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground h-screen sticky top-0 overflow-y-auto">
-        <div className="flex items-center gap-2 px-6 h-16 shrink-0">
-          <BrandMark size={16} light />
-          <span
-            className="font-bold text-sm"
-            style={{ fontFamily: "'Fraunces', serif" }}
-          >
-            {t("patientArea.title")}
-          </span>
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground h-screen sticky top-0">
+        {/* Fase 36 — ver nota equivalente em SecretaryDashboard: o scroll
+            precisa ficar isolado no bloco de cima, senão o menu do usuário
+            (que abre pra cima) é cortado pelo overflow da própria sidebar. */}
+        <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
+          <div className="flex items-center gap-2 px-6 h-16 shrink-0">
+            <BrandMark size={16} light />
+            <span
+              className="font-bold text-sm"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              {t("patientArea.title")}
+            </span>
+          </div>
+          {patientSidebarNav()}
         </div>
-        {patientSidebarNav()}
-        <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3">
+        <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3 shrink-0">
           <button
             onClick={() => {
               window.location.hash = "";

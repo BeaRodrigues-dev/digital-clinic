@@ -2783,4 +2783,113 @@ app.post(
   },
 );
 
+// ── Definir % de comissão de um profissional da equipe (Fase 37) ──────────
+// Só o dono da clínica (ou admin) pode mexer nisso — mesmo padrão de
+// permissão do DELETE de profissional (Fase 26) logo acima. Passa por uma
+// rota própria (em vez de update direto via RLS) de propósito: assim dá
+// pra garantir que só este campo específico é alterado, sem abrir uma
+// policy de UPDATE mais ampla em `professionals` pro dono da clínica mexer
+// em qualquer outro dado (título, preço, etc.) de um profissional que não é
+// ele mesmo.
+app.put(
+  "/make-server-a65fd448/clinic/professional/:id/commission",
+  requireRole("psychologist", "admin"),
+  async (c) => {
+    try {
+      const user = c.get("user");
+      const targetId = c.req.param("id");
+      const body = await c.req.json().catch(() => ({}));
+      const raw = body?.commission_percent;
+
+      let commissionPercent: number | null = null;
+      if (raw !== null && raw !== undefined && raw !== "") {
+        const parsed = Number(raw);
+        if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+          return c.json(
+            { error: "A comissão precisa ser um número entre 0 e 100." },
+            400,
+          );
+        }
+        commissionPercent = parsed;
+      }
+
+      const { data: target } = await supabase
+        .from("professionals")
+        .select("id, clinic_id")
+        .eq("id", targetId)
+        .maybeSingle();
+
+      if (!target) {
+        return c.json({ error: "Profissional não encontrado." }, 404);
+      }
+
+      if (user.role !== "admin") {
+        if (!user.clinicId || target.clinic_id !== user.clinicId) {
+          return c.json({ error: "Sem permissão para esta conta." }, 403);
+        }
+        const { data: clinic } = await supabase
+          .from("clinics")
+          .select("owner_id")
+          .eq("id", user.clinicId)
+          .maybeSingle();
+        if (!clinic || clinic.owner_id !== user.id) {
+          return c.json(
+            { error: "Só o dono da clínica pode definir comissões." },
+            403,
+          );
+        }
+        if (clinic.owner_id === targetId) {
+          return c.json(
+            { error: "O dono da clínica não tem comissão sobre si mesmo." },
+            400,
+          );
+        }
+      }
+
+      // Fase 37 — comissão mora em `professional_commissions` (tabela
+      // própria, não coluna em `professionals`) justamente pra não ficar
+      // exposta pela policy pública do diretório de profissionais (ver
+      // comentário na migração). Ausência de linha = "não configurado";
+      // por isso: valor null apaga a linha, valor definido faz upsert.
+      if (commissionPercent === null) {
+        const { error: deleteErr } = await supabase
+          .from("professional_commissions")
+          .delete()
+          .eq("professional_id", targetId);
+
+        if (deleteErr) {
+          console.error("Failed to clear commission_percent:", deleteErr);
+          return c.json({ error: "Não foi possível salvar a comissão." }, 500);
+        }
+      } else {
+        const { error: upsertErr } = await supabase
+          .from("professional_commissions")
+          .upsert(
+            {
+              professional_id: targetId,
+              clinic_id: target.clinic_id,
+              commission_percent: commissionPercent,
+              updated_at: new Date().toISOString(),
+              updated_by: user.id,
+            },
+            { onConflict: "professional_id" },
+          );
+
+        if (upsertErr) {
+          console.error("Failed to set commission_percent:", upsertErr);
+          return c.json({ error: "Não foi possível salvar a comissão." }, 500);
+        }
+      }
+
+      return c.json({ success: true });
+    } catch (err: any) {
+      console.error("Failed to set professional commission:", err);
+      return c.json(
+        { error: err?.message ?? "Erro ao salvar a comissão." },
+        500,
+      );
+    }
+  },
+);
+
 Deno.serve(app.fetch);

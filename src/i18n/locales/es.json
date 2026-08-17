@@ -556,7 +556,8 @@
     "navClinic": "Clínica",
     "navPlan": "Plan",
     "navSettings": "Configuración",
-    "navRequests": "Solicitudes"
+    "navRequests": "Solicitudes",
+    "navPayouts": "Repartos"
   },
   "patients": {
     "title": "Pacientes",
@@ -825,7 +826,13 @@
       "saveEdit": "Guardar cambios",
       "amountPlaceholder": "150,00"
     },
-    "actionError": "No fue posible completar la acción. Intenta de nuevo."
+    "actionError": "No fue posible completar la acción. Intenta de nuevo.",
+    "myCommission": {
+      "percentLabel": "Tu comisión en esta clínica",
+      "percentValue": "{{value}}%",
+      "paidOutLabel": "Ya repartido a ti",
+      "pendingLabel": "Pendiente de reparto"
+    }
   },
   "patientArea": {
     "title": "Mi área",
@@ -933,7 +940,11 @@
       "remove": "Quitar de la clínica",
       "removeConfirmTitle": "¿Quitar profesional de la clínica?",
       "removeConfirmBody": "{{name}} sale de esta clínica y obtiene automáticamente una clínica propia, para seguir con acceso a su propia agenda y pacientes.",
-      "removeError": "No se pudo quitar. Inténtalo de nuevo."
+      "removeError": "No se pudo quitar. Inténtalo de nuevo.",
+      "commissionLabel": "Comisión de la clínica",
+      "commissionSave": "Guardar",
+      "commissionError": "No se pudo guardar. Intenta de nuevo.",
+      "commissionReadOnly": "Comisión de la clínica: {{value}}%"
     }
   },
   "plans": {
@@ -990,10 +1001,11 @@
       "price": "Contáctanos",
       "features": [
         "Pacientes activos ilimitados",
-        "Varios profesionales (próximamente)",
+        "Varios profesionales",
         "Agenda, historia clínica y finanzas",
         "Portal del paciente",
-        "Resumen y organización de notas con IA"
+        "Resumen y organización de notas con IA",
+        "Gestión de repartos y comisiones"
       ]
     },
     "downgradeConfirmTitle": "¿Cambiar al plan {{plan}}?",
@@ -1254,5 +1266,34 @@
     "submit": "Crear mi cuenta",
     "isProfessional": "¿Eres psicólogo(a)?",
     "isProfessionalLink": "Regístrate por aquí"
+  },
+  "payouts": {
+    "title": "Repartos",
+    "subtitle": "Sigue cuánto ha recibido cada profesional del equipo, cuánto ya se repartió y cuánto falta.",
+    "loading": "Cargando repartos...",
+    "errorLoading": "No se pudieron cargar los repartos.",
+    "emptyTeamTitle": "Todavía no hay equipo",
+    "emptyTeamBody": "Vincula a otro profesional en Configuración → Clínica para empezar a seguir los repartos.",
+    "commissionBadge": "Comisión: {{value}}%",
+    "commissionMissingBadge": "Comisión no configurada",
+    "grossPaidLabel": "Recibido por el profesional",
+    "paidOutLabel": "Ya repartido",
+    "pendingLabel": "Pendiente de reparto",
+    "registerButton": "Registrar reparto",
+    "historyTitle": "Historial de repartos",
+    "historyEmpty": "Todavía no hay repartos registrados.",
+    "historyPaidAt": "Pagado el {{date}}",
+    "historyRegisteredAt": "Registrado el {{date}}",
+    "actionError": "No se pudo actualizar ahora. Intenta de nuevo.",
+    "markPaid": "Marcar como pagado",
+    "status": {
+      "pending": "Pendiente",
+      "paid": "Pagado"
+    },
+    "registerModalTitle": "Registrar reparto",
+    "amountLabel": "Monto",
+    "notesLabel": "Notas (opcional)",
+    "registerError": "No se pudo registrar. Revisa el monto e intenta de nuevo.",
+    "registerConfirm": "Registrar"
   }
 }
