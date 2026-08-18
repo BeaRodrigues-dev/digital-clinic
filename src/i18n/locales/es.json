@@ -419,7 +419,15 @@
       "noProfessional": "ninguno",
       "reassignLabel": "Vincular a:",
       "reassignButton": "Vincular",
-      "reassignError": "No se pudo vincular el paciente a ese psicólogo. Inténtalo de nuevo."
+      "reassignError": "No se pudo vincular el paciente a ese psicólogo. Inténtalo de nuevo.",
+      "table": {
+        "patient": "Paciente",
+        "clinic": "Clínica",
+        "professional": "Psicólogo",
+        "sessions": "Sesiones",
+        "next": "Próxima",
+        "status": "Estado"
+      }
     },
     "leads": {
       "title": "Leads del cuestionario",
@@ -459,7 +467,16 @@
       "markDeclined": "Rechazar",
       "actionError": "No se pudo actualizar ahora. Intenta de nuevo."
     },
-    "searchPlaceholder": "Buscar por nombre, correo o número de colegiado..."
+    "searchPlaceholder": "Buscar por nombre, correo o número de colegiado...",
+    "table": {
+      "professional": "Profesional",
+      "location": "Ubicación",
+      "specialties": "Especialidades",
+      "patients": "Pacientes",
+      "sessions": "Sesiones",
+      "status": "Estado",
+      "actions": "Acciones"
+    }
   },
   "profileForm": {
     "nameLabel": "Nombre completo *",
@@ -869,7 +886,8 @@
     "summary": {
       "receivedThisMonth": "Recibido este mes",
       "pending": "Pendiente",
-      "overdue": "Atrasado"
+      "overdue": "Atrasado",
+      "totalThisMonth": "Total del mes"
     },
     "status": {
       "pending": "Pendiente",
@@ -913,6 +931,14 @@
       "defaultRateLabel": "Tasa de morosidad",
       "projectedRevenueLabel": "Proyección 30 días · {{count}} sesión(es) programada(s)",
       "hint": "Estimación simple basada en el precio de sesión configurado y en las sesiones ya programadas — no considera paquetes con descuento ni comisiones de pasarela de pago (fuera del alcance de esta plataforma)."
+    },
+    "table": {
+      "patient": "Paciente",
+      "professional": "Psicólogo",
+      "date": "Fecha",
+      "amount": "Valor",
+      "status": "Estado",
+      "actions": "Acciones"
     }
   },
   "patientArea": {

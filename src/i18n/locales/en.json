@@ -419,7 +419,15 @@
       "noProfessional": "none",
       "reassignLabel": "Link to:",
       "reassignButton": "Link",
-      "reassignError": "Couldn't link the patient to that psychologist. Please try again."
+      "reassignError": "Couldn't link the patient to that psychologist. Please try again.",
+      "table": {
+        "patient": "Patient",
+        "clinic": "Clinic",
+        "professional": "Psychologist",
+        "sessions": "Sessions",
+        "next": "Next",
+        "status": "Status"
+      }
     },
     "leads": {
       "title": "Quiz leads",
@@ -459,7 +467,16 @@
       "markDeclined": "Decline",
       "actionError": "Couldn't update right now. Please try again."
     },
-    "searchPlaceholder": "Search by name, email or license number..."
+    "searchPlaceholder": "Search by name, email or license number...",
+    "table": {
+      "professional": "Professional",
+      "location": "Location",
+      "specialties": "Specialties",
+      "patients": "Patients",
+      "sessions": "Sessions",
+      "status": "Status",
+      "actions": "Actions"
+    }
   },
   "profileForm": {
     "nameLabel": "Full name *",
@@ -869,7 +886,8 @@
     "summary": {
       "receivedThisMonth": "Received this month",
       "pending": "Pending",
-      "overdue": "Overdue"
+      "overdue": "Overdue",
+      "totalThisMonth": "Total this month"
     },
     "status": {
       "pending": "Pending",
@@ -913,6 +931,14 @@
       "defaultRateLabel": "Default rate",
       "projectedRevenueLabel": "30-day projection · {{count}} session(s) scheduled",
       "hint": "A simple estimate based on the configured session price and already-scheduled sessions — it doesn't account for discounted packages or payment gateway fees (out of scope for this platform)."
+    },
+    "table": {
+      "patient": "Patient",
+      "professional": "Psychologist",
+      "date": "Date",
+      "amount": "Amount",
+      "status": "Status",
+      "actions": "Actions"
     }
   },
   "patientArea": {

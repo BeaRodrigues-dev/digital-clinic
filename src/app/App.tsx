@@ -350,6 +350,57 @@ function UserMenu({
   );
 }
 
+// ─── StatCard (Fase 59) ─────────────────────────────────────────────────────
+// Cartão de estatística compartilhado por todos os painéis (Visão geral do
+// profissional, Área do paciente, Visão geral do admin, Financeiro): ícone
+// num quadrado colorido no canto, valor grande em Fraunces, rótulo em
+// maiúsculas — a estrutura exata da referência enviada pelo usuário (Figma),
+// só trocando as cores fixas do mock pelos tokens que já existem no projeto
+// (`--primary`/`--accent`/etc.), sem introduzir nenhuma cor nova.
+function StatCard({
+  label,
+  value,
+  sub,
+  icon: Icon,
+  tone = "primary",
+}: {
+  label: string;
+  value: React.ReactNode;
+  sub?: React.ReactNode;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  tone?: "primary" | "accent" | "danger" | "neutral";
+}) {
+  const toneClass = {
+    primary: "bg-primary/10 text-primary",
+    accent: "bg-accent/15 text-accent",
+    danger: "bg-red-100 text-red-600",
+    neutral: "bg-secondary text-muted-foreground",
+  }[tone];
+  return (
+    <div className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          {label}
+        </span>
+        <div
+          className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${toneClass}`}
+        >
+          <Icon size={16} />
+        </div>
+      </div>
+      <div>
+        <p
+          className="text-3xl font-light text-foreground"
+          style={{ fontFamily: "'Fraunces', serif" }}
+        >
+          {value}
+        </p>
+        {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 // Perfil profissional unificado (Fase 12): representa uma linha real de
@@ -2034,13 +2085,15 @@ function SecretaryPatientsView({ user }: { user: AppUser }) {
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        // Fase 59 — mesmo container de lista com linhas divididas usado em
+        // PatientsView/PsicPacientes, igual à referência do Figma.
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
           {filtered.map((p) => (
             <div
               key={p.id}
-              className="bg-card border border-border rounded-xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow"
+              className="flex items-center gap-4 p-4 border-b border-border last:border-b-0 hover:bg-secondary/50 transition-colors"
             >
-              <div className="w-10 h-10 rounded-xl bg-primary/10 shrink-0 flex items-center justify-center text-sm font-semibold text-primary">
+              <div className="w-10 h-10 rounded-full bg-primary/10 shrink-0 flex items-center justify-center text-sm font-semibold text-primary">
                 {p.full_name.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
@@ -2083,7 +2136,10 @@ type SecretaryPaymentRow = {
   // um com sua própria moeda de cobrança agora. Precisa vir junto pra
   // formatar cada pagamento na moeda de quem o gerou, em vez de assumir
   // BRL pra todo mundo.
-  professionals: { currency: string } | null;
+  // Fase 59 — `profiles(full_name)` junto pra mostrar de qual psicólogo é
+  // cada pagamento (coluna "Psicólogo", igual à referência do Figma) — só
+  // faz sentido pra secretária porque a clínica pode ter mais de um.
+  professionals: { currency: string; profiles: { full_name: string } | null } | null;
 };
 
 function SecretaryFinanceView({ user }: { user: AppUser }) {
@@ -2103,7 +2159,7 @@ function SecretaryFinanceView({ user }: { user: AppUser }) {
     const { data, error: fetchErr } = await supabase
       .from("payments")
       .select(
-        "id, amount, status, paid_at, created_at, patients(full_name), professionals(currency)",
+        "id, amount, status, paid_at, created_at, patients(full_name), professionals(currency, profiles(full_name))",
       )
       .eq("clinic_id", user.clinicId)
       .order("created_at", { ascending: false });
@@ -2183,55 +2239,89 @@ function SecretaryFinanceView({ user }: { user: AppUser }) {
   }
 
   return (
-    <div className="space-y-3">
+    <div>
       {actionError && (
-        <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+        <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
           {t("secretary.actionError")}
         </p>
       )}
-      {payments.map((p) => (
-        <div
-          key={p.id}
-          className="bg-card border border-border rounded-xl p-5 flex items-center gap-5 shadow-sm hover:shadow-md transition-shadow"
-        >
-          <div className="w-11 h-11 rounded-xl bg-primary/10 shrink-0 flex items-center justify-center text-base font-semibold text-primary">
-            {(p.patients?.full_name ?? "?").charAt(0).toUpperCase()}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-foreground">
-                {p.patients?.full_name ?? "—"}
-              </span>
-              <span
-                className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${statusStyles[p.status] ?? "bg-secondary text-muted-foreground"}`}
-              >
-                {t(`finance.status.${p.status}`)}
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {currency(Number(p.amount), p.professionals?.currency)} ·{" "}
-              {p.paid_at ? dateLabel(p.paid_at) : dateLabel(p.created_at)}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {p.status !== "paid" ? (
-              <button
-                onClick={() => setStatus(p.id, "paid")}
-                className="text-xs font-medium px-3 py-1.5 rounded-full border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
-              >
-                {t("finance.markPaid")}
-              </button>
-            ) : (
-              <button
-                onClick={() => setStatus(p.id, "pending")}
-                className="text-xs font-medium px-3 py-1.5 rounded-full border border-border hover:bg-secondary transition-colors text-muted-foreground"
-              >
-                {t("secretary.markPending")}
-              </button>
-            )}
-          </div>
-        </div>
-      ))}
+      {/* Fase 59 — tabela com coluna "Psicólogo" (clínica pode ter mais de
+          um profissional), igual à referência do Figma, no lugar da lista
+          de cartões. */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-secondary/50">
+            <tr>
+              {[
+                t("finance.table.patient"),
+                t("finance.table.professional"),
+                t("finance.table.date"),
+                t("finance.table.amount"),
+                t("finance.table.status"),
+                t("finance.table.actions"),
+              ].map((h) => (
+                <th
+                  key={h}
+                  className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {payments.map((p) => (
+              <tr key={p.id} className="hover:bg-secondary/30 transition-colors">
+                <td className="px-4 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-primary/10 shrink-0 flex items-center justify-center text-sm font-semibold text-primary">
+                      {(p.patients?.full_name ?? "?").charAt(0).toUpperCase()}
+                    </div>
+                    <span className="font-semibold text-foreground">
+                      {p.patients?.full_name ?? "—"}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-4 py-3.5 text-muted-foreground text-xs">
+                  {p.professionals?.profiles?.full_name
+                    ? p.professionals.profiles.full_name.split(" ").slice(0, 2).join(" ")
+                    : "—"}
+                </td>
+                <td className="px-4 py-3.5 text-muted-foreground">
+                  {p.paid_at ? dateLabel(p.paid_at) : dateLabel(p.created_at)}
+                </td>
+                <td className="px-4 py-3.5 font-semibold text-foreground">
+                  {currency(Number(p.amount), p.professionals?.currency)}
+                </td>
+                <td className="px-4 py-3.5">
+                  <span
+                    className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${statusStyles[p.status] ?? "bg-secondary text-muted-foreground"}`}
+                  >
+                    {t(`finance.status.${p.status}`)}
+                  </span>
+                </td>
+                <td className="px-4 py-3.5">
+                  {p.status !== "paid" ? (
+                    <button
+                      onClick={() => setStatus(p.id, "paid")}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 text-xs font-medium transition-colors"
+                    >
+                      <Check size={11} /> {t("finance.markPaid")}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setStatus(p.id, "pending")}
+                      className="px-2.5 py-1 rounded-lg border border-border hover:bg-secondary transition-colors text-muted-foreground text-xs font-medium"
+                    >
+                      {t("secretary.markPending")}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -3028,26 +3118,6 @@ function ProfessionalDashboard({
       minute: "2-digit",
     }).format(new Date(iso));
 
-
-  const kpiCard = (
-    icon: React.ReactNode,
-    label: string,
-    value: React.ReactNode,
-  ) => (
-    <div className="bg-background flex flex-col items-center text-center gap-1.5 py-6 px-3">
-      <span className="text-accent">{icon}</span>
-      <p
-        className="text-2xl font-light text-foreground"
-        style={{ fontFamily: "'Fraunces', serif" }}
-      >
-        {value}
-      </p>
-      <p className="text-[0.65rem] uppercase tracking-wider font-semibold text-muted-foreground">
-        {label}
-      </p>
-    </div>
-  );
-
   const proNavItems: {
     key:
       | "overview"
@@ -3388,30 +3458,38 @@ function ProfessionalDashboard({
               </div>
             ) : stats ? (
               <>
-            {/* KPI cards */}
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border mb-8">
-              {kpiCard(
-                <Users size={16} />,
-                t("dashboard.kpi.activePatients"),
-                stats.activePatients,
-              )}
-              {kpiCard(
-                <Calendar size={16} />,
-                t("dashboard.kpi.sessionsThisMonth"),
-                stats.sessionsThisMonth,
-              )}
-              {kpiCard(
-                <AlertTriangle size={16} />,
-                t("dashboard.kpi.noShowRate"),
-                stats.noShowRate === null
-                  ? "—"
-                  : `${Math.round(stats.noShowRate * 100)}%`,
-              )}
-              {kpiCard(
-                <Wallet size={16} />,
-                t("dashboard.kpi.revenueThisMonth"),
-                currency(stats.revenueThisMonth),
-              )}
+            {/* KPI cards — Fase 59: cartões individuais com ícone colorido
+                (StatCard), no lugar da grade com hairlines, pra bater
+                exatamente com a referência do Figma. */}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <StatCard
+                icon={Users}
+                label={t("dashboard.kpi.activePatients")}
+                value={stats.activePatients}
+                tone="primary"
+              />
+              <StatCard
+                icon={Calendar}
+                label={t("dashboard.kpi.sessionsThisMonth")}
+                value={stats.sessionsThisMonth}
+                tone="accent"
+              />
+              <StatCard
+                icon={AlertTriangle}
+                label={t("dashboard.kpi.noShowRate")}
+                value={
+                  stats.noShowRate === null
+                    ? "—"
+                    : `${Math.round(stats.noShowRate * 100)}%`
+                }
+                tone="danger"
+              />
+              <StatCard
+                icon={Wallet}
+                label={t("dashboard.kpi.revenueThisMonth")}
+                value={currency(stats.revenueThisMonth)}
+                tone="primary"
+              />
             </div>
 
             {/* Charts */}
@@ -5009,7 +5087,14 @@ function PatientsView({ user }: { user: AppUser }) {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        // Fase 59 — um único cartão com linhas divididas (em vez de um
+        // cartão com sombra por paciente), igual ao container de lista da
+        // referência do Figma. O clique continua abrindo a página de
+        // detalhe completa (prontuário, documentos, financeiro, exportação
+        // etc.) — a referência usa um painel lateral só com notas, mas isso
+        // aqui é muito mais rico pra caber num painel estreito sem perder
+        // funcionalidade.
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
           {filtered.map((p) => (
             <button
               key={p.id}
@@ -5017,14 +5102,14 @@ function PatientsView({ user }: { user: AppUser }) {
                 setSelected(p);
                 setView("detail");
               }}
-              className="w-full text-left bg-card border border-border rounded-xl p-5 flex items-center gap-5 shadow-sm hover:shadow-md hover:border-primary/40 transition-all"
+              className="w-full text-left flex items-center gap-4 p-4 border-b border-border last:border-b-0 hover:bg-secondary/50 transition-colors"
             >
-              <div className="w-12 h-12 rounded-xl bg-primary/10 overflow-hidden shrink-0 flex items-center justify-center text-lg font-semibold text-primary">
+              <div className="w-10 h-10 rounded-full bg-primary/10 overflow-hidden shrink-0 flex items-center justify-center text-sm font-semibold text-primary">
                 {p.full_name.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-foreground">
+                  <span className="font-semibold text-foreground text-sm truncate">
                     {p.full_name}
                   </span>
                   <span
@@ -5036,7 +5121,7 @@ function PatientsView({ user }: { user: AppUser }) {
                   </span>
                 </div>
                 {p.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
                     {p.tags.slice(0, 4).map((tag) => (
                       <span
                         key={tag}
@@ -9382,31 +9467,34 @@ function FinanceView({ user }: { user: AppUser }) {
 
   return (
     <div>
-      <div className="grid sm:grid-cols-3 gap-4 mb-8">
-        <div className="bg-card border border-border rounded-2xl p-6">
-          <p className="text-2xl font-semibold text-foreground">
-            {currency(receivedThisMonth)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {t("finance.summary.receivedThisMonth")}
-          </p>
-        </div>
-        <div className="bg-card border border-border rounded-2xl p-6">
-          <p className="text-2xl font-semibold text-foreground">
-            {currency(totalPending)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {t("finance.summary.pending")}
-          </p>
-        </div>
-        <div className="bg-card border border-border rounded-2xl p-6">
-          <p className="text-2xl font-semibold text-foreground">
-            {currency(totalOverdue)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {t("finance.summary.overdue")}
-          </p>
-        </div>
+      {/* Fase 59 — 4 StatCards (Recebido/A receber/Em atraso/Total do mês),
+          igual à referência do Figma — o 4º cartão ("Total do mês") é só a
+          soma dos outros três, sem nova consulta. */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatCard
+          icon={Check}
+          label={t("finance.summary.receivedThisMonth")}
+          value={currency(receivedThisMonth)}
+          tone="accent"
+        />
+        <StatCard
+          icon={Clock}
+          label={t("finance.summary.pending")}
+          value={currency(totalPending)}
+          tone="primary"
+        />
+        <StatCard
+          icon={AlertTriangle}
+          label={t("finance.summary.overdue")}
+          value={currency(totalOverdue)}
+          tone="danger"
+        />
+        <StatCard
+          icon={CreditCard}
+          label={t("finance.summary.totalThisMonth")}
+          value={currency(receivedThisMonth + totalPending + totalOverdue)}
+          tone="neutral"
+        />
       </div>
 
       {/* Fase 56 — painel de inadimplência + faturamento projetado (DRE
@@ -9581,69 +9669,94 @@ function FinanceView({ user }: { user: AppUser }) {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((p) => (
-            <div
-              key={p.id}
-              className="bg-card border border-border rounded-xl p-5 flex items-center gap-5 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="w-12 h-12 rounded-xl bg-primary/10 overflow-hidden shrink-0 flex items-center justify-center text-lg font-semibold text-primary">
-                {(p.patients?.full_name ?? "?").charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-foreground">
-                    {p.patients?.full_name ?? "—"}
-                  </span>
-                  <span
-                    className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${statusStyles[p.status] ?? "bg-secondary text-muted-foreground"}`}
+        // Fase 59 — tabela (cabeçalho em maiúsculas, linhas com hover),
+        // igual à referência do Figma, no lugar da lista de cartões.
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/50">
+              <tr>
+                {[
+                  t("finance.table.patient"),
+                  t("finance.table.date"),
+                  t("finance.table.amount"),
+                  t("finance.table.status"),
+                  t("finance.table.actions"),
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider"
                   >
-                    {t(`finance.status.${p.status}`)}
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  {currency(Number(p.amount))} ·{" "}
-                  {p.paid_at
-                    ? dateLabel(p.paid_at)
-                    : dateLabel(p.created_at)}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {p.status !== "paid" && (
-                  <button
-                    onClick={() => markPaid(p.id)}
-                    className="text-xs font-medium px-3 py-1.5 rounded-full border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
-                  >
-                    {t("finance.markPaid")}
-                  </button>
-                )}
-                {p.status === "paid" && (
-                  <button
-                    onClick={() => handlePrintReceipt(p)}
-                    title={t("finance.receipt.button")}
-                    className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
-                  >
-                    <Receipt size={14} />
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    setSelected(p);
-                    setView("edit");
-                  }}
-                  className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
-                >
-                  <Pencil size={14} />
-                </button>
-                <button
-                  onClick={() => setDeleteId(p.id)}
-                  className="p-2 rounded-lg border border-border hover:bg-red-50 hover:border-red-200 transition-colors text-muted-foreground hover:text-red-600"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-          ))}
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filtered.map((p) => (
+                <tr key={p.id} className="hover:bg-secondary/30 transition-colors">
+                  <td className="px-4 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-primary/10 shrink-0 flex items-center justify-center text-sm font-semibold text-primary">
+                        {(p.patients?.full_name ?? "?").charAt(0).toUpperCase()}
+                      </div>
+                      <span className="font-semibold text-foreground">
+                        {p.patients?.full_name ?? "—"}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3.5 text-muted-foreground">
+                    {p.paid_at ? dateLabel(p.paid_at) : dateLabel(p.created_at)}
+                  </td>
+                  <td className="px-4 py-3.5 font-semibold text-foreground">
+                    {currency(Number(p.amount))}
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <span
+                      className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${statusStyles[p.status] ?? "bg-secondary text-muted-foreground"}`}
+                    >
+                      {t(`finance.status.${p.status}`)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <div className="flex items-center gap-1.5">
+                      {p.status !== "paid" && (
+                        <button
+                          onClick={() => markPaid(p.id)}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 text-xs font-medium transition-colors"
+                        >
+                          <Check size={11} /> {t("finance.markPaid")}
+                        </button>
+                      )}
+                      {p.status === "paid" && (
+                        <button
+                          onClick={() => handlePrintReceipt(p)}
+                          title={t("finance.receipt.button")}
+                          className="p-1.5 rounded-lg border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                        >
+                          <Receipt size={13} />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          setSelected(p);
+                          setView("edit");
+                        }}
+                        className="p-1.5 rounded-lg border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        onClick={() => setDeleteId(p.id)}
+                        className="p-1.5 rounded-lg border border-border hover:bg-red-50 hover:border-red-200 transition-colors text-muted-foreground hover:text-red-600"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -14379,54 +14492,63 @@ function AdminOverview() {
     );
   }
 
-  const cards = [
-    { label: t("admin.overview.clinics"), value: stats.clinics, icon: Building2 },
+  const cards: {
+    label: string;
+    value: number;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+    tone: "primary" | "accent" | "danger" | "neutral";
+  }[] = [
+    {
+      label: t("admin.overview.clinics"),
+      value: stats.clinics,
+      icon: Building2,
+      tone: "primary",
+    },
     {
       label: t("admin.overview.professionalsApproved"),
       value: stats.professionalsApproved,
       icon: Check,
+      tone: "accent",
     },
     {
       label: t("admin.overview.professionalsPending"),
       value: stats.professionalsPending,
       icon: Clock,
+      tone: "danger",
     },
     {
       label: t("admin.overview.activePatients"),
       value: stats.activePatients,
       icon: Users,
+      tone: "primary",
     },
     {
       label: t("admin.overview.secretaries"),
       value: stats.secretaries,
       icon: UserCircle,
+      tone: "neutral",
     },
     {
       label: t("admin.overview.pendingLeads"),
       value: stats.pendingLeads,
       icon: MessageSquare,
+      tone: "accent",
     },
   ];
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-px bg-border border border-border">
+      {/* Fase 59 — StatCard individual (ícone colorido), no lugar da grade
+          com hairlines, pra bater com a referência do Figma. */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {cards.map((card) => (
-          <div
+          <StatCard
             key={card.label}
-            className="bg-background flex flex-col items-center text-center gap-1.5 py-6 px-3"
-          >
-            <card.icon size={16} className="text-accent" />
-            <p
-              className="text-2xl font-light text-foreground"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              {card.value}
-            </p>
-            <p className="text-[0.65rem] uppercase tracking-wider font-semibold text-muted-foreground">
-              {card.label}
-            </p>
-          </div>
+            icon={card.icon}
+            label={card.label}
+            value={card.value}
+            tone={card.tone}
+          />
         ))}
       </div>
 
@@ -15050,12 +15172,21 @@ function AdminClinicsView() {
             className={`bg-card border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow ${owner ? "border-border" : "border-l-2 border-l-red-400 border-y-border border-r-border"}`}
           >
             <div className="flex items-start justify-between gap-4 flex-wrap px-5 py-4">
-              <span
-                className="text-lg font-light text-foreground"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                {c.name || t("admin.clinics.unnamed")}
-              </span>
+              <div className="flex items-center gap-4 min-w-0">
+                {/* Fase 59 — quadrado com ícone à esquerda do nome, igual à
+                    referência do Figma (que usa a bandeira do país; como
+                    clínica não tem localização própria no schema, usa
+                    Building2 em vez de inventar uma bandeira). */}
+                <div className="w-12 h-12 rounded-xl bg-secondary border border-border flex items-center justify-center shrink-0 text-muted-foreground">
+                  <Building2 size={20} />
+                </div>
+                <span
+                  className="text-lg font-light text-foreground"
+                  style={{ fontFamily: "'Fraunces', serif" }}
+                >
+                  {c.name || t("admin.clinics.unnamed")}
+                </span>
+              </div>
               <div className="flex items-center gap-6 shrink-0">
                 {/* Fase 58 — mini-colunas de estatística (profissionais /
                     secretárias), no espírito da referência enviada pelo
@@ -15228,7 +15359,7 @@ type AdminProfessionalOption = {
 };
 
 function AdminPatientsView() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [patients, setPatients] = useState<AdminPatientRow[]>([]);
   const [professionals, setProfessionals] = useState<AdminProfessionalOption[]>(
     [],
@@ -15239,20 +15370,36 @@ function AdminPatientsView() {
   const [pick, setPick] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  // Fase 59 — colunas "Clínica"/"Sessões"/"Próxima", igual à referência do
+  // Figma (que mostra localização/sessões/próxima sessão): o app não guarda
+  // localização de paciente, então usa a clínica (dado real e útil numa
+  // visão entre clínicas) no lugar; sessões/próxima vêm de `appointments`,
+  // que o admin já enxerga por inteiro via RLS "gerencia tudo".
+  const [clinicNames, setClinicNames] = useState<Record<string, string>>({});
+  const [apptStats, setApptStats] = useState<
+    Record<string, { count: number; next: string | null }>
+  >({});
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(false);
-    const [patientsRes, professionalsRes] = await Promise.all([
-      supabase
-        .from("patients")
-        .select("id, full_name, email, professional_id, clinic_id, status")
-        .order("full_name", { ascending: true }),
-      supabase
-        .from("professionals")
-        .select("id, clinic_id, profiles(full_name)")
-        .eq("approved", true),
-    ]);
+    const [patientsRes, professionalsRes, clinicsRes, appointmentsRes] =
+      await Promise.all([
+        supabase
+          .from("patients")
+          .select("id, full_name, email, professional_id, clinic_id, status")
+          .order("full_name", { ascending: true }),
+        supabase
+          .from("professionals")
+          .select("id, clinic_id, profiles(full_name)")
+          .eq("approved", true),
+        supabase.from("clinics").select("id, name"),
+        supabase
+          .from("appointments")
+          .select("patient_id, starts_at, status")
+          .neq("status", "cancelled")
+          .order("starts_at", { ascending: true }),
+      ]);
 
     if (patientsRes.error || professionalsRes.error) {
       console.error(
@@ -15272,8 +15419,38 @@ function AdminPatientsView() {
         name: p.profiles?.full_name ?? null,
       })),
     );
+    const clinicMap: Record<string, string> = {};
+    ((clinicsRes.data ?? []) as { id: string; name: string | null }[]).forEach(
+      (c) => {
+        clinicMap[c.id] = c.name || t("admin.clinics.unnamed");
+      },
+    );
+    setClinicNames(clinicMap);
+
+    const now = Date.now();
+    const stats: Record<string, { count: number; next: string | null }> = {};
+    (
+      (appointmentsRes.data ?? []) as {
+        patient_id: string;
+        starts_at: string;
+        status: string;
+      }[]
+    ).forEach((a) => {
+      const entry = (stats[a.patient_id] ??= { count: 0, next: null });
+      entry.count += 1;
+      // A consulta já vem ordenada por `starts_at` crescente — a primeira
+      // futura encontrada pra este paciente é a próxima.
+      if (
+        entry.next === null &&
+        new Date(a.starts_at).getTime() >= now
+      ) {
+        entry.next = a.starts_at;
+      }
+    });
+    setApptStats(stats);
+
     setLoading(false);
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     load();
@@ -15364,74 +15541,129 @@ function AdminPatientsView() {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((p) => {
-            const current = professionalById.get(p.professional_id);
-            return (
-              <div
-                key={p.id}
-                className="bg-card border border-border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="px-5 py-4">
-                  <span
-                    className="text-lg font-light text-foreground"
-                    style={{ fontFamily: "'Fraunces', serif" }}
+        // Fase 59 — tabela (Paciente/Clínica/Psicólogo/Sessões/Próxima/
+        // Status), igual à referência do Figma. "Localização" da referência
+        // vira "Clínica" (o app não guarda localização de paciente); a
+        // reatribuição de psicólogo — que a referência não tem, mas é uma
+        // função real que já existia aqui — mora dentro da própria célula
+        // "Psicólogo".
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/50">
+              <tr>
+                {[
+                  t("admin.patients.table.patient"),
+                  t("admin.patients.table.clinic"),
+                  t("admin.patients.table.professional"),
+                  t("admin.patients.table.sessions"),
+                  t("admin.patients.table.next"),
+                  t("admin.patients.table.status"),
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider"
                   >
-                    {p.full_name}
-                  </span>
-                  {p.email && (
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      {p.email}
-                    </p>
-                  )}
-                </div>
-
-                <div className="text-sm px-5 py-3 border-t border-border">
-                  <p className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                    {t("admin.patients.currentProfessional")}
-                  </p>
-                  <p className="text-foreground">
-                    {current?.name || t("admin.patients.noProfessional")}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-t border-border">
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {t("admin.patients.reassignLabel")}
-                  </span>
-                  <select
-                    value={pick[p.id] ?? p.professional_id}
-                    onChange={(e) =>
-                      setPick((prev) => ({ ...prev, [p.id]: e.target.value }))
-                    }
-                    className="text-xs px-2.5 py-1.5 rounded-lg border border-border bg-secondary text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer transition-colors max-w-[220px]"
-                  >
-                    {professionals.map((prof) => (
-                      <option key={prof.id} value={prof.id}>
-                        {prof.name || t("userMenu.noName")}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={() => handleReassign(p)}
-                    disabled={
-                      !pick[p.id] ||
-                      pick[p.id] === p.professional_id ||
-                      busyId === p.id
-                    }
-                    className="text-xs font-semibold px-3 py-1.5 rounded-full border border-foreground text-foreground hover:bg-secondary transition-colors disabled:opacity-50 flex items-center gap-1"
-                  >
-                    {busyId === p.id ? (
-                      <Loader2 size={12} className="animate-spin" />
-                    ) : (
-                      <LinkIcon size={12} />
-                    )}
-                    {t("admin.patients.reassignButton")}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filtered.map((p) => {
+                const current = professionalById.get(p.professional_id);
+                const stats = apptStats[p.id];
+                return (
+                  <tr key={p.id} className="hover:bg-secondary/30 transition-colors align-top">
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-accent/15 shrink-0 flex items-center justify-center text-sm font-semibold text-accent">
+                          {p.full_name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-foreground">
+                            {p.full_name}
+                          </p>
+                          {p.email && (
+                            <p className="text-xs text-muted-foreground">
+                              {p.email}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 text-muted-foreground text-xs">
+                      {p.clinic_id
+                        ? clinicNames[p.clinic_id] || "—"
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-foreground text-xs">
+                          {current?.name || t("admin.patients.noProfessional")}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <select
+                            value={pick[p.id] ?? p.professional_id}
+                            onChange={(e) =>
+                              setPick((prev) => ({
+                                ...prev,
+                                [p.id]: e.target.value,
+                              }))
+                            }
+                            className="text-xs px-2 py-1 rounded-lg border border-border bg-secondary text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer transition-colors max-w-[150px]"
+                          >
+                            {professionals.map((prof) => (
+                              <option key={prof.id} value={prof.id}>
+                                {prof.name || t("userMenu.noName")}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => handleReassign(p)}
+                            disabled={
+                              !pick[p.id] ||
+                              pick[p.id] === p.professional_id ||
+                              busyId === p.id
+                            }
+                            title={t("admin.patients.reassignButton")}
+                            className="p-1.5 rounded-lg border border-border hover:bg-secondary transition-colors disabled:opacity-50 text-muted-foreground hover:text-foreground shrink-0"
+                          >
+                            {busyId === p.id ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : (
+                              <LinkIcon size={12} />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 font-medium text-foreground">
+                      {stats?.count ?? 0}
+                    </td>
+                    <td className="px-4 py-3.5 text-muted-foreground text-xs">
+                      {stats?.next
+                        ? new Intl.DateTimeFormat(i18n.language, {
+                            day: "2-digit",
+                            month: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }).format(new Date(stats.next))
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <span
+                        className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${p.status === "active" ? "bg-green-100 text-green-700" : "bg-secondary text-muted-foreground"}`}
+                      >
+                        {p.status === "active"
+                          ? t("patients.statusActive")
+                          : t("patients.statusInactive")}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
@@ -16135,20 +16367,15 @@ function AdminFinanceView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="bg-card border border-border rounded-2xl p-6">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-          {t("admin.finance.totalLabel")}
-        </p>
-        <p
-          className="text-3xl font-light text-foreground"
-          style={{ fontFamily: "'Fraunces', serif" }}
-        >
-          {currency(totalCents)}
-        </p>
-        <p className="text-xs text-muted-foreground mt-2">
-          {t("admin.finance.disclaimer")}
-        </p>
-      </div>
+      {/* Fase 59 — StatCard, mesmo padrão usado nas outras telas de
+          Financeiro/Visão geral. */}
+      <StatCard
+        icon={Wallet}
+        label={t("admin.finance.totalLabel")}
+        value={currency(totalCents)}
+        sub={t("admin.finance.disclaimer")}
+        tone="primary"
+      />
 
       <div className="space-y-3">
         {paidPlans.map((plan) => (
@@ -16252,6 +16479,36 @@ function AdminPanel({
   // referência enviada pelo usuário (que tem um campo de busca acima da
   // lista/tabela em praticamente toda tela de listagem).
   const [psychSearch, setPsychSearch] = useState("");
+  // Fase 59 — colunas "Pacientes"/"Sessões" da tabela (igual à referência do
+  // Figma): não vinham em `professionals`, então busca à parte, uma vez, e
+  // conta no cliente (o admin enxerga tudo via RLS "gerencia tudo" — sem
+  // policy nova, só leitura extra).
+  const [psychStats, setPsychStats] = useState<
+    Record<string, { patients: number; sessions: number }>
+  >({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [patientsRes, appointmentsRes] = await Promise.all([
+        supabase.from("patients").select("professional_id").eq("status", "active"),
+        supabase.from("appointments").select("professional_id").neq("status", "cancelled"),
+      ]);
+      if (cancelled) return;
+      const stats: Record<string, { patients: number; sessions: number }> = {};
+      ((patientsRes.data ?? []) as { professional_id: string | null }[]).forEach((r) => {
+        if (!r.professional_id) return;
+        (stats[r.professional_id] ??= { patients: 0, sessions: 0 }).patients += 1;
+      });
+      ((appointmentsRes.data ?? []) as { professional_id: string | null }[]).forEach((r) => {
+        if (!r.professional_id) return;
+        (stats[r.professional_id] ??= { patients: 0, sessions: 0 }).sessions += 1;
+      });
+      setPsychStats(stats);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [toggleError, setToggleError] = useState(false);
 
   // Fase 29 — contagem de leads pendentes pro badge no menu "Leads". Refaz
@@ -16736,99 +16993,139 @@ function AdminPanel({
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {filteredPsychologists.map((p) => (
-                      <div
-                        key={p.id}
-                        className={`bg-card border rounded-xl p-5 flex items-center gap-5 shadow-sm hover:shadow-md transition-all ${p.approved ? "border-border" : "border-amber-200 bg-amber-50/30"}`}
-                      >
-                        <div className="w-14 h-14 rounded-xl bg-muted overflow-hidden shrink-0 border border-border">
-                          {p.photo_url ? (
-                            <img
-                              src={p.photo_url}
-                              alt={p.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-2xl">
-                              {p.flag}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-foreground">
-                              {p.name}
-                            </span>
-                            <span
-                              className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${p.approved ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}
+                  // Fase 59 — tabela (Profissional/Localização/
+                  // Especialidades/Pacientes/Sessões/Status/Ações), igual à
+                  // referência do Figma, no lugar da lista de cartões.
+                  // `p.email` (mostrado nos cartões antigos) não tem coluna
+                  // própria na referência — continua visível no tooltip do
+                  // nome pra não perder a informação.
+                  <div className="bg-card border border-border rounded-xl overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-secondary/50">
+                        <tr>
+                          {[
+                            t("admin.table.professional"),
+                            t("admin.table.location"),
+                            t("admin.table.specialties"),
+                            t("admin.table.patients"),
+                            t("admin.table.sessions"),
+                            t("admin.table.status"),
+                            t("admin.table.actions"),
+                          ].map((h) => (
+                            <th
+                              key={h}
+                              className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider"
                             >
-                              {p.approved
-                                ? t("admin.statusPublished")
-                                : t("admin.statusPending")}
-                            </span>
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-0.5">
-                            {p.flag} {p.location} · {p.years}{" "}
-                            {t("admin.yearsAbbrev")} · {p.sessions_info}
-                          </p>
-                          {p.email && (
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {p.email}
-                            </p>
-                          )}
-                          <div className="flex flex-wrap gap-1.5 mt-2">
-                            {p.specialties.slice(0, 4).map((s) => (
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {filteredPsychologists.map((p) => (
+                          <tr
+                            key={p.id}
+                            className={`hover:bg-secondary/30 transition-colors ${p.approved ? "" : "bg-amber-50/30"}`}
+                          >
+                            <td className="px-4 py-3.5">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-full bg-muted overflow-hidden shrink-0 border border-border">
+                                  {p.photo_url ? (
+                                    <img
+                                      src={p.photo_url}
+                                      alt={p.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-sm">
+                                      {p.flag}
+                                    </div>
+                                  )}
+                                </div>
+                                <div>
+                                  <p
+                                    className="font-semibold text-foreground"
+                                    title={p.email || undefined}
+                                  >
+                                    {p.name}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {p.crp || "—"}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3.5 text-muted-foreground">
+                              {p.flag} {p.location}
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <div className="flex flex-wrap gap-1">
+                                {p.specialties.slice(0, 2).map((s) => (
+                                  <span
+                                    key={s}
+                                    className="text-xs bg-secondary border border-border rounded-full px-2.5 py-0.5 text-muted-foreground"
+                                  >
+                                    {s}
+                                  </span>
+                                ))}
+                                {p.specialties.length > 2 && (
+                                  <span className="text-xs text-muted-foreground">
+                                    +{p.specialties.length - 2}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3.5 text-foreground font-medium">
+                              {psychStats[p.id]?.patients ?? 0}
+                            </td>
+                            <td className="px-4 py-3.5 text-foreground font-medium">
+                              {psychStats[p.id]?.sessions ?? 0}
+                            </td>
+                            <td className="px-4 py-3.5">
                               <span
-                                key={s}
-                                className="text-xs bg-secondary border border-border rounded-full px-2.5 py-0.5 text-muted-foreground"
+                                className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${p.approved ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}
                               >
-                                {s}
+                                {p.approved
+                                  ? t("admin.statusPublished")
+                                  : t("admin.statusPending")}
                               </span>
-                            ))}
-                            {p.specialties.length > 4 && (
-                              <span className="text-xs text-muted-foreground">
-                                +{p.specialties.length - 4}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            onClick={() => handleToggleApproval(p)}
-                            title={
-                              p.approved
-                                ? t("admin.unpublishTooltip")
-                                : t("admin.publishTooltip")
-                            }
-                            className={`p-2 rounded-lg border transition-colors text-sm flex items-center gap-1.5 font-medium ${p.approved ? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100" : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"}`}
-                          >
-                            {p.approved ? (
-                              <Eye size={14} />
-                            ) : (
-                              <EyeOff size={14} />
-                            )}
-                            <span className="hidden sm:inline">
-                              {p.approved
-                                ? t("admin.statusPublished")
-                                : t("admin.publishTooltip")}
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditing(p);
-                              setView("edit");
-                            }}
-                            title={t("admin.editProfileTooltip")}
-                            className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
-                          >
-                            <Pencil size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <div className="flex items-center gap-1">
+                                {!p.approved && (
+                                  <button
+                                    onClick={() => handleToggleApproval(p)}
+                                    title={t("admin.publishTooltip")}
+                                    className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors border border-green-200"
+                                  >
+                                    <Check size={13} />
+                                  </button>
+                                )}
+                                {p.approved && (
+                                  <button
+                                    onClick={() => handleToggleApproval(p)}
+                                    title={t("admin.unpublishTooltip")}
+                                    className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground border border-border"
+                                  >
+                                    <EyeOff size={13} />
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => {
+                                    setEditing(p);
+                                    setView("edit");
+                                  }}
+                                  title={t("admin.editProfileTooltip")}
+                                  className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground border border-border"
+                                >
+                                  <Pencil size={13} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </>
@@ -18927,25 +19224,6 @@ function PatientArea({
       new Date(iso),
     );
 
-  const kpiCard = (
-    icon: React.ReactNode,
-    label: string,
-    value: React.ReactNode,
-  ) => (
-    <div className="bg-background flex flex-col items-center text-center gap-1.5 py-6 px-3">
-      <span className="text-accent">{icon}</span>
-      <p
-        className="text-2xl font-light text-foreground"
-        style={{ fontFamily: "'Fraunces', serif" }}
-      >
-        {value}
-      </p>
-      <p className="text-[0.65rem] uppercase tracking-wider font-semibold text-muted-foreground">
-        {label}
-      </p>
-    </div>
-  );
-
   const patientNavItems: {
     key: "overview" | "settings";
     icon: React.ReactNode;
@@ -19196,24 +19474,28 @@ function PatientArea({
         ) : (
           <div className="space-y-6">
             {/* Fase 29 — cartões de estatística + gráfico, no mesmo espírito
-                da visão geral do profissional (mesma grade com hairline
-                dividers e o mesmo gráfico de barras por mês). */}
-            <div className="grid sm:grid-cols-3 gap-px bg-border border border-border">
-              {kpiCard(
-                <Calendar size={16} />,
-                t("patientArea.kpi.upcoming"),
-                appointments.length,
-              )}
-              {kpiCard(
-                <Check size={16} />,
-                t("patientArea.kpi.completed"),
-                completedCount,
-              )}
-              {kpiCard(
-                <FileText size={16} />,
-                t("patientArea.kpi.sharedNotes"),
-                records.length,
-              )}
+                da visão geral do profissional. Fase 59: StatCard
+                individual (ícone colorido) no lugar da grade com
+                hairlines, pra bater com a referência do Figma. */}
+            <div className="grid sm:grid-cols-3 gap-4">
+              <StatCard
+                icon={Calendar}
+                label={t("patientArea.kpi.upcoming")}
+                value={appointments.length}
+                tone="primary"
+              />
+              <StatCard
+                icon={Check}
+                label={t("patientArea.kpi.completed")}
+                value={completedCount}
+                tone="accent"
+              />
+              <StatCard
+                icon={FileText}
+                label={t("patientArea.kpi.sharedNotes")}
+                value={records.length}
+                tone="neutral"
+              />
             </div>
 
             <div className="bg-card border border-border rounded-2xl p-6">

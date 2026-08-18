@@ -419,7 +419,15 @@
       "noProfessional": "nenhum",
       "reassignLabel": "Vincular a:",
       "reassignButton": "Vincular",
-      "reassignError": "Não foi possível vincular o paciente a esse psicólogo. Tente novamente."
+      "reassignError": "Não foi possível vincular o paciente a esse psicólogo. Tente novamente.",
+      "table": {
+        "patient": "Paciente",
+        "clinic": "Clínica",
+        "professional": "Psicólogo",
+        "sessions": "Sessões",
+        "next": "Próxima",
+        "status": "Status"
+      }
     },
     "leads": {
       "title": "Leads do quiz",
@@ -459,7 +467,16 @@
       "markDeclined": "Recusar",
       "actionError": "Não foi possível atualizar agora. Tente novamente."
     },
-    "searchPlaceholder": "Buscar por nome, e-mail ou CRP..."
+    "searchPlaceholder": "Buscar por nome, e-mail ou CRP...",
+    "table": {
+      "professional": "Profissional",
+      "location": "Localização",
+      "specialties": "Especialidades",
+      "patients": "Pacientes",
+      "sessions": "Sessões",
+      "status": "Status",
+      "actions": "Ações"
+    }
   },
   "profileForm": {
     "nameLabel": "Nome completo *",
@@ -869,7 +886,8 @@
     "summary": {
       "receivedThisMonth": "Recebido este mês",
       "pending": "Pendente",
-      "overdue": "Em atraso"
+      "overdue": "Em atraso",
+      "totalThisMonth": "Total do mês"
     },
     "status": {
       "pending": "Pendente",
@@ -913,6 +931,14 @@
       "defaultRateLabel": "Taxa de inadimplência",
       "projectedRevenueLabel": "Projeção 30 dias · {{count}} consulta(s) agendada(s)",
       "hint": "Estimativa simples com base no preço de sessão configurado e nas consultas já agendadas — não considera pacotes com desconto nem taxas de gateway de pagamento (fora do escopo desta plataforma)."
+    },
+    "table": {
+      "patient": "Paciente",
+      "professional": "Psicólogo",
+      "date": "Data",
+      "amount": "Valor",
+      "status": "Status",
+      "actions": "Ações"
     }
   },
   "patientArea": {
