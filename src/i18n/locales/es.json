@@ -458,7 +458,8 @@
       "markCompleted": "Marcar como completado",
       "markDeclined": "Rechazar",
       "actionError": "No se pudo actualizar ahora. Intenta de nuevo."
-    }
+    },
+    "searchPlaceholder": "Buscar por nombre, correo o número de colegiado..."
   },
   "profileForm": {
     "nameLabel": "Nombre completo *",
@@ -1124,7 +1125,10 @@
     "notFound": "No encontramos tu perfil profesional. Actualiza la página; si el problema continúa, contacta con soporte.",
     "pendingApproval": "Tu perfil aún está en revisión por nuestro equipo. En cuanto sea aprobado, aparecerá en el directorio público.",
     "saveSuccess": "Perfil actualizado correctamente.",
-    "epsiReminder": "Todavía no informaste tu registro e-Psi. Si atiendes en línea, la normativa exige este registro — completa el campo abajo."
+    "epsiReminder": "Todavía no informaste tu registro e-Psi. Si atiendes en línea, la normativa exige este registro — completa el campo abajo.",
+    "backToProfile": "Volver al perfil",
+    "editPhotoButton": "Editar foto",
+    "editInfoButton": "Editar información"
   },
   "settings": {
     "title": "Configuración",

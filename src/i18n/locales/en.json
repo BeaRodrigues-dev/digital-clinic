@@ -458,7 +458,8 @@
       "markCompleted": "Mark as completed",
       "markDeclined": "Decline",
       "actionError": "Couldn't update right now. Please try again."
-    }
+    },
+    "searchPlaceholder": "Search by name, email or license number..."
   },
   "profileForm": {
     "nameLabel": "Full name *",
@@ -1124,7 +1125,10 @@
     "notFound": "We couldn't find your professional profile. Refresh the page — if the problem continues, contact support.",
     "pendingApproval": "Your profile is still being reviewed by our team. Once approved, it will appear in the public directory.",
     "saveSuccess": "Profile updated successfully.",
-    "epsiReminder": "You haven't entered your e-Psi registration yet. If you offer online care, this registration is required — fill in the field below."
+    "epsiReminder": "You haven't entered your e-Psi registration yet. If you offer online care, this registration is required — fill in the field below.",
+    "backToProfile": "Back to profile",
+    "editPhotoButton": "Edit photo",
+    "editInfoButton": "Edit information"
   },
   "settings": {
     "title": "Settings",

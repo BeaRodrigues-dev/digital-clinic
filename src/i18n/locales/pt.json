@@ -458,7 +458,8 @@
       "markCompleted": "Marcar como concluído",
       "markDeclined": "Recusar",
       "actionError": "Não foi possível atualizar agora. Tente novamente."
-    }
+    },
+    "searchPlaceholder": "Buscar por nome, e-mail ou CRP..."
   },
   "profileForm": {
     "nameLabel": "Nome completo *",
@@ -1124,7 +1125,10 @@
     "notFound": "Não encontramos seu perfil profissional. Atualize a página — se o problema continuar, entre em contato com o suporte.",
     "pendingApproval": "Seu perfil ainda está em análise pela nossa equipe. Assim que for aprovado, ele aparece no diretório público.",
     "saveSuccess": "Perfil atualizado com sucesso.",
-    "epsiReminder": "Seu registro e-Psi ainda não foi informado. Se você atende online, a Resolução CFP Nº 011/2018 exige esse cadastro — preencha o campo abaixo."
+    "epsiReminder": "Seu registro e-Psi ainda não foi informado. Se você atende online, a Resolução CFP Nº 011/2018 exige esse cadastro — preencha o campo abaixo.",
+    "backToProfile": "Voltar ao perfil",
+    "editPhotoButton": "Editar foto",
+    "editInfoButton": "Editar informações"
   },
   "settings": {
     "title": "Configurações",

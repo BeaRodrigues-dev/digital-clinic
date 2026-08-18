@@ -2564,10 +2564,10 @@ function SecretaryDashboard({
   ];
 
   const navItemClass = (active: boolean) =>
-    `flex items-center gap-2.5 pl-2.5 pr-3 py-2.5 rounded-r-lg text-xs font-semibold uppercase tracking-wider border-l-2 transition-colors ${
+    `flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
       active
-        ? "bg-primary-foreground/10 text-primary-foreground border-accent"
-        : "text-primary-foreground/70 border-transparent hover:bg-primary-foreground/5 hover:text-primary-foreground"
+        ? "bg-primary text-primary-foreground"
+        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
     }`;
 
   const navBadge = (count?: number) =>
@@ -2599,8 +2599,11 @@ function SecretaryDashboard({
       className="min-h-screen bg-background md:flex"
       style={{ fontFamily: "'Nunito', sans-serif" }}
     >
-      {/* Sidebar — desktop */}
-      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground h-screen sticky top-0">
+      {/* Sidebar — desktop. Fase 58 — arquitetura clara (bg-card + item
+          ativo preenchido com a cor primária) no lugar da sidebar cheia na
+          cor primária, alinhada à referência enviada pelo usuário (Figma),
+          mantendo a paleta/nome/logo que já existiam no código. */}
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-card border-r border-border h-screen sticky top-0">
         {/* Fase 36 — antes o `overflow-y-auto` ficava no `<aside>` inteiro,
             então o menu do usuário (que abre PRA CIMA, `openUp`, a partir
             deste rodapé) era cortado pela própria sidebar: um elemento com
@@ -2610,24 +2613,29 @@ function SecretaryDashboard({
             rodapé (com o menu) FORA da área com overflow, o menu passa a
             desenhar por cima de tudo sem ser cortado. */}
         <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
-          <div className="flex items-center gap-2 px-6 h-16 shrink-0">
-            <BrandMark size={16} light />
-            <span
-              className="font-bold text-sm"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              {t("secretary.navTitle")}
-            </span>
+          <div className="px-5 py-5 border-b border-border shrink-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <BrandMark size={16} />
+              <span
+                className="font-bold text-foreground"
+                style={{ fontFamily: "'Fraunces', serif", fontSize: "1.1rem" }}
+              >
+                {t("nav.brand")}
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-primary">
+              {t(`roles.${user.role}`)}
+            </p>
           </div>
           {sidebarNav()}
         </div>
-        <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3 shrink-0">
+        <div className="px-3 py-4 border-t border-border flex flex-col gap-3 shrink-0">
           <button
             onClick={() => {
               window.location.hash = "";
               window.location.reload();
             }}
-            className="flex items-center gap-2 px-2.5 text-xs text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+            className="flex items-center gap-2 px-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <Globe size={14} /> {t("admin.viewSite")}
           </button>
@@ -2637,6 +2645,7 @@ function SecretaryDashboard({
               onLogout={onLogout}
               onSwitchRole={onSwitchRole}
               onOpenSettings={() => setView("settings")}
+              dark={false}
               openUp
             />
           </div>
@@ -2644,16 +2653,16 @@ function SecretaryDashboard({
       </aside>
 
       {/* Barra superior + gaveta — mobile */}
-      <header className="md:hidden bg-primary text-primary-foreground h-14 flex items-center px-4 gap-3 sticky top-0 z-40">
-        <button onClick={() => setMobileNavOpen(true)} className="p-1">
+      <header className="md:hidden bg-card border-b border-border h-14 flex items-center px-4 gap-3 sticky top-0 z-40">
+        <button onClick={() => setMobileNavOpen(true)} className="p-1 text-foreground">
           <Menu size={20} />
         </button>
-        <BrandMark size={16} light />
+        <BrandMark size={16} />
         <span
-          className="font-bold text-sm"
+          className="font-bold text-sm text-foreground"
           style={{ fontFamily: "'Fraunces', serif" }}
         >
-          {t("secretary.navTitle")}
+          {t("nav.brand")}
         </span>
         <div className="ml-auto">
           <UserMenu
@@ -2661,35 +2670,36 @@ function SecretaryDashboard({
             onLogout={onLogout}
             onSwitchRole={onSwitchRole}
             onOpenSettings={() => setView("settings")}
+            dark={false}
           />
         </div>
       </header>
 
       {mobileNavOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
-          <div className="w-64 bg-primary text-primary-foreground h-full flex flex-col">
-            <div className="flex items-center justify-between px-4 h-14 shrink-0">
+          <div className="w-64 bg-card h-full flex flex-col">
+            <div className="flex items-center justify-between px-4 h-14 shrink-0 border-b border-border">
               <div className="flex items-center gap-2">
-                <BrandMark size={16} light />
+                <BrandMark size={16} />
                 <span
-                  className="font-bold text-sm"
+                  className="font-bold text-sm text-foreground"
                   style={{ fontFamily: "'Fraunces', serif" }}
                 >
-                  {t("secretary.navTitle")}
+                  {t("nav.brand")}
                 </span>
               </div>
-              <button onClick={() => setMobileNavOpen(false)} className="p-1">
+              <button onClick={() => setMobileNavOpen(false)} className="p-1 text-muted-foreground">
                 <X size={18} />
               </button>
             </div>
             {sidebarNav(() => setMobileNavOpen(false))}
-            <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3">
+            <div className="px-3 py-4 border-t border-border flex flex-col gap-3">
               <button
                 onClick={() => {
                   window.location.hash = "";
                   window.location.reload();
                 }}
-                className="flex items-center gap-2 px-2.5 text-xs text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+                className="flex items-center gap-2 px-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Globe size={14} /> {t("admin.viewSite")}
               </button>
@@ -3126,10 +3136,10 @@ function ProfessionalDashboard({
   ];
 
   const proNavItemClass = (active: boolean) =>
-    `flex items-center gap-2.5 pl-2.5 pr-3 py-2.5 rounded-r-lg text-xs font-semibold uppercase tracking-wider border-l-2 transition-colors ${
+    `flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
       active
-        ? "bg-primary-foreground/10 text-primary-foreground border-accent"
-        : "text-primary-foreground/70 border-transparent hover:bg-primary-foreground/5 hover:text-primary-foreground"
+        ? "bg-primary text-primary-foreground"
+        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
     }`;
 
   const navBadge = (count?: number) =>
@@ -3161,30 +3171,37 @@ function ProfessionalDashboard({
       className="min-h-screen bg-background md:flex"
       style={{ fontFamily: "'Nunito', sans-serif" }}
     >
-      {/* Sidebar — desktop */}
-      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground h-screen sticky top-0">
+      {/* Sidebar — desktop. Fase 58 — arquitetura clara (bg-card + item
+          ativo preenchido com a cor primária), ver nota equivalente em
+          SecretaryDashboard. */}
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-card border-r border-border h-screen sticky top-0">
         {/* Fase 36 — ver nota equivalente em SecretaryDashboard: o scroll
             precisa ficar isolado no bloco de cima, senão o menu do usuário
             (que abre pra cima) é cortado pelo overflow da própria sidebar. */}
         <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
-          <div className="flex items-center gap-2 px-6 h-16 shrink-0">
-            <BrandMark size={16} light />
-            <span
-              className="font-bold text-sm"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              {t("dashboard.title")}
-            </span>
+          <div className="px-5 py-5 border-b border-border shrink-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <BrandMark size={16} />
+              <span
+                className="font-bold text-foreground"
+                style={{ fontFamily: "'Fraunces', serif", fontSize: "1.1rem" }}
+              >
+                {t("nav.brand")}
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-primary">
+              {t(`roles.${user.role}`)}
+            </p>
           </div>
           {proSidebarNav()}
         </div>
-        <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3 shrink-0">
+        <div className="px-3 py-4 border-t border-border flex flex-col gap-3 shrink-0">
           <button
             onClick={() => {
               window.location.hash = "";
               window.location.reload();
             }}
-            className="flex items-center gap-2 px-2.5 text-xs text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+            className="flex items-center gap-2 px-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <Globe size={14} /> {t("admin.viewSite")}
           </button>
@@ -3197,6 +3214,7 @@ function ProfessionalDashboard({
                 setSettingsTab(undefined);
                 setView("settings");
               }}
+              dark={false}
               openUp
             />
           </div>
@@ -3204,16 +3222,16 @@ function ProfessionalDashboard({
       </aside>
 
       {/* Barra superior + gaveta — mobile */}
-      <header className="md:hidden bg-primary text-primary-foreground h-14 flex items-center px-4 gap-3 sticky top-0 z-40">
-        <button onClick={() => setMobileNavOpen(true)} className="p-1">
+      <header className="md:hidden bg-card border-b border-border h-14 flex items-center px-4 gap-3 sticky top-0 z-40">
+        <button onClick={() => setMobileNavOpen(true)} className="p-1 text-foreground">
           <Menu size={20} />
         </button>
-        <BrandMark size={16} light />
+        <BrandMark size={16} />
         <span
-          className="font-bold text-sm"
+          className="font-bold text-sm text-foreground"
           style={{ fontFamily: "'Fraunces', serif" }}
         >
-          {t("dashboard.title")}
+          {t("nav.brand")}
         </span>
         <div className="ml-auto">
           <UserMenu
@@ -3224,35 +3242,36 @@ function ProfessionalDashboard({
               setSettingsTab(undefined);
               setView("settings");
             }}
+            dark={false}
           />
         </div>
       </header>
 
       {mobileNavOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
-          <div className="w-64 bg-primary text-primary-foreground h-full flex flex-col">
-            <div className="flex items-center justify-between px-4 h-14 shrink-0">
+          <div className="w-64 bg-card h-full flex flex-col">
+            <div className="flex items-center justify-between px-4 h-14 shrink-0 border-b border-border">
               <div className="flex items-center gap-2">
-                <BrandMark size={16} light />
+                <BrandMark size={16} />
                 <span
-                  className="font-bold text-sm"
+                  className="font-bold text-sm text-foreground"
                   style={{ fontFamily: "'Fraunces', serif" }}
                 >
-                  {t("dashboard.title")}
+                  {t("nav.brand")}
                 </span>
               </div>
-              <button onClick={() => setMobileNavOpen(false)} className="p-1">
+              <button onClick={() => setMobileNavOpen(false)} className="p-1 text-muted-foreground">
                 <X size={18} />
               </button>
             </div>
             {proSidebarNav(() => setMobileNavOpen(false))}
-            <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3">
+            <div className="px-3 py-4 border-t border-border flex flex-col gap-3">
               <button
                 onClick={() => {
                   window.location.hash = "";
                   window.location.reload();
                 }}
-                className="flex items-center gap-2 px-2.5 text-xs text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+                className="flex items-center gap-2 px-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Globe size={14} /> {t("admin.viewSite")}
               </button>
@@ -9473,16 +9492,28 @@ function FinanceView({ user }: { user: AppUser }) {
               ))}
             </select>
           )}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-sm px-4 py-2.5 rounded-lg border border-border bg-secondary text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer transition-colors"
-          >
-            <option value="">{t("finance.statusFilterAll")}</option>
-            <option value="pending">{t("finance.status.pending")}</option>
-            <option value="paid">{t("finance.status.paid")}</option>
-            <option value="overdue">{t("finance.status.overdue")}</option>
-          </select>
+          {/* Fase 58 — pills de status (Todos/Pago/Pendente/Atrasado) no
+              lugar do <select>, no espírito da referência enviada pelo
+              usuário; mesmo estado (`statusFilter`) e mesmos valores de
+              antes, só a apresentação mudou. */}
+          <div className="flex gap-1 bg-secondary rounded-xl p-1 w-fit">
+            {(
+              [
+                { value: "", label: t("finance.statusFilterAll") },
+                { value: "paid", label: t("finance.status.paid") },
+                { value: "pending", label: t("finance.status.pending") },
+                { value: "overdue", label: t("finance.status.overdue") },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setStatusFilter(opt.value)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${statusFilter === opt.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
         <button
           onClick={() => {
@@ -12718,10 +12749,16 @@ function PlanView({ user }: { user: AppUser }) {
 // corrigir o perfil de outra pessoa, e o MESMO componente `ProfileForm`
 // (definido logo abaixo). Sem diretório separado, sem formulário duplicado.
 function ProfessionalProfileView({ user }: { user: AppUser }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [profile, setProfile] = useState<ProfessionalProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saveResult, setSaveResult] = useState<"success" | null>(null);
+  // Fase 58 — antes esta tela ia direto pro formulário de edição; agora
+  // mostra primeiro uma visão só de leitura (foto + lista de campos, no
+  // espírito da referência enviada pelo usuário) e só abre o formulário
+  // (que continua exatamente o mesmo, `ProfileForm`) quando a pessoa clica
+  // em "editar" — nenhum campo/validação/lógica de salvar mudou.
+  const [editing, setEditing] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -12777,6 +12814,7 @@ function ProfessionalProfileView({ user }: { user: AppUser }) {
     });
     await load();
     setSaveResult("success");
+    setEditing(false);
   };
 
   if (loading) {
@@ -12796,8 +12834,8 @@ function ProfessionalProfileView({ user }: { user: AppUser }) {
     );
   }
 
-  return (
-    <div className="max-w-2xl">
+  const noticeBanners = (
+    <>
       {!profile.approved && (
         <div className="mb-6 text-sm bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3">
           {t("professionalProfile.pendingApproval")}
@@ -12816,13 +12854,143 @@ function ProfessionalProfileView({ user }: { user: AppUser }) {
           {t("professionalProfile.saveSuccess")}
         </div>
       )}
-      <div className="bg-card border border-border rounded-2xl p-8">
-        <ProfileForm
-          initial={profile}
-          onSave={handleSave}
-          onCancel={() => {}}
-          hideCancel
-        />
+    </>
+  );
+
+  if (editing) {
+    return (
+      <div className="max-w-2xl">
+        {noticeBanners}
+        <button
+          onClick={() => setEditing(false)}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+        >
+          <ChevronLeft size={16} /> {t("professionalProfile.backToProfile")}
+        </button>
+        <div className="bg-card border border-border rounded-2xl p-8">
+          <ProfileForm
+            initial={profile}
+            onSave={handleSave}
+            onCancel={() => setEditing(false)}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const currency = (value: number | null) =>
+    value == null
+      ? "—"
+      : new Intl.NumberFormat(i18n.language, {
+          style: "currency",
+          currency: profile.currency === "EUR" ? "EUR" : "BRL",
+          maximumFractionDigits: 0,
+        }).format(value);
+
+  const infoFields = [
+    { label: t("profileForm.nameLabel"), value: profile.name || "—" },
+    { label: t("profileForm.crpLabel"), value: profile.crp || "—" },
+    {
+      label: t("profileForm.locationLabel"),
+      value: profile.location
+        ? `${profile.flag ? profile.flag + " " : ""}${profile.location}`
+        : "—",
+    },
+    { label: t("profileForm.approachLabel"), value: profile.approach || "—" },
+    {
+      label: t("profileForm.yearsLabel"),
+      value: profile.years ? `${profile.years} ${t("admin.yearsAbbrev")}` : "—",
+    },
+    {
+      label: t("profileForm.sessionPriceLabel"),
+      value: currency(profile.session_price),
+    },
+    {
+      label: t("profileForm.epsiLabel"),
+      value: profile.epsi_registration || "—",
+    },
+  ];
+
+  return (
+    <div>
+      {noticeBanners}
+
+      {/* Fase 58 — cartão de foto + lista de campos lado a lado, no
+          espírito da referência (foto/identidade à esquerda, dados em
+          formato de lista à direita), reaproveitando integralmente os
+          dados/labels que já existiam. */}
+      <div className="grid lg:grid-cols-[280px_1fr] gap-6">
+        <div className="bg-card border border-border rounded-xl p-6 flex flex-col items-center text-center">
+          <div className="w-24 h-24 rounded-2xl bg-secondary border-2 border-border overflow-hidden mb-4 flex items-center justify-center text-2xl font-semibold text-primary shrink-0">
+            {profile.photo_url ? (
+              <img
+                src={profile.photo_url}
+                alt={profile.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              (profile.name || "?").charAt(0).toUpperCase()
+            )}
+          </div>
+          <h3 className="font-semibold text-foreground text-lg">
+            {profile.name || t("userMenu.noName")}
+          </h3>
+          {profile.crp && (
+            <p className="text-muted-foreground text-sm">{profile.crp}</p>
+          )}
+          {profile.location && (
+            <p className="text-muted-foreground text-sm mt-1">
+              {profile.flag} {profile.location}
+            </p>
+          )}
+          <span
+            className={`inline-block mt-3 text-xs px-2.5 py-0.5 rounded-full font-medium ${profile.approved ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}
+          >
+            {profile.approved
+              ? t("admin.statusPublished")
+              : t("admin.statusPending")}
+          </span>
+          {profile.specialties.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 justify-center mt-4">
+              {profile.specialties.map((s) => (
+                <span
+                  key={s}
+                  className="text-xs bg-secondary border border-border rounded-full px-2.5 py-0.5 text-muted-foreground"
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={() => setEditing(true)}
+            className="mt-5 w-full flex items-center justify-center gap-2 bg-secondary border border-border rounded-full py-2.5 text-sm font-medium hover:bg-muted transition-colors"
+          >
+            <Pencil size={14} /> {t("professionalProfile.editPhotoButton")}
+          </button>
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-6">
+          {infoFields.map((f) => (
+            <div
+              key={f.label}
+              className="grid grid-cols-[160px_1fr] gap-4 items-center py-3 border-b border-border last:border-b-0"
+            >
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {f.label}
+              </span>
+              <span className="text-sm text-foreground font-medium">
+                {f.value}
+              </span>
+            </div>
+          ))}
+          <button
+            onClick={() => setEditing(true)}
+            className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity mt-6"
+          >
+            <Pencil size={14} /> {t("professionalProfile.editInfoButton")}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -14888,9 +15056,38 @@ function AdminClinicsView() {
               >
                 {c.name || t("admin.clinics.unnamed")}
               </span>
-              <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground shrink-0 pt-1.5">
-                {t(`plans.${c.plan}.name`)}
-              </span>
+              <div className="flex items-center gap-6 shrink-0">
+                {/* Fase 58 — mini-colunas de estatística (profissionais /
+                    secretárias), no espírito da referência enviada pelo
+                    usuário, reaproveitando os mesmos dados que já eram
+                    calculados aqui (owner + otherProfessionals/secretaries)
+                    em vez de nova consulta. */}
+                <div className="text-center">
+                  <p
+                    className="text-lg font-light text-foreground leading-none"
+                    style={{ fontFamily: "'Fraunces', serif" }}
+                  >
+                    {(owner ? 1 : 0) + otherProfessionals.length}
+                  </p>
+                  <p className="text-[0.6rem] text-muted-foreground uppercase tracking-wider mt-1">
+                    {t("admin.clinics.professionalsLabel")}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p
+                    className="text-lg font-light text-foreground leading-none"
+                    style={{ fontFamily: "'Fraunces', serif" }}
+                  >
+                    {secretaries.length}
+                  </p>
+                  <p className="text-[0.6rem] text-muted-foreground uppercase tracking-wider mt-1">
+                    {t("admin.clinics.secretariesLabel")}
+                  </p>
+                </div>
+                <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t(`plans.${c.plan}.name`)}
+                </span>
+              </div>
             </div>
 
             <div className="text-sm px-5 py-3 border-t border-border">
@@ -16051,6 +16248,10 @@ function AdminPanel({
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"list" | "edit">("list");
   const [editing, setEditing] = useState<ProfessionalProfile | null>(null);
+  // Fase 58 — busca por nome/e-mail na lista de psicólogos, no espírito da
+  // referência enviada pelo usuário (que tem um campo de busca acima da
+  // lista/tabela em praticamente toda tela de listagem).
+  const [psychSearch, setPsychSearch] = useState("");
   const [toggleError, setToggleError] = useState(false);
 
   // Fase 29 — contagem de leads pendentes pro badge no menu "Leads". Refaz
@@ -16176,6 +16377,13 @@ function AdminPanel({
 
   const approved = psychologists.filter((p) => p.approved).length;
 
+  const filteredPsychologists = psychologists.filter((p) => {
+    if (!psychSearch.trim()) return true;
+    const q = psychSearch.trim().toLowerCase();
+    const haystack = [p.name, p.email, p.crp].filter(Boolean).join(" ").toLowerCase();
+    return haystack.includes(q);
+  });
+
   const adminNavItems: {
     key: AdminTab;
     icon: React.ReactNode;
@@ -16228,10 +16436,10 @@ function AdminPanel({
     ];
 
   const adminNavItemClass = (active: boolean) =>
-    `flex items-center gap-2.5 pl-2.5 pr-3 py-2.5 rounded-r-lg text-xs font-semibold uppercase tracking-wider border-l-2 transition-colors ${
+    `flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
       active
-        ? "bg-primary-foreground/10 text-primary-foreground border-accent"
-        : "text-primary-foreground/70 border-transparent hover:bg-primary-foreground/5 hover:text-primary-foreground"
+        ? "bg-primary text-primary-foreground"
+        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
     }`;
 
   const navBadge = (count?: number) =>
@@ -16265,34 +16473,41 @@ function AdminPanel({
     >
       {/* Sidebar — desktop. Fica sempre visível, inclusive durante a edição
           de um perfil (diferente das abas no topo de antes, que sumiam
-          nesse momento — uma sidebar fixa faz mais sentido continuar ali). */}
-      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground h-screen sticky top-0">
+          nesse momento — uma sidebar fixa faz mais sentido continuar ali).
+          Fase 58 — arquitetura clara (bg-card + item ativo preenchido com a
+          cor primária), ver nota equivalente em SecretaryDashboard. */}
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-card border-r border-border h-screen sticky top-0">
         {/* Fase 36 — ver nota equivalente em SecretaryDashboard: o scroll
             precisa ficar isolado no bloco de cima, senão o menu do usuário
             (que abre pra cima) é cortado pelo overflow da própria sidebar. */}
         <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
-          <div className="flex items-center gap-2 px-6 h-16 shrink-0">
-            <BrandMark size={16} light />
-            <span
-              className="font-bold text-sm"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              {t("admin.navTitle")}
-            </span>
+          <div className="px-5 py-5 border-b border-border shrink-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <BrandMark size={16} />
+              <span
+                className="font-bold text-foreground"
+                style={{ fontFamily: "'Fraunces', serif", fontSize: "1.1rem" }}
+              >
+                {t("nav.brand")}
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-primary">
+              {t(`roles.${user.role}`)}
+            </p>
           </div>
-          <p className="px-6 text-[0.65rem] text-primary-foreground/60">
+          <p className="px-5 pb-3 text-[0.65rem] text-muted-foreground">
             {approved} {t("admin.published")} ·{" "}
             {psychologists.length - approved} {t("admin.pending")}
           </p>
           {adminSidebarNav()}
         </div>
-        <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3 shrink-0">
+        <div className="px-3 py-4 border-t border-border flex flex-col gap-3 shrink-0">
           <button
             onClick={() => {
               window.location.hash = "";
               window.location.reload();
             }}
-            className="flex items-center gap-2 px-2.5 text-xs text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+            className="flex items-center gap-2 px-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <Globe size={14} /> {t("admin.viewSite")}
           </button>
@@ -16301,6 +16516,7 @@ function AdminPanel({
               user={user}
               onLogout={onLogout}
               onSwitchRole={onSwitchRole}
+              dark={false}
               openUp
             />
           </div>
@@ -16308,51 +16524,51 @@ function AdminPanel({
       </aside>
 
       {/* Barra superior + gaveta — mobile */}
-      <header className="md:hidden bg-primary text-primary-foreground h-14 flex items-center px-4 gap-3 sticky top-0 z-40">
-        <button onClick={() => setMobileNavOpen(true)} className="p-1">
+      <header className="md:hidden bg-card border-b border-border h-14 flex items-center px-4 gap-3 sticky top-0 z-40">
+        <button onClick={() => setMobileNavOpen(true)} className="p-1 text-foreground">
           <Menu size={20} />
         </button>
-        <BrandMark size={16} light />
+        <BrandMark size={16} />
         <span
-          className="font-bold text-sm"
+          className="font-bold text-sm text-foreground"
           style={{ fontFamily: "'Fraunces', serif" }}
         >
-          {t("admin.navTitle")}
+          {t("nav.brand")}
         </span>
         <div className="ml-auto">
-          <UserMenu user={user} onLogout={onLogout} onSwitchRole={onSwitchRole} />
+          <UserMenu user={user} onLogout={onLogout} onSwitchRole={onSwitchRole} dark={false} />
         </div>
       </header>
 
       {mobileNavOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
-          <div className="w-64 bg-primary text-primary-foreground h-full flex flex-col">
-            <div className="flex items-center justify-between px-4 h-14 shrink-0">
+          <div className="w-64 bg-card h-full flex flex-col">
+            <div className="flex items-center justify-between px-4 h-14 shrink-0 border-b border-border">
               <div className="flex items-center gap-2">
-                <BrandMark size={16} light />
+                <BrandMark size={16} />
                 <span
-                  className="font-bold text-sm"
+                  className="font-bold text-sm text-foreground"
                   style={{ fontFamily: "'Fraunces', serif" }}
                 >
-                  {t("admin.navTitle")}
+                  {t("nav.brand")}
                 </span>
               </div>
-              <button onClick={() => setMobileNavOpen(false)} className="p-1">
+              <button onClick={() => setMobileNavOpen(false)} className="p-1 text-muted-foreground">
                 <X size={18} />
               </button>
             </div>
-            <p className="px-6 text-[0.65rem] text-primary-foreground/60">
+            <p className="px-5 pb-3 pt-3 text-[0.65rem] text-muted-foreground">
               {approved} {t("admin.published")} ·{" "}
               {psychologists.length - approved} {t("admin.pending")}
             </p>
             {adminSidebarNav(() => setMobileNavOpen(false))}
-            <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3">
+            <div className="px-3 py-4 border-t border-border flex flex-col gap-3">
               <button
                 onClick={() => {
                   window.location.hash = "";
                   window.location.reload();
                 }}
-                className="flex items-center gap-2 px-2.5 text-xs text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+                className="flex items-center gap-2 px-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Globe size={14} /> {t("admin.viewSite")}
               </button>
@@ -16480,6 +16696,20 @@ function AdminPanel({
                     {t("admin.toggleApprovalError")}
                   </p>
                 )}
+                {!loading && psychologists.length > 0 && (
+                  <div className="relative max-w-sm mb-6">
+                    <Search
+                      size={14}
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+                    />
+                    <input
+                      value={psychSearch}
+                      onChange={(e) => setPsychSearch(e.target.value)}
+                      placeholder={t("admin.searchPlaceholder")}
+                      className="w-full bg-secondary border border-border rounded-lg pl-9 pr-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                    />
+                  </div>
+                )}
                 {loading ? (
                   <div className="flex items-center justify-center py-24 text-muted-foreground gap-3">
                     <Loader2 size={20} className="animate-spin" />{" "}
@@ -16495,9 +16725,19 @@ function AdminPanel({
                       {t("admin.emptyText")}
                     </p>
                   </div>
+                ) : filteredPsychologists.length === 0 ? (
+                  <div className="text-center py-24 border-2 border-dashed border-border rounded-2xl">
+                    <p className="text-4xl mb-4">🔍</p>
+                    <p className="font-semibold text-foreground mb-2">
+                      {t("patients.noResultsTitle")}
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      {t("patients.noResultsText")}
+                    </p>
+                  </div>
                 ) : (
                   <div className="space-y-3">
-                    {psychologists.map((p) => (
+                    {filteredPsychologists.map((p) => (
                       <div
                         key={p.id}
                         className={`bg-card border rounded-xl p-5 flex items-center gap-5 shadow-sm hover:shadow-md transition-all ${p.approved ? "border-border" : "border-amber-200 bg-amber-50/30"}`}
@@ -18724,10 +18964,10 @@ function PatientArea({
   ];
 
   const patientNavItemClass = (active: boolean) =>
-    `flex items-center gap-2.5 pl-2.5 pr-3 py-2.5 rounded-r-lg text-xs font-semibold uppercase tracking-wider border-l-2 transition-colors ${
+    `flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
       active
-        ? "bg-primary-foreground/10 text-primary-foreground border-accent"
-        : "text-primary-foreground/70 border-transparent hover:bg-primary-foreground/5 hover:text-primary-foreground"
+        ? "bg-primary text-primary-foreground"
+        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
     }`;
 
   const patientSidebarNav = (onNavigate?: () => void) => (
@@ -18803,30 +19043,37 @@ function PatientArea({
         </div>
       )}
 
-      {/* Sidebar — desktop */}
-      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground h-screen sticky top-0">
+      {/* Sidebar — desktop. Fase 58 — arquitetura clara (bg-card + item
+          ativo preenchido com a cor primária), ver nota equivalente em
+          SecretaryDashboard. */}
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-card border-r border-border h-screen sticky top-0">
         {/* Fase 36 — ver nota equivalente em SecretaryDashboard: o scroll
             precisa ficar isolado no bloco de cima, senão o menu do usuário
             (que abre pra cima) é cortado pelo overflow da própria sidebar. */}
         <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
-          <div className="flex items-center gap-2 px-6 h-16 shrink-0">
-            <BrandMark size={16} light />
-            <span
-              className="font-bold text-sm"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              {t("patientArea.title")}
-            </span>
+          <div className="px-5 py-5 border-b border-border shrink-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <BrandMark size={16} />
+              <span
+                className="font-bold text-foreground"
+                style={{ fontFamily: "'Fraunces', serif", fontSize: "1.1rem" }}
+              >
+                {t("nav.brand")}
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-primary">
+              {t(`roles.${user.role}`)}
+            </p>
           </div>
           {patientSidebarNav()}
         </div>
-        <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3 shrink-0">
+        <div className="px-3 py-4 border-t border-border flex flex-col gap-3 shrink-0">
           <button
             onClick={() => {
               window.location.hash = "";
               window.location.reload();
             }}
-            className="flex items-center gap-2 px-2.5 text-xs text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+            className="flex items-center gap-2 px-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <Globe size={14} /> {t("admin.viewSite")}
           </button>
@@ -18836,6 +19083,7 @@ function PatientArea({
               onLogout={onLogout}
               onSwitchRole={onSwitchRole}
               onOpenSettings={() => setView("settings")}
+              dark={false}
               openUp
             />
           </div>
@@ -18843,16 +19091,16 @@ function PatientArea({
       </aside>
 
       {/* Barra superior + gaveta — mobile */}
-      <header className="md:hidden bg-primary text-primary-foreground h-14 flex items-center px-4 gap-3 sticky top-0 z-40">
-        <button onClick={() => setMobileNavOpen(true)} className="p-1">
+      <header className="md:hidden bg-card border-b border-border h-14 flex items-center px-4 gap-3 sticky top-0 z-40">
+        <button onClick={() => setMobileNavOpen(true)} className="p-1 text-foreground">
           <Menu size={20} />
         </button>
-        <BrandMark size={16} light />
+        <BrandMark size={16} />
         <span
-          className="font-bold text-sm"
+          className="font-bold text-sm text-foreground"
           style={{ fontFamily: "'Fraunces', serif" }}
         >
-          {t("patientArea.title")}
+          {t("nav.brand")}
         </span>
         <div className="ml-auto">
           <UserMenu
@@ -18860,35 +19108,36 @@ function PatientArea({
             onLogout={onLogout}
             onSwitchRole={onSwitchRole}
             onOpenSettings={() => setView("settings")}
+            dark={false}
           />
         </div>
       </header>
 
       {mobileNavOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
-          <div className="w-64 bg-primary text-primary-foreground h-full flex flex-col">
-            <div className="flex items-center justify-between px-4 h-14 shrink-0">
+          <div className="w-64 bg-card h-full flex flex-col">
+            <div className="flex items-center justify-between px-4 h-14 shrink-0 border-b border-border">
               <div className="flex items-center gap-2">
-                <BrandMark size={16} light />
+                <BrandMark size={16} />
                 <span
-                  className="font-bold text-sm"
+                  className="font-bold text-sm text-foreground"
                   style={{ fontFamily: "'Fraunces', serif" }}
                 >
-                  {t("patientArea.title")}
+                  {t("nav.brand")}
                 </span>
               </div>
-              <button onClick={() => setMobileNavOpen(false)} className="p-1">
+              <button onClick={() => setMobileNavOpen(false)} className="p-1 text-muted-foreground">
                 <X size={18} />
               </button>
             </div>
             {patientSidebarNav(() => setMobileNavOpen(false))}
-            <div className="px-3 py-4 border-t border-primary-foreground/10 flex flex-col gap-3">
+            <div className="px-3 py-4 border-t border-border flex flex-col gap-3">
               <button
                 onClick={() => {
                   window.location.hash = "";
                   window.location.reload();
                 }}
-                className="flex items-center gap-2 px-2.5 text-xs text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+                className="flex items-center gap-2 px-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Globe size={14} /> {t("admin.viewSite")}
               </button>
