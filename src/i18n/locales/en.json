@@ -510,7 +510,10 @@
     "currencyLabel": "Billing currency",
     "currencyBRL": "Real (R$)",
     "currencyEUR": "Euro (€)",
-    "currencyHint": "Used to format the session price and payments in your dashboard."
+    "currencyHint": "Used to format the session price and payments in your dashboard.",
+    "epsiLabel": "e-Psi registration",
+    "epsiPlaceholder": "e-Psi registration number (CFP)",
+    "epsiHint": "Self-declared — keep it current per the applicable online-care regulation."
   },
   "language": {
     "label": "Language"
@@ -608,7 +611,15 @@
       "responsibleLabel": "Responsible psychologist",
       "emergencyContactLegend": "Emergency contact (optional)",
       "emergencyContactNamePlaceholder": "Emergency contact name",
-      "emergencyContactPhonePlaceholder": "Emergency contact phone"
+      "emergencyContactPhonePlaceholder": "Emergency contact phone",
+      "isMinorLabel": "Minor patient",
+      "guardianHint": "Required to treat minors: legal guardian details and a specific authorization in the Patient Portal.",
+      "guardianNamePlaceholder": "Legal guardian's name",
+      "guardianRelationshipPlaceholder": "Relationship (e.g., mother, father, tutor)",
+      "guardianContactPlaceholder": "Guardian's phone or email",
+      "guardianRequiredError": "Enter the legal guardian's name.",
+      "cpfLabel": "National ID (optional)",
+      "cpfPlaceholder": "Tax/ID number"
     },
     "detail": {
       "editPatient": "Edit patient",
@@ -618,7 +629,9 @@
       "noContact": "No contact info on file",
       "noNotes": "No notes on file.",
       "emergencyContactTitle": "Emergency contact",
-      "emergencyContactEmpty": "No emergency contact on file."
+      "emergencyContactEmpty": "No emergency contact on file.",
+      "guardianTitle": "Legal guardian",
+      "guardianEmpty": "No guardian details on file."
     },
     "access": {
       "title": "Patient portal access",
@@ -634,7 +647,23 @@
       "resendSuccess": "Email resent! The patient will get a new link to create their access password.",
       "resendError": "Could not resend access. Please try again."
     },
-    "deleteError": "Couldn't delete the patient. Please try again."
+    "deleteError": "Couldn't delete the patient. Please try again.",
+    "export": {
+      "title": "Export full clinical record",
+      "hint": "Mandatory 5-year retention — download a full copy at any time.",
+      "jsonButton": "Download JSON",
+      "pdfButton": "Generate PDF",
+      "error": "Couldn't export right now. Please try again.",
+      "signed": "signed",
+      "sharedNotes": "Shared notes",
+      "privateNotes": "Private notes",
+      "pdfTitle": "Clinical record — {{name}}",
+      "generatedAt": "Generated on {{date}}",
+      "sessionsSection": "Sessions",
+      "documentsSection": "Documents",
+      "emptySection": "No records.",
+      "printButton": "Save as PDF"
+    }
   },
   "agenda": {
     "title": "Schedule",
@@ -794,14 +823,24 @@
         "saveNew": "Save document",
         "downloadPdfButton": "Download PDF",
         "printPdfButton": "Print / save as PDF",
-        "pdfMeta": "Patient: {{patient}} · Type: {{type}}"
-      }
+        "pdfMeta": "Patient: {{patient}} · Type: {{type}}",
+        "placeholderMissing": "[fill in]",
+        "placeholderHint": "Click a variable above to insert it into the text — it's replaced with the real value when you copy, download, or generate the PDF."
+      },
+      "retentionLockedHint": "Mandatory 5-year retention — this document can only be deleted starting {{date}}."
     },
     "lock": {
       "lockButton": "Sign & finalize",
       "lockedBanner": "Session signed and finalized on {{date}} — can no longer be edited.",
       "signedBadge": "Signed",
       "error": "Couldn't sign right now. Please try again."
+    },
+    "amendments": {
+      "title": "Amendments",
+      "empty": "No amendments yet.",
+      "placeholder": "Add a note to this signed record, without changing the original text...",
+      "addButton": "Add amendment",
+      "error": "Couldn't save the amendment right now. Please try again."
     }
   },
   "finance": {
@@ -867,6 +906,12 @@
       "paymentDateLabel": "Payment date",
       "declarationText": "Received from {{patient}} the amount of {{amount}}, for psychology services rendered, paid on {{date}}.",
       "printButton": "Print / save as PDF"
+    },
+    "dre": {
+      "title": "Default rate & projected revenue",
+      "defaultRateLabel": "Default rate",
+      "projectedRevenueLabel": "30-day projection · {{count}} session(s) scheduled",
+      "hint": "A simple estimate based on the configured session price and already-scheduled sessions — it doesn't account for discounted packages or payment gateway fees (out of scope for this platform)."
     }
   },
   "patientArea": {
@@ -1078,7 +1123,8 @@
     "loading": "Loading your profile...",
     "notFound": "We couldn't find your professional profile. Refresh the page — if the problem continues, contact support.",
     "pendingApproval": "Your profile is still being reviewed by our team. Once approved, it will appear in the public directory.",
-    "saveSuccess": "Profile updated successfully."
+    "saveSuccess": "Profile updated successfully.",
+    "epsiReminder": "You haven't entered your e-Psi registration yet. If you offer online care, this registration is required — fill in the field below."
   },
   "settings": {
     "title": "Settings",
@@ -1481,6 +1527,24 @@
       "revenueTotal": "Total received",
       "activePatients": "Active patients",
       "completedThisMonth": "Sessions this month"
+    }
+  },
+  "consents": {
+    "intro": "Before continuing, we need your formal consent. Please read carefully and accept below if you agree.",
+    "error": "We couldn't record your consent right now. Please try again.",
+    "logout": "Log out",
+    "acceptButton": "I've read and agree",
+    "general_tcle": {
+      "title": "Informed Consent Form",
+      "text": "INFORMED CONSENT FORM\n\nThis document formalizes your consent to begin psychological care on this platform, in accordance with professional ethics standards for psychologists (based on the Brazilian CFP Code of Ethics and Resolution CFP No. 001/2009, adaptable to local regulations).\n\n1. Nature of the service: psychological care aims to promote mental health, self-knowledge and well-being through techniques recognized by Psychology. It does not replace medical or psychiatric treatment when that is required.\n\n2. Professional confidentiality: information shared during care is protected by professional confidentiality. It may only be disclosed in exceptions provided by law (risk to life, court order, among others).\n\n3. Clinical records: session notes are stored securely and are accessible only to the professional responsible for your care, for the minimum period required by professional regulation.\n\n4. Voluntary participation: your participation is voluntary and you may discontinue care at any time, without penalty, by notifying the responsible professional.\n\n5. Personal data processing: your data is processed in accordance with applicable data protection law and used exclusively to provide the contracted service.\n\nBy accepting this term, you declare that you have read and understood the information above and agree to begin psychological care on this platform.\n\n[This text is a technical starting point and does not replace review by a licensed Psychology professional and, if necessary, a lawyer, before going live in production.]"
+    },
+    "online_therapy": {
+      "title": "Online Care Consent",
+      "text": "CONSENT FORM FOR ONLINE CARE (TELEPSYCHOLOGY)\n\nIn accordance with regulations governing psychological services delivered through remote communication technology (based on Brazilian CFP Resolution No. 011/2018), this term addresses the specific aspects of online care.\n\n1. Format of care: sessions will be conducted by video call, remotely, using the tool indicated by the responsible professional.\n\n2. Risks and limitations of the remote format: technical connection, audio or video failures may occasionally interrupt or affect a session. In such cases, the session may be rescheduled or resumed through another method agreed with the professional.\n\n3. Environment and privacy: it is recommended that you take part in sessions in a private setting that preserves your confidentiality, avoiding the presence of unauthorized third parties.\n\n4. Confidentiality in a digital environment: the professional adopts reasonable technical measures to protect information exchanged during online care. Even so, you should be aware that no digital communication medium is entirely free of risk.\n\n5. Audio and video recording: sessions are not recorded, unless you give express and specific authorization for a defined purpose.\n\n6. Professional registration: the responsible professional maintains (or is in the process of obtaining) the applicable professional registration for the modality of care offered, where required.\n\nBy accepting this term, you declare that you are aware of the particularities of online psychological care and agree to receive it through this modality.\n\n[This text is a technical starting point and does not replace review by a licensed Psychology professional and, if necessary, a lawyer, before going live in production.]"
+    },
+    "guardian_authorization": {
+      "title": "Legal Guardian Authorization",
+      "text": "LEGAL GUARDIAN AUTHORIZATION\n\nThis term is addressed to the legal guardian of a minor patient, in accordance with applicable child and adolescent protection regulations and professional ethics standards for psychologists.\n\n1. Authorization of care: by accepting this term, you declare that you are the legal guardian (parent, tutor, or designated responsible party) of the patient registered on this platform and you expressly authorize the start and continuation of psychological care.\n\n2. Guardian involvement: you may be asked to take part in conversations with the responsible professional about the progress of care, respecting confidentiality boundaries appropriate to the minor's age and the professional's clinical judgment.\n\n3. Confidentiality toward the minor patient: the professional may, within their technical and ethical judgment, withhold certain information shared by the patient in session when disclosure to the guardian would not serve the adolescent's best interest.\n\n4. Revocation: you may revoke this authorization at any time by notifying the responsible professional, which will end the care relationship.\n\nBy accepting this term, you declare that you have read and understood the information above and authorize the psychological care of the minor patient on this platform.\n\n[This text is a technical starting point and does not replace review by a licensed Psychology professional and, if necessary, a lawyer, before going live in production.]"
     }
   }
 }

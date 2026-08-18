@@ -510,7 +510,10 @@
     "currencyLabel": "Moneda de cobro",
     "currencyBRL": "Real (R$)",
     "currencyEUR": "Euro (€)",
-    "currencyHint": "Se usa para formatear el valor de la sesión y los pagos en tu panel."
+    "currencyHint": "Se usa para formatear el valor de la sesión y los pagos en tu panel.",
+    "epsiLabel": "Registro e-Psi",
+    "epsiPlaceholder": "Número de registro e-Psi (CFP)",
+    "epsiHint": "Autodeclarado — mantenlo actualizado conforme la normativa de atención en línea aplicable."
   },
   "language": {
     "label": "Idioma"
@@ -608,7 +611,15 @@
       "responsibleLabel": "Psicólogo responsable",
       "emergencyContactLegend": "Contacto de emergencia (opcional)",
       "emergencyContactNamePlaceholder": "Nombre del contacto de emergencia",
-      "emergencyContactPhonePlaceholder": "Teléfono del contacto de emergencia"
+      "emergencyContactPhonePlaceholder": "Teléfono del contacto de emergencia",
+      "isMinorLabel": "Paciente menor de edad",
+      "guardianHint": "Necesario para atender a menores de edad: datos del responsable legal y autorización específica en el Portal del Paciente.",
+      "guardianNamePlaceholder": "Nombre del responsable legal",
+      "guardianRelationshipPlaceholder": "Parentesco (ej.: madre, padre, tutor)",
+      "guardianContactPlaceholder": "Teléfono o correo del responsable",
+      "guardianRequiredError": "Indica el nombre del responsable legal.",
+      "cpfLabel": "CPF (opcional)",
+      "cpfPlaceholder": "000.000.000-00"
     },
     "detail": {
       "editPatient": "Editar paciente",
@@ -618,7 +629,9 @@
       "noContact": "Sin contacto registrado",
       "noNotes": "Sin notas registradas.",
       "emergencyContactTitle": "Contacto de emergencia",
-      "emergencyContactEmpty": "No hay contacto de emergencia registrado."
+      "emergencyContactEmpty": "No hay contacto de emergencia registrado.",
+      "guardianTitle": "Responsable legal",
+      "guardianEmpty": "No hay datos del responsable registrados."
     },
     "access": {
       "title": "Acceso al área del paciente",
@@ -634,7 +647,23 @@
       "resendSuccess": "¡Correo reenviado! El paciente recibirá un nuevo enlace para crear la contraseña de acceso.",
       "resendError": "No fue posible reenviar el acceso. Intenta de nuevo."
     },
-    "deleteError": "No fue posible eliminar el paciente. Intenta de nuevo."
+    "deleteError": "No fue posible eliminar el paciente. Intenta de nuevo.",
+    "export": {
+      "title": "Exportar historial completo",
+      "hint": "Conservación obligatoria de 5 años — descarga una copia completa en cualquier momento.",
+      "jsonButton": "Descargar JSON",
+      "pdfButton": "Generar PDF",
+      "error": "No se pudo exportar ahora. Intenta de nuevo.",
+      "signed": "firmado",
+      "sharedNotes": "Notas compartidas",
+      "privateNotes": "Notas privadas",
+      "pdfTitle": "Historial clínico — {{name}}",
+      "generatedAt": "Generado el {{date}}",
+      "sessionsSection": "Sesiones",
+      "documentsSection": "Documentos",
+      "emptySection": "Sin registros.",
+      "printButton": "Guardar como PDF"
+    }
   },
   "agenda": {
     "title": "Agenda",
@@ -794,14 +823,24 @@
         "saveNew": "Guardar documento",
         "downloadPdfButton": "Descargar PDF",
         "printPdfButton": "Imprimir / guardar como PDF",
-        "pdfMeta": "Paciente: {{patient}} · Tipo: {{type}}"
-      }
+        "pdfMeta": "Paciente: {{patient}} · Tipo: {{type}}",
+        "placeholderMissing": "[completar]",
+        "placeholderHint": "Haz clic en una variable arriba para insertarla en el texto — se reemplaza por el dato real al copiar, descargar o generar el PDF."
+      },
+      "retentionLockedHint": "Conservación obligatoria de 5 años — este documento solo podrá eliminarse a partir del {{date}}."
     },
     "lock": {
       "lockButton": "Firmar y finalizar",
       "lockedBanner": "Sesión firmada y finalizada el {{date}} — ya no se puede editar.",
       "signedBadge": "Firmado",
       "error": "No se pudo firmar ahora. Intenta de nuevo."
+    },
+    "amendments": {
+      "title": "Anexos",
+      "empty": "Todavía no hay ningún anexo.",
+      "placeholder": "Agrega una observación a este registro firmado, sin alterar el texto original...",
+      "addButton": "Agregar anexo",
+      "error": "No se pudo guardar el anexo ahora. Intenta de nuevo."
     }
   },
   "finance": {
@@ -867,6 +906,12 @@
       "paymentDateLabel": "Fecha del pago",
       "declarationText": "Recibí de {{patient}} la cantidad de {{amount}}, correspondiente a servicios de psicología prestados, pagado el {{date}}.",
       "printButton": "Imprimir / guardar como PDF"
+    },
+    "dre": {
+      "title": "Morosidad y facturación proyectada",
+      "defaultRateLabel": "Tasa de morosidad",
+      "projectedRevenueLabel": "Proyección 30 días · {{count}} sesión(es) programada(s)",
+      "hint": "Estimación simple basada en el precio de sesión configurado y en las sesiones ya programadas — no considera paquetes con descuento ni comisiones de pasarela de pago (fuera del alcance de esta plataforma)."
     }
   },
   "patientArea": {
@@ -1078,7 +1123,8 @@
     "loading": "Cargando tu perfil...",
     "notFound": "No encontramos tu perfil profesional. Actualiza la página; si el problema continúa, contacta con soporte.",
     "pendingApproval": "Tu perfil aún está en revisión por nuestro equipo. En cuanto sea aprobado, aparecerá en el directorio público.",
-    "saveSuccess": "Perfil actualizado correctamente."
+    "saveSuccess": "Perfil actualizado correctamente.",
+    "epsiReminder": "Todavía no informaste tu registro e-Psi. Si atiendes en línea, la normativa exige este registro — completa el campo abajo."
   },
   "settings": {
     "title": "Configuración",
@@ -1481,6 +1527,24 @@
       "revenueTotal": "Total recibido",
       "activePatients": "Pacientes activos",
       "completedThisMonth": "Sesiones este mes"
+    }
+  },
+  "consents": {
+    "intro": "Antes de continuar, necesitamos tu aceptación formal. Léela con atención y, si estás de acuerdo, acepta abajo.",
+    "error": "No se pudo registrar tu aceptación ahora. Intenta de nuevo.",
+    "logout": "Salir",
+    "acceptButton": "Leí y acepto",
+    "general_tcle": {
+      "title": "Consentimiento Informado",
+      "text": "CONSENTIMIENTO INFORMADO\n\nEste documento formaliza tu consentimiento para iniciar el acompañamiento psicológico en esta plataforma, conforme al Código de Ética Profesional del Psicólogo y a la Resolución CFP Nº 001/2009 (normativa de referencia brasileña, adaptable a la legislación local).\n\n1. Naturaleza del servicio: el acompañamiento psicológico tiene como objetivo promover la salud mental, el autoconocimiento y el bienestar, mediante técnicas reconocidas por la Psicología. No sustituye un tratamiento médico o psiquiátrico cuando este sea necesario.\n\n2. Confidencialidad profesional: la información compartida durante el acompañamiento está protegida por el secreto profesional. La confidencialidad solo puede romperse en las excepciones previstas por la ley (riesgo de vida, orden judicial, entre otras).\n\n3. Registro clínico: las notas de sesión se almacenan de forma protegida, accesibles solo al profesional responsable de tu acompañamiento, durante el plazo mínimo exigido por la normativa profesional.\n\n4. Participación voluntaria: tu participación es voluntaria y puedes interrumpir el acompañamiento en cualquier momento, sin perjuicio, comunicándolo al profesional responsable.\n\n5. Tratamiento de datos personales: tus datos se tratan conforme a la normativa de protección de datos aplicable, y se utilizan exclusivamente para la prestación del servicio contratado.\n\nAl aceptar este término, declaras haber leído y comprendido la información anterior y aceptas iniciar el acompañamiento psicológico en esta plataforma.\n\n[Este texto es un punto de partida técnico y no sustituye la revisión de un profesional de Psicología ni, si es necesario, de un abogado, antes de su publicación en producción.]"
+    },
+    "online_therapy": {
+      "title": "Consentimiento para Atención en Línea",
+      "text": "CONSENTIMIENTO PARA ATENCIÓN EN LÍNEA (TELEPSICOLOGÍA)\n\nConforme a la normativa que regula la prestación de servicios psicológicos por medios tecnológicos de comunicación a distancia (en Brasil, Resolución CFP Nº 011/2018), este término trata específicamente las particularidades de la atención en línea.\n\n1. Modalidad de atención: las sesiones se realizarán por videollamada, a distancia, mediante la herramienta indicada por el profesional responsable.\n\n2. Riesgos y limitaciones del formato remoto: fallas técnicas de conexión, audio o video pueden eventualmente interrumpir o afectar una sesión. En esos casos, la sesión podrá reprogramarse o retomarse por otro medio acordado con el profesional.\n\n3. Entorno y privacidad: se recomienda que participes de las sesiones en un entorno reservado, que preserve tu privacidad, evitando la presencia de terceros no autorizados.\n\n4. Confidencialidad en entorno digital: el profesional adopta medidas técnicas razonables de protección a la información intercambiada durante la atención en línea. Aun así, debes tener en cuenta que ningún medio de comunicación digital está libre de riesgos.\n\n5. Registro en audio y video: las sesiones no se graban, salvo autorización expresa y específica tuya para una finalidad determinada.\n\n6. Registro profesional: el profesional responsable mantiene (o está en proceso de obtener) el registro correspondiente ante el organismo profesional competente, cuando sea exigido para la modalidad de atención ofrecida.\n\nAl aceptar este término, declaras estar al tanto de las particularidades de la atención psicológica en línea y aceptas recibirla bajo esta modalidad.\n\n[Este texto es un punto de partida técnico y no sustituye la revisión de un profesional de Psicología ni, si es necesario, de un abogado, antes de su publicación en producción.]"
+    },
+    "guardian_authorization": {
+      "title": "Autorización del Responsable Legal",
+      "text": "AUTORIZACIÓN DEL RESPONSABLE LEGAL\n\nEste término está dirigido al responsable legal de un(a) paciente menor de edad, conforme a la normativa de protección de la niñez y adolescencia y al Código de Ética Profesional del Psicólogo.\n\n1. Autorización de atención: al aceptar este término, declaras ser el responsable legal (padre, madre, tutor(a) o responsable designado) del(la) paciente registrado(a) en esta plataforma y autorizas expresamente el inicio y la continuidad del acompañamiento psicológico.\n\n2. Participación del responsable: podrás ser convocado(a) a conversar con el profesional responsable sobre el progreso del acompañamiento, respetando los límites de confidencialidad apropiados a la edad y al juicio clínico del profesional.\n\n3. Confidencialidad respecto al paciente menor: el profesional puede, dentro de su juicio técnico y ético, preservar determinada información compartida por el(la) paciente en sesión, cuando considere que revelarla al responsable no atiende al mejor interés del adolescente.\n\n4. Revocación: puedes revocar esta autorización en cualquier momento, comunicándolo al profesional responsable, lo que pondrá fin al acompañamiento.\n\nAl aceptar este término, declaras haber leído y comprendido la información anterior y autorizas el acompañamiento psicológico del(la) paciente menor de edad en esta plataforma.\n\n[Este texto es un punto de partida técnico y no sustituye la revisión de un profesional de Psicología ni, si es necesario, de un abogado, antes de su publicación en producción.]"
     }
   }
 }

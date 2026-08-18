@@ -378,6 +378,10 @@ interface ProfessionalProfile {
   // por ele mesmo. `rating` continua no tipo (a coluna ainda existe), mas
   // não é mais exibida em lugar nenhum (ver nota na migração da Fase 32).
   currency: string;
+  // Fase 53 — registro e-Psi autodeclarado (Resolução CFP Nº 011/2018),
+  // sem validação contra nenhuma API do CFP (nenhuma é acessível
+  // publicamente) — é o próprio profissional quem informa e mantém.
+  epsi_registration: string;
   created_at: string;
 }
 
@@ -3560,6 +3564,14 @@ type Patient = {
   // Fase 40 — contato de emergência.
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
+  // Fase 52 — paciente menor de idade e dados do responsável legal.
+  is_minor: boolean;
+  guardian_name: string | null;
+  guardian_relationship: string | null;
+  guardian_contact: string | null;
+  // Fase 55 — CPF, opcional, usado pelo motor de templates de documento
+  // ({{paciente.cpf}}).
+  cpf: string | null;
 };
 
 type PatientAppointment = {
@@ -3598,6 +3610,11 @@ function PatientForm({
       initial?.professional_id ?? defaultProfessionalId ?? "",
     emergency_contact_name: initial?.emergency_contact_name ?? "",
     emergency_contact_phone: initial?.emergency_contact_phone ?? "",
+    is_minor: initial?.is_minor ?? false,
+    guardian_name: initial?.guardian_name ?? "",
+    guardian_relationship: initial?.guardian_relationship ?? "",
+    guardian_contact: initial?.guardian_contact ?? "",
+    cpf: initial?.cpf ?? "",
   });
   const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
@@ -3624,6 +3641,10 @@ function PatientForm({
       setError(t("patients.fields.requiredError"));
       return;
     }
+    if (form.is_minor && !form.guardian_name.trim()) {
+      setError(t("patients.fields.guardianRequiredError"));
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -3636,6 +3657,17 @@ function PatientForm({
         status: form.status,
         emergency_contact_name: form.emergency_contact_name.trim() || null,
         emergency_contact_phone: form.emergency_contact_phone.trim() || null,
+        is_minor: form.is_minor,
+        guardian_name: form.is_minor
+          ? form.guardian_name.trim() || null
+          : null,
+        guardian_relationship: form.is_minor
+          ? form.guardian_relationship.trim() || null
+          : null,
+        guardian_contact: form.is_minor
+          ? form.guardian_contact.trim() || null
+          : null,
+        cpf: form.cpf.trim() || null,
         ...(showProfessionalPicker
           ? { professional_id: form.professional_id }
           : {}),
@@ -3734,6 +3766,22 @@ function PatientForm({
         </div>
       </div>
 
+      {/* Fase 55 — CPF opcional, usado só pelo motor de templates de
+          documento ({{paciente.cpf}}); nada mais na plataforma depende
+          disso. */}
+      <div>
+        <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+          {t("patients.fields.cpfLabel")}
+        </label>
+        <input
+          type="text"
+          value={form.cpf}
+          onChange={(e) => set("cpf", e.target.value)}
+          placeholder={t("patients.fields.cpfPlaceholder")}
+          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+        />
+      </div>
+
       {/* Fase 40 — contato de emergência, separado do contato do próprio
           paciente. */}
       <div>
@@ -3756,6 +3804,55 @@ function PatientForm({
             className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
           />
         </div>
+      </div>
+
+      {/* Fase 52 — paciente menor de idade: quando marcado, exige dados do
+          responsável legal e passa a cobrar um terceiro TCLE (autorização
+          do responsável) no Portal do Paciente. */}
+      <div>
+        <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
+          <input
+            type="checkbox"
+            checked={form.is_minor}
+            onChange={(e) => set("is_minor", e.target.checked)}
+            className="rounded border-border"
+          />
+          {t("patients.fields.isMinorLabel")}
+        </label>
+        {form.is_minor && (
+          <div className="mt-3 space-y-3 bg-secondary/50 border border-border rounded-lg p-4">
+            <p className="text-xs text-muted-foreground">
+              {t("patients.fields.guardianHint")}
+            </p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <input
+                type="text"
+                value={form.guardian_name}
+                onChange={(e) => set("guardian_name", e.target.value)}
+                placeholder={t("patients.fields.guardianNamePlaceholder")}
+                className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+              />
+              <input
+                type="text"
+                value={form.guardian_relationship}
+                onChange={(e) =>
+                  set("guardian_relationship", e.target.value)
+                }
+                placeholder={t(
+                  "patients.fields.guardianRelationshipPlaceholder",
+                )}
+                className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+              />
+            </div>
+            <input
+              type="text"
+              value={form.guardian_contact}
+              onChange={(e) => set("guardian_contact", e.target.value)}
+              placeholder={t("patients.fields.guardianContactPlaceholder")}
+              className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+            />
+          </div>
+        )}
       </div>
 
       <div>
@@ -4016,6 +4113,12 @@ function PatientDetail({
   const [lastAction, setLastAction] = useState<"invite" | "resend" | null>(
     null,
   );
+  // Fase 54 — exportação completa do prontuário (Resolução CFP Nº
+  // 004/2019), pra atender o direito de acesso/portabilidade sem depender
+  // de pedir isso manualmente ao suporte.
+  const [exportingJson, setExportingJson] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportError, setExportError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -4102,6 +4205,139 @@ function PatientDetail({
     }
   };
 
+  // Fase 54 — exportação completa do prontuário. Só o próprio profissional
+  // dono do paciente chega até aqui (a rota confere de novo no backend,
+  // não confia só em quem renderizou o botão).
+  const handleExportJson = async () => {
+    setExportingJson(true);
+    setExportError(false);
+    try {
+      const data = await apiFetch(`/patients/${patient.id}/export`);
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `prontuario-${patient.full_name.replace(/\s+/g, "-").toLowerCase()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Falha ao exportar prontuário (JSON):", err);
+      setExportError(true);
+    } finally {
+      setExportingJson(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    setExportingPdf(true);
+    setExportError(false);
+    try {
+      const data = (await apiFetch(`/patients/${patient.id}/export`)) as any;
+      const win = window.open("", "_blank", "noopener,noreferrer");
+      if (!win) {
+        setExportError(true);
+        return;
+      }
+      const escapeHtml = (s: string) =>
+        String(s ?? "").replace(/[&<>\x22\x27]/g, (c) => {
+          switch (c) {
+            case "&":
+              return "&amp;";
+            case "<":
+              return "&lt;";
+            case ">":
+              return "&gt;";
+            case '"':
+              return "&quot;";
+            case "'":
+              return "&#39;";
+            default:
+              return c;
+          }
+        });
+      const fmtDate = (iso: string) =>
+        iso
+          ? new Intl.DateTimeFormat(i18n.language, {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            }).format(new Date(iso))
+          : "—";
+
+      const recordsHtml = (data.clinical_records ?? [])
+        .map(
+          (r: any) => `
+        <div class="record">
+          <h3>${fmtDate(r.session_date)}${r.locked_at ? ` · ${escapeHtml(t("patients.export.signed"))}` : ""}</h3>
+          <p class="label">${escapeHtml(t("patients.export.sharedNotes"))}</p>
+          <p class="content">${escapeHtml(r.shared_notes || "—")}</p>
+          <p class="label">${escapeHtml(t("patients.export.privateNotes"))}</p>
+          <p class="content">${escapeHtml(r.private_notes || "—")}</p>
+          ${
+            (r.amendments ?? []).length
+              ? `<p class="label">${escapeHtml(t("records.amendments.title"))}</p>` +
+                (r.amendments ?? [])
+                  .map(
+                    (a: any) =>
+                      `<p class="content">${fmtDate(a.created_at)}: ${escapeHtml(a.content)}</p>`,
+                  )
+                  .join("")
+              : ""
+          }
+        </div>`,
+        )
+        .join("");
+
+      const documentsHtml = (data.documents ?? [])
+        .map(
+          (d: any) => `
+        <div class="record">
+          <h3>${escapeHtml(t(`records.documents.types.${d.doc_type}`))} · ${fmtDate(d.created_at)}</h3>
+          <p class="content">${escapeHtml(d.content)}</p>
+        </div>`,
+        )
+        .join("");
+
+      win.document.write(`<!doctype html>
+<html lang="${i18n.language}">
+<head>
+<meta charset="utf-8" />
+<title>${escapeHtml(t("patients.export.pdfTitle", { name: patient.full_name }))}</title>
+<style>
+  body { font-family: Georgia, 'Times New Roman', serif; color: #1f2937; padding: 48px; max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+  h2 { font-size: 15px; font-weight: 600; margin: 28px 0 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+  h3 { font-size: 13px; font-weight: 600; margin: 16px 0 4px; }
+  .muted { color: #6b7280; font-size: 12px; }
+  .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; margin: 8px 0 2px; }
+  .content { font-size: 13px; white-space: pre-wrap; margin: 0 0 4px; }
+  .record { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px dashed #e5e7eb; }
+  .print-bar { position: sticky; top: 0; background: #fff; padding: 12px 0; margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; }
+  .print-bar button { font-family: inherit; font-size: 13px; padding: 8px 16px; border-radius: 999px; border: 1px solid #1f2937; background: #1f2937; color: #fff; cursor: pointer; }
+  @media print { .print-bar { display: none; } }
+</style>
+</head>
+<body>
+  <div class="print-bar"><button onclick="window.print()">${escapeHtml(t("patients.export.printButton"))}</button></div>
+  <h1>${escapeHtml(t("patients.export.pdfTitle", { name: patient.full_name }))}</h1>
+  <p class="muted">${escapeHtml(t("patients.export.generatedAt", { date: fmtDate(data.exported_at) }))}</p>
+  <h2>${escapeHtml(t("patients.export.sessionsSection"))}</h2>
+  ${recordsHtml || `<p class="muted">${escapeHtml(t("patients.export.emptySection"))}</p>`}
+  <h2>${escapeHtml(t("patients.export.documentsSection"))}</h2>
+  ${documentsHtml || `<p class="muted">${escapeHtml(t("patients.export.emptySection"))}</p>`}
+</body>
+</html>`);
+      win.document.close();
+    } catch (err) {
+      console.error("Falha ao exportar prontuário (PDF):", err);
+      setExportError(true);
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   const dateTimeLabel = (iso: string) =>
     new Intl.DateTimeFormat(i18n.language, {
       day: "2-digit",
@@ -4184,6 +4420,67 @@ function PatientDetail({
         ) : (
           <p className="text-sm text-muted-foreground">
             {t("patients.detail.emergencyContactEmpty")}
+          </p>
+        )}
+      </div>
+
+      {/* Fase 52 — dados do responsável legal, só quando o paciente está
+          marcado como menor de idade. */}
+      {patient.is_minor && (
+        <div className="bg-card border border-border rounded-2xl p-6 mb-6">
+          <h3 className="text-sm font-semibold text-foreground mb-3">
+            {t("patients.detail.guardianTitle")}
+          </h3>
+          <p className="text-sm text-foreground">
+            {[
+              patient.guardian_name,
+              patient.guardian_relationship,
+              patient.guardian_contact,
+            ]
+              .filter(Boolean)
+              .join(" · ") || t("patients.detail.guardianEmpty")}
+          </p>
+        </div>
+      )}
+
+      {/* Fase 54 — exportação completa do prontuário (Resolução CFP Nº
+          004/2019). */}
+      <div className="bg-card border border-border rounded-2xl p-6 mb-6">
+        <h3 className="text-sm font-semibold text-foreground mb-1">
+          {t("patients.export.title")}
+        </h3>
+        <p className="text-xs text-muted-foreground mb-4">
+          {t("patients.export.hint")}
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={handleExportJson}
+            disabled={exportingJson}
+            className="flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-full border border-border hover:bg-secondary transition-colors disabled:opacity-60"
+          >
+            {exportingJson ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Download size={14} />
+            )}
+            {t("patients.export.jsonButton")}
+          </button>
+          <button
+            onClick={handleExportPdf}
+            disabled={exportingPdf}
+            className="flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-full border border-border hover:bg-secondary transition-colors disabled:opacity-60"
+          >
+            {exportingPdf ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <FileText size={14} />
+            )}
+            {t("patients.export.pdfButton")}
+          </button>
+        </div>
+        {exportError && (
+          <p className="text-red-500 text-xs mt-3">
+            {t("patients.export.error")}
           </p>
         )}
       </div>
@@ -4439,7 +4736,7 @@ function PatientsView({ user }: { user: AppUser }) {
     const { data, error: err } = await supabase
       .from("patients")
       .select(
-        "id, full_name, email, phone, notes, tags, status, created_at, patient_user_id, professional_id, emergency_contact_name, emergency_contact_phone",
+        "id, full_name, email, phone, notes, tags, status, created_at, patient_user_id, professional_id, emergency_contact_name, emergency_contact_phone, is_minor, guardian_name, guardian_relationship, guardian_contact, cpf",
       )
       .eq("professional_id", user.id)
       .order("full_name", { ascending: true });
@@ -4841,6 +5138,25 @@ type PatientOption = { id: string; full_name: string };
 // como avisado e aceito na escolha desta abordagem.
 const jitsiRoomUrl = (appointmentId: string) =>
   `https://meet.jit.si/ConecPsi-${appointmentId.replace(/-/g, "")}`;
+
+// Fase 50 — log de auditoria (ver nota completa na migração). Sempre
+// "melhor esforço": se o log falhar, a ação principal (salvar/excluir/
+// assinar o registro) já aconteceu e não deve ser desfeita por causa
+// disso — só registra o erro no console.
+const logAudit = async (
+  action: "create" | "update" | "delete" | "lock" | "export",
+  resourceType: "clinical_record" | "psychological_document",
+  resourceId: string,
+  patientId?: string | null,
+) => {
+  const { error } = await supabase.from("audit_logs").insert({
+    action,
+    resource_type: resourceType,
+    resource_id: resourceId,
+    patient_id: patientId ?? null,
+  });
+  if (error) console.error("Falha ao registrar log de auditoria:", error);
+};
 
 // Fase 46 — módulo inter-sessões: diário de humor + escalas psicométricas
 // padronizadas (PHQ-9 e GAD-7, ambas de domínio público — desenvolvidas
@@ -6251,6 +6567,14 @@ type ClinicalRecord = {
   patients?: { full_name: string } | null;
 };
 
+// Fase 49 — adendo a um registro já assinado (ver nota completa na
+// migração).
+type ClinicalRecordAmendment = {
+  id: string;
+  content: string;
+  created_at: string;
+};
+
 // ─── Documentos psicológicos com IA (Fase 24) ──────────────────────────────
 // Peça formal (relatório, encaminhamento, declaração, atestado), separada
 // das anotações de sessão de `clinical_records`. O rascunho é gerado pela
@@ -6356,6 +6680,50 @@ function RecordForm({
   );
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
+  // Fase 49 — adendo a registro travado, no lugar do bypass do admin que
+  // existia antes (ver nota completa na migração da Fase 49): acrescenta
+  // sem reabrir/editar o conteúdo já assinado.
+  const [amendments, setAmendments] = useState<ClinicalRecordAmendment[]>([]);
+  const [amendmentsLoading, setAmendmentsLoading] = useState(false);
+  const [newAmendment, setNewAmendment] = useState("");
+  const [amendmentSaving, setAmendmentSaving] = useState(false);
+  const [amendmentError, setAmendmentError] = useState(false);
+
+  const loadAmendments = useCallback(async () => {
+    if (!initial?.id) return;
+    setAmendmentsLoading(true);
+    const { data } = await supabase
+      .from("clinical_record_amendments")
+      .select("id, content, created_at")
+      .eq("clinical_record_id", initial.id)
+      .order("created_at", { ascending: true });
+    setAmendments((data as ClinicalRecordAmendment[]) ?? []);
+    setAmendmentsLoading(false);
+  }, [initial?.id]);
+
+  useEffect(() => {
+    if (isLocked) loadAmendments();
+  }, [isLocked, loadAmendments]);
+
+  const submitAmendment = async () => {
+    if (!initial?.id || !newAmendment.trim()) return;
+    setAmendmentSaving(true);
+    setAmendmentError(false);
+    const { error: err } = await supabase
+      .from("clinical_record_amendments")
+      .insert({
+        clinical_record_id: initial.id,
+        content: newAmendment.trim(),
+      });
+    if (err) {
+      console.error("Falha ao salvar adendo:", err);
+      setAmendmentError(true);
+    } else {
+      setNewAmendment("");
+      await loadAmendments();
+    }
+    setAmendmentSaving(false);
+  };
 
   const runAi = async (action: "summarize" | "organize") => {
     if (!privateNotes.trim()) return;
@@ -6460,6 +6828,64 @@ function RecordForm({
           })}
         </div>
       )}
+
+      {isLocked && (
+        <div className="bg-secondary/50 border border-border rounded-lg p-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            {t("records.amendments.title")}
+          </p>
+          {amendmentsLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground text-xs py-2">
+              <Loader2 size={12} className="animate-spin" />
+            </div>
+          ) : amendments.length === 0 ? (
+            <p className="text-xs text-muted-foreground mb-3">
+              {t("records.amendments.empty")}
+            </p>
+          ) : (
+            <div className="space-y-3 mb-4">
+              {amendments.map((a) => (
+                <div key={a.id} className="text-sm">
+                  <p className="text-[11px] text-muted-foreground mb-0.5">
+                    {new Intl.DateTimeFormat(i18n.language, {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }).format(new Date(a.created_at))}
+                  </p>
+                  <p className="text-foreground whitespace-pre-wrap">
+                    {a.content}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+          <textarea
+            value={newAmendment}
+            onChange={(e) => setNewAmendment(e.target.value)}
+            placeholder={t("records.amendments.placeholder")}
+            rows={2}
+            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-none mb-2"
+          />
+          {amendmentError && (
+            <p className="text-red-500 text-xs mb-2">
+              {t("records.amendments.error")}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={submitAmendment}
+            disabled={!newAmendment.trim() || amendmentSaving}
+            className="flex items-center gap-1.5 text-xs font-semibold border border-primary/40 bg-primary/5 text-primary px-3 py-1.5 rounded-full hover:bg-primary/10 transition-colors disabled:opacity-50"
+          >
+            {amendmentSaving && <Loader2 size={12} className="animate-spin" />}
+            {t("records.amendments.addButton")}
+          </button>
+        </div>
+      )}
+
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
@@ -6725,36 +7151,70 @@ function SessionRecordModal({
   );
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
+  // Fase 49 — adendo a registro travado, mesma ideia de RecordForm.
+  const [amendments, setAmendments] = useState<ClinicalRecordAmendment[]>([]);
+  const [newAmendment, setNewAmendment] = useState("");
+  const [amendmentSaving, setAmendmentSaving] = useState(false);
+  const [amendmentError, setAmendmentError] = useState(false);
+
+  const loadAmendments = useCallback(async (id: string) => {
+    const { data } = await supabase
+      .from("clinical_record_amendments")
+      .select("id, content, created_at")
+      .eq("clinical_record_id", id)
+      .order("created_at", { ascending: true });
+    setAmendments((data as ClinicalRecordAmendment[]) ?? []);
+  }, []);
+
+  const submitAmendment = async () => {
+    if (!recordId || !newAmendment.trim()) return;
+    setAmendmentSaving(true);
+    setAmendmentError(false);
+    const { error: err } = await supabase
+      .from("clinical_record_amendments")
+      .insert({ clinical_record_id: recordId, content: newAmendment.trim() });
+    if (err) {
+      console.error("Falha ao salvar adendo:", err);
+      setAmendmentError(true);
+    } else {
+      setNewAmendment("");
+      await loadAmendments(recordId);
+    }
+    setAmendmentSaving(false);
+  };
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data, error: fetchErr } = await supabase
-        .from("clinical_records")
-        .select("id, private_notes, shared_notes, locked_at")
-        .eq("appointment_id", appointment.id)
-        .maybeSingle();
-      if (!cancelled) {
-        if (fetchErr) {
-          // `.maybeSingle()` também retorna erro se mais de uma linha bater
-          // com o filtro (não devia acontecer — uma consulta só tem um
-          // prontuário — mas sem checar isso o modal ficava carregando pra
-          // sempre e, pior, deixava criar um terceiro registro por cima).
+      // Fase 57 — busca via backend (decripta se estiver criptografado) em
+      // vez de ler `private_notes`/`shared_notes` direto da tabela.
+      try {
+        const res = await apiFetch(
+          `/clinical-records?appointment_id=${appointment.id}`,
+        );
+        const data = (res?.records as any[] | undefined)?.[0] ?? null;
+        if (!cancelled) {
+          if (data) {
+            setRecordId(data.id as string);
+            setPrivateNotes((data.private_notes as string | null) ?? "");
+            setSharedNotes((data.shared_notes as string | null) ?? "");
+            setLockedAt((data.locked_at as string | null) ?? null);
+            if (data.locked_at) await loadAmendments(data.id as string);
+          }
+          setLoading(false);
+        }
+      } catch (fetchErr) {
+        if (!cancelled) {
           console.error("Falha ao carregar prontuário da sessão:", fetchErr);
           setLoadError(true);
-        } else if (data) {
-          setRecordId(data.id as string);
-          setPrivateNotes((data.private_notes as string | null) ?? "");
-          setSharedNotes((data.shared_notes as string | null) ?? "");
-          setLockedAt((data.locked_at as string | null) ?? null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [appointment.id]);
+  }, [appointment.id, loadAmendments]);
 
   const runAi = async (action: "summarize" | "organize") => {
     if (!privateNotes.trim()) return;
@@ -6790,35 +7250,47 @@ function SessionRecordModal({
     setSaving(true);
     setError("");
     try {
+      // Fase 57 — grava via backend (criptografa antes de salvar, quando a
+      // chave está configurada) em vez do cliente escrever direto na
+      // tabela.
       const sessionDate = toDateInputValue(new Date(appointment.starts_at));
       if (recordId) {
-        const { error: err } = await supabase
-          .from("clinical_records")
-          .update({
+        await apiFetch(`/clinical-records/${recordId}`, {
+          method: "PUT",
+          body: JSON.stringify({
             private_notes: privateNotes.trim() || null,
             shared_notes: sharedNotes.trim() || null,
-          })
-          .eq("id", recordId);
-        if (err) throw err;
-      } else {
-        const { error: err } = await supabase.from("clinical_records").insert({
-          patient_id: appointment.patient_id,
-          appointment_id: appointment.id,
-          professional_id: professionalId,
-          session_date: sessionDate,
-          private_notes: privateNotes.trim() || null,
-          shared_notes: sharedNotes.trim() || null,
+          }),
         });
-        if (err) throw err;
+      } else {
+        await apiFetch("/clinical-records", {
+          method: "POST",
+          body: JSON.stringify({
+            patient_id: appointment.patient_id,
+            appointment_id: appointment.id,
+            professional_id: professionalId,
+            session_date: sessionDate,
+            private_notes: privateNotes.trim() || null,
+            shared_notes: sharedNotes.trim() || null,
+          }),
+        });
       }
       onSaved();
     } catch (err: any) {
       // Código 23505 = unique_violation — já existe um prontuário pra essa
       // consulta (a checagem em `useEffect` já devia ter carregado ele, mas
       // se outra aba/pessoa criou um entre o load e o save, o índice único
-      // do banco barra a duplicata em vez de deixar passar).
+      // do banco barra a duplicata em vez de deixar passar). `apiFetch`
+      // joga `Error(await r.text())` — o corpo é o JSON `{error, code}` que
+      // a rota devolve, por isso precisa parsear antes de checar o código.
+      let code: string | undefined;
+      try {
+        code = JSON.parse(err?.message ?? "")?.code;
+      } catch {
+        // não era JSON — segue sem código
+      }
       setError(
-        err?.code === "23505"
+        code === "23505"
           ? t("sessionRecord.duplicateError")
           : t("records.fields.genericSaveError"),
       );
@@ -6895,6 +7367,50 @@ function SessionRecordModal({
                 {t("records.lock.lockedBanner", {
                   date: new Intl.DateTimeFormat().format(new Date(lockedAt as string)),
                 })}
+              </div>
+            )}
+            {isLocked && (
+              <div className="bg-secondary/50 border border-border rounded-lg p-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                  {t("records.amendments.title")}
+                </p>
+                {amendments.length > 0 && (
+                  <div className="space-y-3 mb-4">
+                    {amendments.map((a) => (
+                      <div key={a.id} className="text-sm">
+                        <p className="text-[11px] text-muted-foreground mb-0.5">
+                          {new Intl.DateTimeFormat().format(new Date(a.created_at))}
+                        </p>
+                        <p className="text-foreground whitespace-pre-wrap">
+                          {a.content}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <textarea
+                  value={newAmendment}
+                  onChange={(e) => setNewAmendment(e.target.value)}
+                  placeholder={t("records.amendments.placeholder")}
+                  rows={2}
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-none mb-2"
+                />
+                {amendmentError && (
+                  <p className="text-red-500 text-xs mb-2">
+                    {t("records.amendments.error")}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={submitAmendment}
+                  disabled={!newAmendment.trim() || amendmentSaving}
+                  className="flex items-center gap-1.5 text-xs font-semibold border border-primary/40 bg-primary/5 text-primary px-3 py-1.5 rounded-full hover:bg-primary/10 transition-colors disabled:opacity-50"
+                >
+                  {amendmentSaving && (
+                    <Loader2 size={12} className="animate-spin" />
+                  )}
+                  {t("records.amendments.addButton")}
+                </button>
               </div>
             )}
             <div>
@@ -7077,24 +7593,23 @@ function RecordsView({ user }: { user: AppUser }) {
   const load = useCallback(async () => {
     setLoading(true);
     setError(false);
-    const [recordsRes, patientsRes] = await Promise.all([
-      supabase
-        .from("clinical_records")
-        .select(
-          "id, patient_id, appointment_id, session_date, private_notes, shared_notes, created_at, locked_at, locked_by, patients(full_name)",
-        )
-        .eq("professional_id", user.id)
-        .order("session_date", { ascending: false }),
+    // Fase 57 — a lista passa a vir do backend (que decripta as anotações
+    // criptografadas), não mais direto da tabela `clinical_records`.
+    const [recordsData, patientsRes] = await Promise.all([
+      apiFetch("/clinical-records").catch((err) => {
+        console.error("Falha ao carregar prontuário:", err);
+        return null;
+      }),
       supabase
         .from("patients")
         .select("id, full_name")
         .eq("professional_id", user.id)
         .order("full_name", { ascending: true }),
     ]);
-    if (recordsRes.error) {
+    if (!recordsData) {
       setError(true);
     } else {
-      setRecords((recordsRes.data as any as ClinicalRecord[]) ?? []);
+      setRecords((recordsData?.records as any as ClinicalRecord[]) ?? []);
     }
     setPatients((patientsRes.data as PatientOption[]) ?? []);
     setLoading(false);
@@ -7111,23 +7626,28 @@ function RecordsView({ user }: { user: AppUser }) {
     private_notes: string | null;
     shared_notes: string | null;
   }) => {
+    // Fase 57 — grava via backend, que criptografa antes de salvar (quando
+    // a chave está configurada) em vez do cliente escrever direto na
+    // tabela.
     if (view === "edit" && selected) {
-      const { error: err } = await supabase
-        .from("clinical_records")
-        .update({
-          appointment_id: data.appointment_id,
-          session_date: data.session_date,
-          private_notes: data.private_notes,
-          shared_notes: data.shared_notes,
-        })
-        .eq("id", selected.id);
-      if (err) throw err;
-    } else {
-      const { error: err } = await supabase.from("clinical_records").insert({
-        ...data,
-        professional_id: user.id,
+      await apiFetch(`/clinical-records/${selected.id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
       });
-      if (err) throw err;
+      await logAudit("update", "clinical_record", selected.id, data.patient_id);
+    } else {
+      const inserted = await apiFetch("/clinical-records", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      if (inserted?.id) {
+        await logAudit(
+          "create",
+          "clinical_record",
+          inserted.id as string,
+          data.patient_id,
+        );
+      }
     }
     await load();
     setView("list");
@@ -7136,6 +7656,7 @@ function RecordsView({ user }: { user: AppUser }) {
 
   const handleDelete = async (id: string) => {
     setDeleteError(false);
+    const deletedRecord = records.find((r) => r.id === id);
     const { error: err } = await supabase
       .from("clinical_records")
       .delete()
@@ -7145,6 +7666,12 @@ function RecordsView({ user }: { user: AppUser }) {
       setDeleteError(true);
       return;
     }
+    await logAudit(
+      "delete",
+      "clinical_record",
+      id,
+      deletedRecord?.patient_id,
+    );
     setDeleteId(null);
     await load();
   };
@@ -7155,11 +7682,13 @@ function RecordsView({ user }: { user: AppUser }) {
   const handleLock = async (id: string) => {
     setLockingId(id);
     try {
+      const lockedRecord = records.find((r) => r.id === id);
       const { error: err } = await supabase
         .from("clinical_records")
         .update({ locked_at: new Date().toISOString(), locked_by: user.id })
         .eq("id", id);
       if (err) throw err;
+      await logAudit("lock", "clinical_record", id, lockedRecord?.patient_id);
       await load();
       setView("list");
       setSelected(null);
@@ -7472,8 +8001,14 @@ function DocumentsView({
         })
         .eq("id", selected.id);
       if (err) throw err;
+      await logAudit(
+        "update",
+        "psychological_document",
+        selected.id,
+        data.patient_id,
+      );
     } else {
-      const { error: err } = await supabase
+      const { data: inserted, error: err } = await supabase
         .from("psychological_documents")
         .insert({
           patient_id: data.patient_id,
@@ -7481,8 +8016,18 @@ function DocumentsView({
           doc_type: data.doc_type,
           title: data.title || null,
           content: data.content,
-        });
+        })
+        .select("id")
+        .single();
       if (err) throw err;
+      if (inserted?.id) {
+        await logAudit(
+          "create",
+          "psychological_document",
+          inserted.id as string,
+          data.patient_id,
+        );
+      }
     }
     await load();
     setView("list");
@@ -7491,6 +8036,7 @@ function DocumentsView({
 
   const handleDelete = async (id: string) => {
     setDeleteError(false);
+    const deletedDoc = documents.find((d) => d.id === id);
     const { error: err } = await supabase
       .from("psychological_documents")
       .delete()
@@ -7500,6 +8046,12 @@ function DocumentsView({
       setDeleteError(true);
       return;
     }
+    await logAudit(
+      "delete",
+      "psychological_document",
+      id,
+      deletedDoc?.patient_id,
+    );
     setDeleteId(null);
     await load();
   };
@@ -7510,6 +8062,19 @@ function DocumentsView({
       month: "2-digit",
       year: "numeric",
     }).format(new Date(iso));
+
+  // Fase 54 — guarda obrigatória de 5 anos (Resolução CFP Nº 004/2019):
+  // a exclusão em si já é bloqueada no banco (RLS), mas repetir a mesma
+  // regra aqui evita que a pessoa tente e só descubra o motivo depois de
+  // um erro genérico — o botão já nasce desabilitado, com data explicando.
+  const RETENTION_YEARS = 5;
+  const retentionUnlockDate = (createdAt: string) => {
+    const d = new Date(createdAt);
+    d.setFullYear(d.getFullYear() + RETENTION_YEARS);
+    return d;
+  };
+  const isRetentionLocked = (d: PsychDocument) =>
+    new Date() < retentionUnlockDate(d.created_at);
 
   const filtered = patientFilter
     ? documents.filter((d) => d.patient_id === patientFilter)
@@ -7648,15 +8213,28 @@ function DocumentsView({
                 </p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteId(d.id);
-                  }}
-                  className="p-2 rounded-lg border border-border hover:bg-red-50 hover:border-red-200 transition-colors text-muted-foreground hover:text-red-600"
-                >
-                  <Trash2 size={14} />
-                </button>
+                {isRetentionLocked(d) ? (
+                  <span
+                    title={t("records.documents.retentionLockedHint", {
+                      date: dateLabel(
+                        retentionUnlockDate(d.created_at).toISOString(),
+                      ),
+                    })}
+                    className="p-2 rounded-lg border border-border text-muted-foreground/50 cursor-not-allowed"
+                  >
+                    <Lock size={14} />
+                  </span>
+                ) : (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteId(d.id);
+                    }}
+                    className="p-2 rounded-lg border border-border hover:bg-red-50 hover:border-red-200 transition-colors text-muted-foreground hover:text-red-600"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
                 <ChevronRight size={18} className="text-muted-foreground/40" />
               </div>
             </button>
@@ -7743,6 +8321,15 @@ function DocumentForm({
   // da Fase 42).
   const [profTitle, setProfTitle] = useState("");
   const [profCrp, setProfCrp] = useState("");
+  // Fase 55 — motor de placeholders ({{paciente.nome}}, {{paciente.cpf}},
+  // {{psicologo.nome}}, {{psicologo.crp}}, {{consulta.data}}): dados extras
+  // que o `content` sozinho não tem (CPF do paciente não é buscado no
+  // `PatientOption`, e a data da consulta vem da última consulta agendada
+  // com este paciente, já que o documento não está ligado a nenhuma
+  // consulta específica).
+  const [patientCpf, setPatientCpf] = useState("");
+  const [lastApptDate, setLastApptDate] = useState<string | null>(null);
+  const contentRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -7760,6 +8347,84 @@ function DocumentForm({
       cancelled = true;
     };
   }, [user.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!patientId) {
+      setPatientCpf("");
+      setLastApptDate(null);
+      return;
+    }
+    (async () => {
+      const [{ data: patientRow }, { data: apptRow }] = await Promise.all([
+        supabase
+          .from("patients")
+          .select("cpf")
+          .eq("id", patientId)
+          .maybeSingle(),
+        supabase
+          .from("appointments")
+          .select("starts_at")
+          .eq("patient_id", patientId)
+          .eq("professional_id", user.id)
+          .order("starts_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      if (cancelled) return;
+      setPatientCpf((patientRow as any)?.cpf ?? "");
+      setLastApptDate((apptRow as any)?.starts_at ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [patientId, user.id]);
+
+  const insertPlaceholder = (token: string) => {
+    const el = contentRef.current;
+    if (!el) {
+      setContent((c) => c + token);
+      return;
+    }
+    const start = el.selectionStart ?? content.length;
+    const end = el.selectionEnd ?? content.length;
+    const next = content.slice(0, start) + token + content.slice(end);
+    setContent(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.selectionStart = el.selectionEnd = start + token.length;
+    });
+  };
+
+  // Substitui os placeholders só na hora de gerar/baixar/copiar — o
+  // `content` salvo continua com os tokens crus, então o mesmo texto
+  // funciona como modelo reaproveitável (ex.: copiar pra um novo
+  // documento de outro paciente e os dados batem sozinhos).
+  const applyPlaceholders = (text: string) => {
+    const missing = t("records.documents.fields.placeholderMissing");
+    const patientName =
+      patients.find((p) => p.id === patientId)?.full_name || missing;
+    const professionalName =
+      [profTitle, user.fullName].filter(Boolean).join(" ") || missing;
+    const consultaDate = lastApptDate
+      ? new Intl.DateTimeFormat(i18n.language, {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }).format(new Date(lastApptDate))
+      : missing;
+    const replacements: [string, string][] = [
+      ["{{paciente.nome}}", patientName],
+      ["{{paciente.cpf}}", patientCpf || missing],
+      ["{{psicologo.nome}}", professionalName],
+      ["{{psicologo.crp}}", profCrp || missing],
+      ["{{consulta.data}}", consultaDate],
+    ];
+    return replacements.reduce(
+      (acc, [token, value]) => acc.split(token).join(value),
+      text,
+    );
+  };
 
   const runAi = async () => {
     if (!patientId) return;
@@ -7813,7 +8478,7 @@ function DocumentForm({
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(content);
+      await navigator.clipboard.writeText(applyPlaceholders(content));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -7823,7 +8488,9 @@ function DocumentForm({
   };
 
   const handleDownload = () => {
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const blob = new Blob([applyPlaceholders(content)], {
+      type: "text/plain;charset=utf-8",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -7840,6 +8507,11 @@ function DocumentForm({
   const handlePrintPdf = () => {
     const win = window.open("", "_blank", "width=760,height=1000");
     if (!win) return;
+    // Fase 50 — log de auditoria (melhor esforço, sem bloquear a
+    // impressão); só faz sentido pra um documento já salvo.
+    if (initial?.id) {
+      logAudit("export", "psychological_document", initial.id, patientId);
+    }
     const patientName =
       patients.find((p) => p.id === patientId)?.full_name ?? "—";
     const professionalName = [profTitle, user.fullName].filter(Boolean).join(" ");
@@ -7896,7 +8568,7 @@ function DocumentForm({
   </div>
   <p class="doc-title">${escapeHtml(docTitle)}</p>
   <p class="doc-meta">${escapeHtml(t("records.documents.fields.pdfMeta", { patient: patientName, type: t(`records.documents.types.${docType}`) }))}</p>
-  <div class="content">${escapeHtml(content)}</div>
+  <div class="content">${escapeHtml(applyPlaceholders(content))}</div>
   <div class="signature">${escapeHtml(professionalName || "—")}${profCrp ? ` · ${escapeHtml(profCrp)}` : ""}</div>
 </body>
 </html>`);
@@ -7999,13 +8671,38 @@ function DocumentForm({
         <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
           {t("records.documents.fields.contentLabel")}
         </label>
+        {/* Fase 55 — motor de templates: insere o placeholder no cursor;
+            os tokens ficam salvos como texto cru e só são substituídos
+            pelos dados reais na hora de copiar/baixar/gerar PDF. */}
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {[
+            "{{paciente.nome}}",
+            "{{paciente.cpf}}",
+            "{{psicologo.nome}}",
+            "{{psicologo.crp}}",
+            "{{consulta.data}}",
+          ].map((token) => (
+            <button
+              key={token}
+              type="button"
+              onClick={() => insertPlaceholder(token)}
+              className="text-xs font-mono bg-secondary border border-border rounded-full px-2.5 py-1 hover:bg-muted transition-colors text-muted-foreground"
+            >
+              {token}
+            </button>
+          ))}
+        </div>
         <textarea
+          ref={contentRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder={t("records.documents.fields.contentPlaceholder")}
           rows={14}
           className="w-full bg-secondary border border-border rounded-lg px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-y"
         />
+        <p className="text-xs text-muted-foreground/70 mt-1.5">
+          {t("records.documents.fields.placeholderHint")}
+        </p>
         {content.trim() && (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <button
@@ -8328,43 +9025,66 @@ function FinanceView({ user }: { user: AppUser }) {
   // disponíveis via `professionals`, só faltava selecioná-los aqui.
   const [profTitle, setProfTitle] = useState("");
   const [profCrp, setProfCrp] = useState("");
+  // Fase 56 — painel de inadimplência + faturamento projetado (DRE
+  // simplificado): quantas consultas futuras (não canceladas, não
+  // "no-show") estão agendadas nos próximos 30 dias, pra estimar receita
+  // projetada junto com o preço da sessão. Deliberadamente NÃO calcula
+  // "margem após taxas de cartão/gateway" — pagamento online segue fora de
+  // escopo desta plataforma.
+  const [upcomingAppointmentsCount, setUpcomingAppointmentsCount] =
+    useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(false);
-    const [paymentsRes, patientsRes, professionalRes, commissionRes, payoutsRes] =
-      await Promise.all([
-        supabase
-          .from("payments")
-          .select(
-            "id, patient_id, appointment_id, amount, status, paid_at, created_at, patients(full_name)",
-          )
-          .eq("professional_id", user.id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("patients")
-          .select("id, full_name")
-          .eq("professional_id", user.id)
-          .order("full_name", { ascending: true }),
-        supabase
-          .from("professionals")
-          .select("session_price, currency, title, crp")
-          .eq("id", user.id)
-          .maybeSingle(),
-        user.clinicId
-          ? supabase
-              .from("professional_commissions")
-              .select("commission_percent")
-              .eq("professional_id", user.id)
-              .maybeSingle()
-          : Promise.resolve({ data: null }),
-        user.clinicId
-          ? supabase
-              .from("payouts")
-              .select("amount, status")
-              .eq("professional_id", user.id)
-          : Promise.resolve({ data: null }),
-      ]);
+    const now = new Date();
+    const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const [
+      paymentsRes,
+      patientsRes,
+      professionalRes,
+      commissionRes,
+      payoutsRes,
+      upcomingRes,
+    ] = await Promise.all([
+      supabase
+        .from("payments")
+        .select(
+          "id, patient_id, appointment_id, amount, status, paid_at, created_at, patients(full_name)",
+        )
+        .eq("professional_id", user.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("patients")
+        .select("id, full_name")
+        .eq("professional_id", user.id)
+        .order("full_name", { ascending: true }),
+      supabase
+        .from("professionals")
+        .select("session_price, currency, title, crp")
+        .eq("id", user.id)
+        .maybeSingle(),
+      user.clinicId
+        ? supabase
+            .from("professional_commissions")
+            .select("commission_percent")
+            .eq("professional_id", user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      user.clinicId
+        ? supabase
+            .from("payouts")
+            .select("amount, status")
+            .eq("professional_id", user.id)
+        : Promise.resolve({ data: null }),
+      supabase
+        .from("appointments")
+        .select("id", { count: "exact", head: true })
+        .eq("professional_id", user.id)
+        .gte("starts_at", now.toISOString())
+        .lte("starts_at", in30Days.toISOString())
+        .not("status", "in", "(cancelled,no_show)"),
+    ]);
     if (paymentsRes.error) {
       setError(true);
     } else {
@@ -8391,6 +9111,7 @@ function FinanceView({ user }: { user: AppUser }) {
         .filter((p) => p.status === "paid")
         .reduce((sum, p) => sum + Number(p.amount), 0),
     );
+    setUpcomingAppointmentsCount((upcomingRes as any).count ?? 0);
     setLoading(false);
   }, [user.id, user.clinicId]);
 
@@ -8582,6 +9303,18 @@ function FinanceView({ user }: { user: AppUser }) {
         )
       : 0;
 
+  // Fase 56 — DRE simplificado: taxa de inadimplência = valor em atraso
+  // sobre o total que já deveria ter sido cobrado (pago + em atraso — o
+  // que ainda está "pendente" sem vencer não conta como inadimplência
+  // ainda). Faturamento projetado = estimativa simples com base nas
+  // consultas já agendadas pros próximos 30 dias × preço da sessão —
+  // não tenta modelar pacotes com desconto nem taxas de gateway (fora de
+  // escopo, pagamento online não é processado nesta plataforma).
+  const billedTotal = myTotalReceived + totalOverdue;
+  const defaultRate = billedTotal > 0 ? (totalOverdue / billedTotal) * 100 : 0;
+  const projectedRevenue30d =
+    sessionPrice != null ? upcomingAppointmentsCount * sessionPrice : null;
+
   const filtered = payments.filter((p) => {
     if (patientFilter && p.patient_id !== patientFilter) return false;
     if (statusFilter && p.status !== statusFilter) return false;
@@ -8655,6 +9388,39 @@ function FinanceView({ user }: { user: AppUser }) {
             {t("finance.summary.overdue")}
           </p>
         </div>
+      </div>
+
+      {/* Fase 56 — painel de inadimplência + faturamento projetado (DRE
+          simplificado). */}
+      <div className="bg-card border border-border rounded-2xl p-6 mb-8">
+        <h3 className="text-sm font-semibold text-foreground mb-4">
+          {t("finance.dre.title")}
+        </h3>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <p className="text-2xl font-semibold text-foreground">
+              {defaultRate.toFixed(1)}%
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {t("finance.dre.defaultRateLabel")}
+            </p>
+          </div>
+          <div>
+            <p className="text-2xl font-semibold text-foreground">
+              {projectedRevenue30d != null
+                ? currency(projectedRevenue30d)
+                : "—"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {t("finance.dre.projectedRevenueLabel", {
+                count: upcomingAppointmentsCount,
+              })}
+            </p>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground/70 mt-4">
+          {t("finance.dre.hint")}
+        </p>
       </div>
 
       {/* Fase 37 — só aparece pra quem tem comissão configurada (equipe de
@@ -11962,7 +12728,7 @@ function ProfessionalProfileView({ user }: { user: AppUser }) {
     const { data, error } = await supabase
       .from("professionals")
       .select(
-        "id, title, location, flag, specialties, approach, sessions_info, photo_url, years, rating, approved, crp, session_price, currency, created_at, profiles(full_name, email, phone)",
+        "id, title, location, flag, specialties, approach, sessions_info, photo_url, years, rating, approved, crp, session_price, currency, epsi_registration, created_at, profiles(full_name, email, phone)",
       )
       .eq("id", user.id)
       .maybeSingle();
@@ -11992,6 +12758,7 @@ function ProfessionalProfileView({ user }: { user: AppUser }) {
       "crp",
       "session_price",
       "currency",
+      "epsi_registration",
     ];
     fields.forEach((key) => {
       const value = data[key];
@@ -12034,6 +12801,14 @@ function ProfessionalProfileView({ user }: { user: AppUser }) {
       {!profile.approved && (
         <div className="mb-6 text-sm bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3">
           {t("professionalProfile.pendingApproval")}
+        </div>
+      )}
+      {/* Fase 53 — lembrete só informativo (nunca bloqueia nada) pra manter
+          o registro e-Psi (Resolução CFP Nº 011/2018) em dia, já que o
+          atendimento nesta plataforma é predominantemente online. */}
+      {!profile.epsi_registration && (
+        <div className="mb-6 text-sm bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3">
+          {t("professionalProfile.epsiReminder")}
         </div>
       )}
       {saveResult === "success" && (
@@ -12937,6 +13712,7 @@ function ProfileForm({
       crp: "",
       session_price: null,
       currency: "BRL",
+      epsi_registration: "",
     },
   );
   const [specialtyInput, setSpecialtyInput] = useState("");
@@ -13056,6 +13832,14 @@ function ProfileForm({
           "crp",
           "text",
           t("profileForm.crpPlaceholder"),
+        )}
+        {field(
+          t("profileForm.epsiLabel"),
+          "epsi_registration",
+          "text",
+          t("profileForm.epsiPlaceholder"),
+          false,
+          t("profileForm.epsiHint"),
         )}
         {field(
           t("profileForm.sessionPriceLabel"),
@@ -13292,6 +14076,7 @@ function mapProfessionalRow(row: any): ProfessionalProfile {
     crp: row.crp ?? "",
     session_price: row.session_price ?? null,
     currency: row.currency ?? "BRL",
+    epsi_registration: row.epsi_registration ?? "",
     created_at: row.created_at,
   };
 }
@@ -15317,7 +16102,7 @@ function AdminPanel({
       const { data, error } = await supabase
         .from("professionals")
         .select(
-          "id, title, location, flag, specialties, approach, sessions_info, photo_url, years, rating, approved, crp, session_price, currency, created_at, profiles(full_name, email, phone)",
+          "id, title, location, flag, specialties, approach, sessions_info, photo_url, years, rating, approved, crp, session_price, currency, epsi_registration, created_at, profiles(full_name, email, phone)",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -15351,6 +16136,7 @@ function AdminPanel({
       "crp",
       "session_price",
       "currency",
+      "epsi_registration",
     ];
     fields.forEach((key) => {
       const value = data[key];
@@ -17046,6 +17832,9 @@ type OwnProfile = {
   email: string | null;
   phone: string | null;
   status: string;
+  // Fase 52 — se o paciente é menor de idade, o Portal cobra um terceiro
+  // aceite (autorização do responsável) além dos dois TCLEs da Fase 51.
+  is_minor: boolean;
 };
 
 type OwnAppointment = {
@@ -17654,13 +18443,79 @@ function PatientArea({
   const [rescheduleMessage, setRescheduleMessage] = useState("");
   const [rescheduleSaving, setRescheduleSaving] = useState(false);
   const [rescheduleError, setRescheduleError] = useState(false);
+  // Fase 51 — TCLE: quais consentimentos ainda faltam aceitar. Enquanto
+  // houver algum pendente, a tela mostra só o gate de aceite (ver render
+  // mais abaixo), nada do resto do Portal do Paciente. Fase 52 acrescenta
+  // um terceiro tipo, cobrado só quando `profile.is_minor` é verdadeiro —
+  // por isso `acceptedConsentTypes` guarda o aceite bruto e a lista de
+  // pendentes é recalculada (efeito abaixo) sempre que `profile` OU os
+  // aceites mudarem, não só uma vez no mount.
+  const [acceptedConsentTypes, setAcceptedConsentTypes] = useState<
+    Set<string>
+  >(new Set());
+  const [pendingConsents, setPendingConsents] = useState<
+    ("general_tcle" | "online_therapy" | "guardian_authorization")[]
+  >([]);
+  const [consentsLoading, setConsentsLoading] = useState(true);
+  const [acceptingConsent, setAcceptingConsent] = useState(false);
+  const [consentError, setConsentError] = useState(false);
+
+  const loadConsents = useCallback(async () => {
+    setConsentsLoading(true);
+    const { data } = await supabase
+      .from("patient_consents")
+      .select("consent_type");
+    setAcceptedConsentTypes(
+      new Set(
+        ((data as { consent_type: string }[]) ?? []).map(
+          (c) => c.consent_type,
+        ),
+      ),
+    );
+    setConsentsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadConsents();
+  }, [loadConsents]);
+
+  useEffect(() => {
+    const missing: ("general_tcle" | "online_therapy" | "guardian_authorization")[] =
+      [];
+    if (!acceptedConsentTypes.has("general_tcle")) missing.push("general_tcle");
+    if (!acceptedConsentTypes.has("online_therapy"))
+      missing.push("online_therapy");
+    if (profile?.is_minor && !acceptedConsentTypes.has("guardian_authorization")) {
+      missing.push("guardian_authorization");
+    }
+    setPendingConsents(missing);
+  }, [acceptedConsentTypes, profile]);
+
+  const acceptConsent = async (
+    consentType: "general_tcle" | "online_therapy" | "guardian_authorization",
+  ) => {
+    setAcceptingConsent(true);
+    setConsentError(false);
+    try {
+      await apiFetch("/consents/accept", {
+        method: "POST",
+        body: JSON.stringify({ consentType }),
+      });
+      await loadConsents();
+    } catch (err) {
+      console.error("Falha ao registrar aceite de TCLE:", err);
+      setConsentError(true);
+    } finally {
+      setAcceptingConsent(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(false);
     const profileRes = await supabase
       .from("patient_own_profile")
-      .select("id, full_name, email, phone, status")
+      .select("id, full_name, email, phone, status, is_minor")
       .maybeSingle();
 
     if (profileRes.error) {
@@ -17673,17 +18528,22 @@ function PatientArea({
     setProfile(ownProfile);
 
     if (ownProfile) {
+      // Fase 57 — as anotações compartilhadas passam a vir do backend
+      // (que decripta quando preciso) em vez da view `patient_visible_
+      // records` direto — a view continua existindo no banco, só não é
+      // mais usada por aqui.
       const [apptRes, recordsRes, reschedRes] = await Promise.all([
         supabase
           .from("appointments")
           .select("id, starts_at, ends_at, status")
           .eq("patient_id", ownProfile.id)
           .order("starts_at", { ascending: true }),
-        supabase
-          .from("patient_visible_records")
-          .select("id, session_date, shared_notes, created_at")
-          .not("shared_notes", "is", null)
-          .order("session_date", { ascending: false }),
+        apiFetch("/patient/shared-records")
+          .then((res) => ({ data: (res?.records as SharedRecord[]) ?? [] }))
+          .catch((err) => {
+            console.error("Falha ao carregar anotações compartilhadas:", err);
+            return { data: null };
+          }),
         supabase
           .from("appointment_reschedule_requests")
           .select(
@@ -17892,6 +18752,57 @@ function PatientArea({
       className="min-h-screen bg-background md:flex"
       style={{ fontFamily: "'Nunito', sans-serif" }}
     >
+      {/* Fase 51 — TCLE: enquanto houver consentimento pendente, cobre a
+          tela inteira (sem botão de fechar) até o paciente aceitar. O
+          resto do Portal continua "por baixo" (não removido do DOM, só
+          coberto) — mantém o resto do componente exatamente como já
+          funcionava, sem precisar reestruturar todo o retorno. */}
+      {!consentsLoading && !loading && pendingConsents.length > 0 && (
+        <div className="fixed inset-0 bg-background z-[100] overflow-y-auto">
+          <div className="max-w-xl mx-auto px-6 py-16">
+            <h1
+              className="text-2xl font-light text-foreground mb-2"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              {t(`consents.${pendingConsents[0]}.title`)}
+            </h1>
+            <p className="text-sm text-muted-foreground mb-6">
+              {t("consents.intro")}
+            </p>
+            <div className="bg-card border border-border rounded-2xl p-6 mb-6 max-h-[50vh] overflow-y-auto">
+              <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">
+                {t(`consents.${pendingConsents[0]}.text`)}
+              </p>
+            </div>
+            {consentError && (
+              <p className="text-red-500 text-sm mb-4">
+                {t("consents.error")}
+              </p>
+            )}
+            <div className="flex items-center justify-between gap-4">
+              <button
+                onClick={onLogout}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {t("consents.logout")}
+              </button>
+              <button
+                onClick={() => acceptConsent(pendingConsents[0])}
+                disabled={acceptingConsent}
+                className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
+              >
+                {acceptingConsent ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Check size={14} />
+                )}
+                {t("consents.acceptButton")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar — desktop */}
       <aside className="hidden md:flex md:flex-col w-60 shrink-0 bg-primary text-primary-foreground h-screen sticky top-0">
         {/* Fase 36 — ver nota equivalente em SecretaryDashboard: o scroll

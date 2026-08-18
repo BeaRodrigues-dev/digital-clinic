@@ -157,6 +157,183 @@ function requireRole(...roles: Role[]) {
   };
 }
 
+// ── Criptografia extra das anotações clínicas (Fase 57) ────────────────────
+// Camada por cima da criptografia em repouso que a Supabase já garante no
+// banco — decisão explícita do usuário, ciente da troca (sem busca por
+// texto completo nessas duas colunas; ver nota completa na migração da
+// Fase 57). AES-256-GCM via Web Crypto API nativa do Deno — sem depender
+// de instalar nenhuma biblioteca nova (não há acesso à rede do npm neste
+// ambiente pra validar isso).
+//
+// A chave mora só em `CLINICAL_NOTES_ENCRYPTION_KEY` (secret da Edge
+// Function, nunca no banco) — configure com:
+//   openssl rand -base64 32 | supabase secrets set CLINICAL_NOTES_ENCRYPTION_KEY=... --stdin
+// (ou gere os 32 bytes por qualquer outro meio e passe em base64).
+//
+// Se o secret NÃO estiver configurado, o sistema não trava nem inventa
+// criptografia que não existe de verdade: grava em texto puro (mesmo
+// comportamento de sempre) e marca `is_encrypted = false` — só liga a
+// criptografia quando a chave está de fato presente. Isso segue a regra
+// do projeto de nunca fingir uma integração que ainda não foi configurada.
+let cachedEncryptionKey: CryptoKey | null | undefined;
+
+async function getEncryptionKey(): Promise<CryptoKey | null> {
+  if (cachedEncryptionKey !== undefined) return cachedEncryptionKey;
+  const secret = Deno.env.get("CLINICAL_NOTES_ENCRYPTION_KEY");
+  if (!secret) {
+    cachedEncryptionKey = null;
+    return null;
+  }
+  try {
+    const raw = Uint8Array.from(atob(secret), (ch) => ch.charCodeAt(0));
+    if (raw.length !== 32) {
+      console.error(
+        "CLINICAL_NOTES_ENCRYPTION_KEY precisa decodificar pra exatamente 32 bytes (AES-256). Criptografia desligada.",
+      );
+      cachedEncryptionKey = null;
+      return null;
+    }
+    cachedEncryptionKey = await crypto.subtle.importKey(
+      "raw",
+      raw,
+      "AES-GCM",
+      false,
+      ["encrypt", "decrypt"],
+    );
+    return cachedEncryptionKey;
+  } catch (err) {
+    console.error("Falha ao importar CLINICAL_NOTES_ENCRYPTION_KEY:", err);
+    cachedEncryptionKey = null;
+    return null;
+  }
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+function base64ToBytes(b64: string): Uint8Array {
+  return Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
+}
+
+async function encryptNoteText(
+  key: CryptoKey,
+  plain: string,
+): Promise<{ ciphertext: string; iv: string }> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoded = new TextEncoder().encode(plain);
+  const cipherBuf = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    encoded,
+  );
+  return {
+    ciphertext: bytesToBase64(new Uint8Array(cipherBuf)),
+    iv: bytesToBase64(iv),
+  };
+}
+
+async function decryptNoteText(
+  key: CryptoKey,
+  ciphertext: string,
+  iv: string,
+): Promise<string> {
+  const plainBuf = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: base64ToBytes(iv) },
+    key,
+    base64ToBytes(ciphertext),
+  );
+  return new TextDecoder().decode(plainBuf);
+}
+
+// Criptografa `private_notes`/`shared_notes` pra gravar — se não houver
+// chave configurada, devolve os campos como texto puro mesmo e
+// `is_encrypted: false` (ver nota acima sobre não fingir integração).
+async function prepareNotesForWrite(fields: {
+  private_notes?: string | null;
+  shared_notes?: string | null;
+}): Promise<Record<string, unknown>> {
+  const key = await getEncryptionKey();
+  if (!key) {
+    return {
+      private_notes: fields.private_notes ?? null,
+      shared_notes: fields.shared_notes ?? null,
+      is_encrypted: false,
+      private_notes_iv: null,
+      shared_notes_iv: null,
+    };
+  }
+  const out: Record<string, unknown> = { is_encrypted: true };
+  if (fields.private_notes != null) {
+    const enc = await encryptNoteText(key, fields.private_notes);
+    out.private_notes = enc.ciphertext;
+    out.private_notes_iv = enc.iv;
+  } else {
+    out.private_notes = null;
+    out.private_notes_iv = null;
+  }
+  if (fields.shared_notes != null) {
+    const enc = await encryptNoteText(key, fields.shared_notes);
+    out.shared_notes = enc.ciphertext;
+    out.shared_notes_iv = enc.iv;
+  } else {
+    out.shared_notes = null;
+    out.shared_notes_iv = null;
+  }
+  return out;
+}
+
+// Decripta uma linha de `clinical_records` pra devolver ao cliente — linhas
+// antigas (`is_encrypted = false`) passam direto, sem tentar decriptar nada.
+// Se a linha está marcada como criptografada mas a chave não está
+// configurada agora (ex.: secret removido/rotacionado), devolve um
+// indicador claro em vez de travar a lista inteira por causa de uma linha.
+async function decryptRecordRow<
+  T extends {
+    private_notes?: string | null;
+    shared_notes?: string | null;
+    private_notes_iv?: string | null;
+    shared_notes_iv?: string | null;
+    is_encrypted?: boolean | null;
+  },
+>(row: T): Promise<T> {
+  if (!row?.is_encrypted) return row;
+  const key = await getEncryptionKey();
+  if (!key) {
+    const placeholder = "[conteúdo criptografado indisponível — chave não configurada]";
+    return {
+      ...row,
+      private_notes: row.private_notes != null ? placeholder : row.private_notes,
+      shared_notes: row.shared_notes != null ? placeholder : row.shared_notes,
+    };
+  }
+  const out: T = { ...row };
+  try {
+    if (row.private_notes != null && row.private_notes_iv) {
+      out.private_notes = await decryptNoteText(
+        key,
+        row.private_notes,
+        row.private_notes_iv,
+      );
+    }
+    if (row.shared_notes != null && row.shared_notes_iv) {
+      out.shared_notes = await decryptNoteText(
+        key,
+        row.shared_notes,
+        row.shared_notes_iv,
+      );
+    }
+  } catch (err) {
+    console.error("Falha ao decriptar anotação clínica:", err);
+    const placeholder = "[conteúdo criptografado indisponível — erro ao decriptar]";
+    out.private_notes = row.private_notes != null ? placeholder : row.private_notes;
+    out.shared_notes = row.shared_notes != null ? placeholder : row.shared_notes;
+  }
+  return out;
+}
+
 app.get("/make-server-a65fd448/health", (c) => c.json({ status: "ok" }));
 
 // ── Quem sou eu (usado pelo frontend logo após o login) ──
@@ -904,6 +1081,233 @@ app.post(
   },
 );
 
+// ── Anotações de sessão do prontuário, via backend (Fase 57) ───────────────
+// Antes destas rotas, `RecordsView`/`SessionRecordModal` liam e gravavam
+// `clinical_records.private_notes`/`shared_notes` direto pelo cliente
+// Supabase — o que fazia sentido enquanto o conteúdo ficava só com a
+// criptografia em repouso do próprio banco. Com a camada extra de
+// criptografia da Fase 57, o texto plano só existe no processo do backend
+// (onde a chave está disponível) — por isso TODA leitura/escrita dessas
+// duas colunas passa a ir por aqui, nunca mais direto pelo cliente.
+//
+// `locked_at`/`locked_by` (assinatura, Fase 38) e `clinical_record_
+// amendments` (adendos, Fase 49) continuam exatamente como antes, direto
+// pelo cliente Supabase — nenhum dos dois toca no conteúdo criptografado.
+app.get(
+  "/make-server-a65fd448/clinical-records",
+  requireRole("psychologist"),
+  async (c) => {
+    try {
+      const user = c.get("user");
+      const patientId = c.req.query("patient_id");
+      const appointmentId = c.req.query("appointment_id");
+
+      let query = supabase
+        .from("clinical_records")
+        .select(
+          "id, patient_id, appointment_id, session_date, private_notes, shared_notes, private_notes_iv, shared_notes_iv, is_encrypted, created_at, locked_at, locked_by, patients(full_name)",
+        )
+        .eq("professional_id", user.id)
+        .order("session_date", { ascending: false });
+
+      if (patientId) query = query.eq("patient_id", patientId);
+      if (appointmentId) query = query.eq("appointment_id", appointmentId);
+
+      const { data, error } = await query;
+      if (error) {
+        console.error("Failed to load clinical records:", error);
+        return c.json({ error: error.message }, 500);
+      }
+
+      const records = await Promise.all(
+        (data ?? []).map((row: any) => decryptRecordRow(row)),
+      );
+      return c.json({ records });
+    } catch (err: any) {
+      console.error("Failed to load clinical records:", err);
+      return c.json(
+        { error: err?.message ?? "Erro ao carregar prontuário." },
+        500,
+      );
+    }
+  },
+);
+
+app.post(
+  "/make-server-a65fd448/clinical-records",
+  requireRole("psychologist"),
+  async (c) => {
+    try {
+      const user = c.get("user");
+      const body = await c.req.json().catch(() => ({}));
+      const patientId = body?.patient_id;
+      if (!patientId) {
+        return c.json({ error: "Paciente não informado." }, 400);
+      }
+
+      // Confirma que o paciente é mesmo deste profissional — a policy de
+      // RLS original só checava `professional_id = auth.uid()` no INSERT,
+      // sem confirmar de quem é o `patient_id`; usando a service role key
+      // aqui, essa checagem manual substitui a que a RLS fazia (ou deixava
+      // de fazer) antes.
+      const { data: patientRow } = await supabase
+        .from("patients")
+        .select("id")
+        .eq("id", patientId)
+        .eq("professional_id", user.id)
+        .maybeSingle();
+      if (!patientRow) {
+        return c.json({ error: "Paciente não encontrado." }, 404);
+      }
+
+      const encryptedFields = await prepareNotesForWrite({
+        private_notes: body?.private_notes ?? null,
+        shared_notes: body?.shared_notes ?? null,
+      });
+
+      const { data: inserted, error } = await supabase
+        .from("clinical_records")
+        .insert({
+          patient_id: patientId,
+          appointment_id: body?.appointment_id ?? null,
+          session_date: body?.session_date,
+          professional_id: user.id,
+          ...encryptedFields,
+        })
+        .select("id")
+        .single();
+
+      if (error) {
+        console.error("Failed to create clinical record:", error);
+        return c.json(
+          { error: error.message, code: (error as any).code },
+          error.code === "23505" ? 409 : 500,
+        );
+      }
+
+      return c.json({ id: inserted?.id });
+    } catch (err: any) {
+      console.error("Failed to create clinical record:", err);
+      return c.json(
+        { error: err?.message ?? "Erro ao salvar prontuário." },
+        500,
+      );
+    }
+  },
+);
+
+app.put(
+  "/make-server-a65fd448/clinical-records/:id",
+  requireRole("psychologist"),
+  async (c) => {
+    try {
+      const user = c.get("user");
+      const id = c.req.param("id");
+      const body = await c.req.json().catch(() => ({}));
+
+      // Reproduz manualmente o que a RLS de UPDATE fazia antes (dono +
+      // não travado) — necessário porque esta rota usa a service role key,
+      // que ignora RLS.
+      const { data: existing } = await supabase
+        .from("clinical_records")
+        .select("id, professional_id, locked_at")
+        .eq("id", id)
+        .maybeSingle();
+      if (!existing || existing.professional_id !== user.id) {
+        return c.json({ error: "Registro não encontrado." }, 404);
+      }
+      if (existing.locked_at) {
+        return c.json(
+          { error: "Este registro já foi assinado e não pode mais ser editado." },
+          403,
+        );
+      }
+
+      const encryptedFields = await prepareNotesForWrite({
+        private_notes: body?.private_notes ?? null,
+        shared_notes: body?.shared_notes ?? null,
+      });
+
+      const update: Record<string, unknown> = { ...encryptedFields };
+      if (body?.appointment_id !== undefined) {
+        update.appointment_id = body.appointment_id;
+      }
+      if (body?.session_date !== undefined) {
+        update.session_date = body.session_date;
+      }
+
+      const { error } = await supabase
+        .from("clinical_records")
+        .update(update)
+        .eq("id", id);
+
+      if (error) {
+        console.error("Failed to update clinical record:", error);
+        return c.json(
+          { error: error.message, code: (error as any).code },
+          error.code === "23505" ? 409 : 500,
+        );
+      }
+
+      return c.json({ success: true });
+    } catch (err: any) {
+      console.error("Failed to update clinical record:", err);
+      return c.json(
+        { error: err?.message ?? "Erro ao salvar prontuário." },
+        500,
+      );
+    }
+  },
+);
+
+// Lado do paciente: só as anotações COMPARTILHADAS (nunca as privadas),
+// mesmo filtro que a view `patient_visible_records` (Fase 1/8) já fazia —
+// só que agora passando pelo backend, que é quem consegue decriptar.
+app.get(
+  "/make-server-a65fd448/patient/shared-records",
+  requireRole("patient"),
+  async (c) => {
+    try {
+      const user = c.get("user");
+      const { data: patientRows } = await supabase
+        .from("patients")
+        .select("id")
+        .eq("patient_user_id", user.id);
+      const patientIds = (patientRows ?? []).map((p: any) => p.id);
+      if (!patientIds.length) return c.json({ records: [] });
+
+      const { data, error } = await supabase
+        .from("clinical_records")
+        .select(
+          "id, session_date, shared_notes, shared_notes_iv, is_encrypted, created_at",
+        )
+        .in("patient_id", patientIds)
+        .not("shared_notes", "is", null)
+        .order("session_date", { ascending: false });
+
+      if (error) {
+        console.error("Failed to load shared records:", error);
+        return c.json({ error: error.message }, 500);
+      }
+
+      const records = await Promise.all(
+        (data ?? []).map(async (row: any) => {
+          const decrypted = await decryptRecordRow(row);
+          const { shared_notes_iv, is_encrypted, ...rest } = decrypted;
+          return rest;
+        }),
+      );
+      return c.json({ records });
+    } catch (err: any) {
+      console.error("Failed to load shared records:", err);
+      return c.json(
+        { error: err?.message ?? "Erro ao carregar prontuário." },
+        500,
+      );
+    }
+  },
+);
+
 // ── IA: resumir/organizar notas do prontuário (Fase 11) ──
 // Usa a Groq API (compatível com o formato da OpenAI) porque, ao contrário
 // da Anthropic/OpenAI, o tier gratuito da Groq não pede cartão e — segundo a
@@ -1188,7 +1592,9 @@ app.post(
             .maybeSingle(),
           supabase
             .from("clinical_records")
-            .select("session_date, private_notes, shared_notes")
+            .select(
+              "session_date, private_notes, shared_notes, private_notes_iv, shared_notes_iv, is_encrypted",
+            )
             .eq("patient_id", patientId)
             .eq("professional_id", user.id)
             .order("session_date", { ascending: false })
@@ -1204,7 +1610,13 @@ app.post(
         return c.json({ error: "Paciente não encontrado." }, 404);
       }
 
-      const notesText = (records ?? [])
+      // Fase 57 — as anotações podem estar criptografadas; decripta antes
+      // de montar o prompt (a IA nunca vê o texto cifrado).
+      const decryptedRecords = await Promise.all(
+        (records ?? []).map((row: any) => decryptRecordRow(row)),
+      );
+
+      const notesText = decryptedRecords
         .map((r: any) => {
           const parts = [r.private_notes, r.shared_notes]
             .filter(Boolean)
@@ -1366,6 +1778,10 @@ app.put(
             ? Math.max(0, priceNum)
             : null,
         currency,
+        // Fase 53 — registro e-Psi autodeclarado, sem nenhuma validação
+        // contra API do CFP (nenhuma é acessível publicamente): é só o
+        // profissional informando e mantendo o próprio dado em dia.
+        epsi_registration: (formData.get("epsi_registration") as string) || null,
       };
 
       const { error: updateErr } = await supabase
@@ -2703,6 +3119,163 @@ app.post(
 // não há credencial real pra integrar. Quando um provedor for escolhido e
 // configurado, a rota de envio entra aqui do lado da varredura de e-mail
 // acima, lendo os profissionais com `whatsapp_reminders_enabled = true`.
+
+// ── TCLE do paciente (Fase 51, + 'guardian_authorization' na Fase 52) ──────
+// Registra o aceite do Termo de Consentimento pelo PRÓPRIO paciente
+// logado, com IP resolvido aqui no backend (nunca aceitando o que o
+// cliente mandasse manualmente pra esse campo — ver nota completa na
+// migração da Fase 51). 'guardian_authorization' é o terceiro tipo,
+// cobrado só de pacientes marcados como menores de idade (Fase 52) — quem
+// aceita, na prática, é o responsável usando o acesso do paciente.
+app.post(
+  "/make-server-a65fd448/consents/accept",
+  requireRole("patient"),
+  async (c) => {
+    try {
+      const user = c.get("user");
+      const body = await c.req.json().catch(() => ({}));
+      const consentType = body?.consentType;
+      if (
+        !["general_tcle", "online_therapy", "guardian_authorization"].includes(
+          consentType,
+        )
+      ) {
+        return c.json({ error: "Tipo de consentimento inválido." }, 400);
+      }
+
+      const { data: patient, error: patientErr } = await supabase
+        .from("patients")
+        .select("id")
+        .eq("patient_user_id", user.id)
+        .maybeSingle();
+      if (patientErr || !patient) {
+        return c.json({ error: "Paciente não encontrado." }, 404);
+      }
+
+      const ipAddress =
+        c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
+        c.req.header("x-real-ip") ||
+        null;
+
+      const { error: insertErr } = await supabase
+        .from("patient_consents")
+        .insert({
+          patient_id: patient.id,
+          consent_type: consentType,
+          email_snapshot: user.email ?? null,
+          ip_address: ipAddress,
+        });
+      if (insertErr) {
+        console.error("Falha ao registrar aceite de TCLE:", insertErr);
+        return c.json({ error: "Erro ao registrar aceite." }, 500);
+      }
+
+      return c.json({ success: true });
+    } catch (err: any) {
+      console.error("Failed to record TCLE acceptance:", err);
+      return c.json(
+        { error: err?.message ?? "Erro ao registrar aceite." },
+        500,
+      );
+    }
+  },
+);
+
+// ── Exportar prontuário completo de um paciente (Fase 54) ──────────────────
+// "Guarda obrigatória de 5 anos" (Resolução CFP Nº 004/2019) inclui poder
+// exportar o prontuário inteiro, não só mantê-lo guardado. Só o próprio
+// profissional dono do paciente pode gerar isto — nem admin (mesma
+// restrição de conteúdo clínico já aplicada em `clinical_records` na Fase
+// 49): junta anotações de sessão (+ adendos, Fase 49), documentos formais
+// (Fase 24/48) e consultas, tudo filtrado por `professional_id = auth.uid()`.
+app.get(
+  "/make-server-a65fd448/patients/:id/export",
+  requireRole("psychologist"),
+  async (c) => {
+    try {
+      const user = c.get("user");
+      const patientId = c.req.param("id");
+
+      const { data: patient, error: patientErr } = await supabase
+        .from("patients")
+        .select(
+          "id, full_name, email, phone, status, created_at, is_minor, guardian_name, guardian_relationship, guardian_contact",
+        )
+        .eq("id", patientId)
+        .eq("professional_id", user.id)
+        .maybeSingle();
+
+      if (patientErr || !patient) {
+        return c.json({ error: "Paciente não encontrado." }, 404);
+      }
+
+      const [
+        { data: records },
+        { data: documents },
+        { data: appointments },
+      ] = await Promise.all([
+        supabase
+          .from("clinical_records")
+          .select(
+            "id, session_date, private_notes, shared_notes, private_notes_iv, shared_notes_iv, is_encrypted, locked_at, created_at",
+          )
+          .eq("patient_id", patientId)
+          .eq("professional_id", user.id)
+          .order("session_date", { ascending: true }),
+        supabase
+          .from("psychological_documents")
+          .select("id, doc_type, title, content, created_at, updated_at")
+          .eq("patient_id", patientId)
+          .eq("professional_id", user.id)
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("appointments")
+          .select("starts_at, ends_at, status")
+          .eq("patient_id", patientId)
+          .eq("professional_id", user.id)
+          .order("starts_at", { ascending: true }),
+      ]);
+
+      const recordIds = (records ?? []).map((r: any) => r.id);
+      let amendments: any[] = [];
+      if (recordIds.length) {
+        const { data: amendmentRows } = await supabase
+          .from("clinical_record_amendments")
+          .select("clinical_record_id, content, created_at")
+          .in("clinical_record_id", recordIds)
+          .order("created_at", { ascending: true });
+        amendments = amendmentRows ?? [];
+      }
+
+      // Fase 57 — decripta antes de devolver: o export precisa do conteúdo
+      // legível, nunca do texto cifrado.
+      const decryptedRecords = await Promise.all(
+        (records ?? []).map((r: any) => decryptRecordRow(r)),
+      );
+      const recordsWithAmendments = decryptedRecords.map((r: any) => {
+        const { private_notes_iv, shared_notes_iv, is_encrypted, ...rest } = r;
+        return {
+          ...rest,
+          amendments: amendments.filter((a) => a.clinical_record_id === r.id),
+        };
+      });
+
+      return c.json({
+        exported_at: new Date().toISOString(),
+        patient,
+        clinical_records: recordsWithAmendments,
+        documents: documents ?? [],
+        appointments: appointments ?? [],
+      });
+    } catch (err: any) {
+      console.error("Failed to export patient record:", err);
+      return c.json(
+        { error: err?.message ?? "Erro ao exportar prontuário." },
+        500,
+      );
+    }
+  },
+);
 
 // ── Exportar meus dados (Fase 35) ───────────────────────────────────────────
 // "Direito de acesso/portabilidade" básico: devolve o que a PRÓPRIA conta

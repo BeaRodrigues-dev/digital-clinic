@@ -510,7 +510,10 @@
     "currencyLabel": "Moeda de cobrança",
     "currencyBRL": "Real (R$)",
     "currencyEUR": "Euro (€)",
-    "currencyHint": "Usada pra formatar o valor da sessão e os pagamentos no seu painel."
+    "currencyHint": "Usada pra formatar o valor da sessão e os pagamentos no seu painel.",
+    "epsiLabel": "Registro e-Psi",
+    "epsiPlaceholder": "Número do registro e-Psi (CFP)",
+    "epsiHint": "Autodeclarado — mantenha atualizado conforme a Resolução CFP Nº 011/2018 para atendimento online."
   },
   "language": {
     "label": "Idioma"
@@ -608,7 +611,15 @@
       "responsibleLabel": "Psicólogo responsável",
       "emergencyContactLegend": "Contato de emergência (opcional)",
       "emergencyContactNamePlaceholder": "Nome do contato de emergência",
-      "emergencyContactPhonePlaceholder": "Telefone do contato de emergência"
+      "emergencyContactPhonePlaceholder": "Telefone do contato de emergência",
+      "isMinorLabel": "Paciente menor de idade",
+      "guardianHint": "Necessário para atender menores de idade: dados do responsável legal e autorização específica no Portal do Paciente.",
+      "guardianNamePlaceholder": "Nome do responsável legal",
+      "guardianRelationshipPlaceholder": "Parentesco (ex.: mãe, pai, tutor)",
+      "guardianContactPlaceholder": "Telefone ou e-mail do responsável",
+      "guardianRequiredError": "Informe o nome do responsável legal.",
+      "cpfLabel": "CPF (opcional)",
+      "cpfPlaceholder": "000.000.000-00"
     },
     "detail": {
       "editPatient": "Editar paciente",
@@ -618,7 +629,9 @@
       "noContact": "Sem contato cadastrado",
       "noNotes": "Sem observações registradas.",
       "emergencyContactTitle": "Contato de emergência",
-      "emergencyContactEmpty": "Nenhum contato de emergência cadastrado."
+      "emergencyContactEmpty": "Nenhum contato de emergência cadastrado.",
+      "guardianTitle": "Responsável legal",
+      "guardianEmpty": "Nenhum dado do responsável cadastrado."
     },
     "access": {
       "title": "Acesso à área do paciente",
@@ -634,7 +647,23 @@
       "resendSuccess": "E-mail reenviado! O paciente vai receber um novo link para criar a senha de acesso.",
       "resendError": "Não foi possível reenviar o acesso. Tente novamente."
     },
-    "deleteError": "Não foi possível excluir o paciente. Tente novamente."
+    "deleteError": "Não foi possível excluir o paciente. Tente novamente.",
+    "export": {
+      "title": "Exportar prontuário completo",
+      "hint": "Guarda obrigatória de 5 anos (Resolução CFP Nº 004/2019) — baixe uma cópia completa a qualquer momento.",
+      "jsonButton": "Baixar JSON",
+      "pdfButton": "Gerar PDF",
+      "error": "Não foi possível exportar agora. Tente novamente.",
+      "signed": "assinado",
+      "sharedNotes": "Anotações compartilhadas",
+      "privateNotes": "Anotações privadas",
+      "pdfTitle": "Prontuário — {{name}}",
+      "generatedAt": "Gerado em {{date}}",
+      "sessionsSection": "Sessões",
+      "documentsSection": "Documentos",
+      "emptySection": "Nenhum registro.",
+      "printButton": "Salvar como PDF"
+    }
   },
   "agenda": {
     "title": "Agenda",
@@ -794,14 +823,24 @@
         "saveNew": "Salvar documento",
         "downloadPdfButton": "Baixar PDF",
         "printPdfButton": "Imprimir / salvar como PDF",
-        "pdfMeta": "Paciente: {{patient}} · Tipo: {{type}}"
-      }
+        "pdfMeta": "Paciente: {{patient}} · Tipo: {{type}}",
+        "placeholderMissing": "[completar]",
+        "placeholderHint": "Clique em uma variável acima pra inserir no texto — ela é substituída pelo dado real ao copiar, baixar ou gerar o PDF."
+      },
+      "retentionLockedHint": "Guarda obrigatória de 5 anos (Resolução CFP Nº 004/2019) — este documento só poderá ser excluído a partir de {{date}}."
     },
     "lock": {
       "lockButton": "Assinar e finalizar",
       "lockedBanner": "Sessão assinada e finalizada em {{date}} — não pode mais ser editada.",
       "signedBadge": "Assinado",
       "error": "Não foi possível assinar agora. Tente novamente."
+    },
+    "amendments": {
+      "title": "Adendos",
+      "empty": "Nenhum adendo ainda.",
+      "placeholder": "Acrescente uma observação a este registro assinado, sem alterar o texto original...",
+      "addButton": "Adicionar adendo",
+      "error": "Não foi possível salvar o adendo agora. Tente novamente."
     }
   },
   "finance": {
@@ -867,6 +906,12 @@
       "paymentDateLabel": "Data do pagamento",
       "declarationText": "Recebi de {{patient}} a quantia de {{amount}}, referente a serviços de psicologia prestados, pago em {{date}}.",
       "printButton": "Imprimir / salvar como PDF"
+    },
+    "dre": {
+      "title": "Inadimplência e faturamento projetado",
+      "defaultRateLabel": "Taxa de inadimplência",
+      "projectedRevenueLabel": "Projeção 30 dias · {{count}} consulta(s) agendada(s)",
+      "hint": "Estimativa simples com base no preço de sessão configurado e nas consultas já agendadas — não considera pacotes com desconto nem taxas de gateway de pagamento (fora do escopo desta plataforma)."
     }
   },
   "patientArea": {
@@ -1078,7 +1123,8 @@
     "loading": "Carregando seu perfil...",
     "notFound": "Não encontramos seu perfil profissional. Atualize a página — se o problema continuar, entre em contato com o suporte.",
     "pendingApproval": "Seu perfil ainda está em análise pela nossa equipe. Assim que for aprovado, ele aparece no diretório público.",
-    "saveSuccess": "Perfil atualizado com sucesso."
+    "saveSuccess": "Perfil atualizado com sucesso.",
+    "epsiReminder": "Seu registro e-Psi ainda não foi informado. Se você atende online, a Resolução CFP Nº 011/2018 exige esse cadastro — preencha o campo abaixo."
   },
   "settings": {
     "title": "Configurações",
@@ -1481,6 +1527,24 @@
       "revenueTotal": "Total recebido",
       "activePatients": "Pacientes ativos",
       "completedThisMonth": "Sessões este mês"
+    }
+  },
+  "consents": {
+    "intro": "Antes de continuar, precisamos do seu aceite formal. Leia com atenção e, se concordar, aceite abaixo.",
+    "error": "Não foi possível registrar seu aceite agora. Tente novamente.",
+    "logout": "Sair",
+    "acceptButton": "Li e aceito",
+    "general_tcle": {
+      "title": "Termo de Consentimento Livre e Esclarecido",
+      "text": "TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO (TCLE)\n\nEste documento formaliza o seu consentimento para o início do acompanhamento psicológico nesta plataforma, em conformidade com o Código de Ética Profissional do Psicólogo e a Resolução CFP Nº 001/2009.\n\n1. Natureza do serviço: o acompanhamento psicológico tem como objetivo promover saúde mental, autoconhecimento e bem-estar, por meio de técnicas reconhecidas pela Psicologia. Não substitui tratamento médico ou psiquiátrico quando este for necessário.\n\n2. Sigilo profissional: as informações compartilhadas durante o acompanhamento são protegidas por sigilo profissional, nos termos do Código de Ética. O sigilo pode ser rompido apenas nas exceções previstas em lei (risco de vida, determinação judicial, entre outras).\n\n3. Registro do prontuário: as anotações de sessão ficam armazenadas de forma protegida, acessíveis apenas ao profissional responsável pelo seu acompanhamento, pelo prazo mínimo exigido pela regulamentação profissional.\n\n4. Participação voluntária: sua participação é voluntária e você pode interromper o acompanhamento a qualquer momento, sem prejuízo, mediante comunicação ao profissional responsável.\n\n5. Tratamento de dados pessoais: seus dados são tratados em conformidade com a Lei Geral de Proteção de Dados (LGPD), sendo utilizados exclusivamente para a prestação do serviço contratado.\n\nAo aceitar este termo, você declara ter lido e compreendido as informações acima e concorda em iniciar o acompanhamento psicológico nesta plataforma.\n\n[Este texto é um ponto de partida técnico e não substitui a revisão de um profissional de Psicologia e, se necessário, de um advogado, antes da publicação em produção.]"
+    },
+    "online_therapy": {
+      "title": "Consentimento para Atendimento Online",
+      "text": "TERMO DE CONSENTIMENTO PARA ATENDIMENTO ONLINE (E-PSI)\n\nEm conformidade com a Resolução CFP Nº 011/2018, que regulamenta a prestação de serviços psicológicos realizados por meios tecnológicos de comunicação a distância, este termo trata especificamente das particularidades do atendimento online.\n\n1. Modalidade do atendimento: as sessões serão realizadas por videochamada, à distância, mediante ferramenta indicada pelo profissional responsável.\n\n2. Riscos e limitações do formato remoto: falhas técnicas de conexão, áudio ou vídeo podem eventualmente interromper ou prejudicar uma sessão. Nesses casos, a sessão poderá ser reagendada ou retomada por outro meio combinado com o profissional.\n\n3. Ambiente e privacidade: recomenda-se que você participe das sessões em um ambiente reservado, que preserve sua privacidade, evitando a presença de terceiros não autorizados.\n\n4. Sigilo em ambiente digital: o profissional adota medidas técnicas razoáveis de proteção às informações trocadas durante o atendimento online. Ainda assim, você deve estar ciente de que nenhum meio de comunicação digital está livre de riscos.\n\n5. Registro em áudio e vídeo: as sessões não são gravadas, salvo autorização expressa e específica sua para uma finalidade determinada.\n\n6. Inscrição e-Psi: o profissional responsável mantém (ou está em processo de manter) o cadastro e-Psi junto ao Conselho Federal de Psicologia, quando exigido para a modalidade de atendimento oferecida.\n\nAo aceitar este termo, você declara estar ciente das particularidades do atendimento psicológico online e concorda em recebê-lo por essa modalidade.\n\n[Este texto é um ponto de partida técnico e não substitui a revisão de um profissional de Psicologia e, se necessário, de um advogado, antes da publicação em produção.]"
+    },
+    "guardian_authorization": {
+      "title": "Autorização do Responsável Legal",
+      "text": "AUTORIZAÇÃO DO RESPONSÁVEL LEGAL\n\nEste termo é destinado ao responsável legal por um(a) paciente menor de idade, em conformidade com o Estatuto da Criança e do Adolescente e com o Código de Ética Profissional do Psicólogo.\n\n1. Autorização de atendimento: ao aceitar este termo, você declara ser responsável legal (pai, mãe, tutor(a) ou responsável designado) pelo(a) paciente cadastrado(a) nesta plataforma e autoriza expressamente o início e a continuidade do acompanhamento psicológico.\n\n2. Participação do responsável: você poderá ser chamado(a) a participar de conversas com o profissional responsável sobre o andamento do acompanhamento, respeitando os limites de sigilo apropriados à idade e ao julgamento clínico do profissional.\n\n3. Sigilo em relação ao paciente menor: o profissional pode, dentro de seu julgamento técnico e ético, preservar determinadas informações compartilhadas pelo(a) paciente em sessão, quando entender que a revelação ao responsável não atende ao melhor interesse do adolescente — isso está descrito no Código de Ética Profissional do Psicólogo.\n\n4. Revogação: você pode revogar esta autorização a qualquer momento, mediante comunicação ao profissional responsável, encerrando o acompanhamento.\n\nAo aceitar este termo, você declara ter lido e compreendido as informações acima e autoriza o acompanhamento psicológico do(a) paciente menor de idade nesta plataforma.\n\n[Este texto é um ponto de partida técnico e não substitui a revisão de um profissional de Psicologia e, se necessário, de um advogado, antes da publicação em produção.]"
     }
   }
 }
