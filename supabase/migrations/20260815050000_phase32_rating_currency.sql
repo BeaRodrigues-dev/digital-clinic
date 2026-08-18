@@ -27,7 +27,16 @@ alter table public.professionals
 
 -- Recria a view pública já sem `rating` e com `currency`, pro card/perfil
 -- público mostrar o preço da sessão na moeda certa.
-create or replace view public.public_professionals as
+--
+-- `create or replace view` NÃO deixa remover/reordenar colunas de uma view
+-- já existente (só permite acrescentar no fim) — e aqui `rating` (Fase 12,
+-- posição 11) está saindo do meio da lista, o que faz o Postgres recusar
+-- com "cannot change name of view column" ou "cannot drop columns from
+-- view". `drop view` + `create view` resolve isso (o `grant` abaixo já
+-- reaplica o acesso que o drop remove).
+drop view if exists public.public_professionals;
+
+create view public.public_professionals as
   select
     pr.id,
     p.full_name as name,

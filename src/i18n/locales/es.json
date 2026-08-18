@@ -272,7 +272,22 @@
     "submitting": "Entrando...",
     "genericError": "Correo o contraseña incorrectos.",
     "noAccount": "¿Todavía no tienes cuenta?",
-    "createAccount": "Crear cuenta"
+    "createAccount": "Crear cuenta",
+    "backToPortals": "Volver a los portales",
+    "portalTitles": {
+      "admin": "Portal Administración",
+      "psychologist": "Portal Psicólogo",
+      "patient": "Mi Espacio",
+      "clinic": "Portal Clínica",
+      "secretary": "Portal Secretaría"
+    },
+    "portalSubtitles": {
+      "admin": "Ingresa con tu cuenta de administrador",
+      "psychologist": "Ingresa con tu cuenta profesional",
+      "patient": "Ingresa para seguir tu proceso",
+      "clinic": "Ingresa con tu cuenta de clínica",
+      "secretary": "Ingresa con tu cuenta de secretaría"
+    }
   },
   "signup": {
     "title": "Crear cuenta de psicólogo/a",
@@ -353,7 +368,18 @@
       "secretaries": "Secretarias",
       "planBreakdown": "Clínicas por plan",
       "errorLoading": "No fue posible cargar el resumen. Intenta de nuevo.",
-      "pendingLeads": "Leads pendientes"
+      "pendingLeads": "Leads pendientes",
+      "charts": {
+        "sessionsByDayTitle": "Sesiones en los últimos 14 días",
+        "sessionsByMonthTitle": "Sesiones en los últimos 6 meses"
+      },
+      "alerts": {
+        "title": "Alertas recientes",
+        "empty": "No hay alertas por el momento.",
+        "professionalPending": "{{name}} espera aprobación de perfil",
+        "unnamed": "Un psicólogo",
+        "pendingLeads": "{{count}} contacto(s) del sitio esperando atención"
+      }
     },
     "users": {
       "title": "Usuarios",
@@ -1071,6 +1097,12 @@
       "currentLabel": "Responsable actual: {{name}}",
       "button": "Reasignar",
       "error": "No se pudo reasignar ahora. Intenta de nuevo."
+    },
+    "info": {
+      "title": "Información de la clínica",
+      "contact": "Contacto",
+      "since": "Socia desde",
+      "plan": "Plan actual"
     }
   },
   "plans": {
@@ -1575,6 +1607,71 @@
     "guardian_authorization": {
       "title": "Autorización del Responsable Legal",
       "text": "AUTORIZACIÓN DEL RESPONSABLE LEGAL\n\nEste término está dirigido al responsable legal de un(a) paciente menor de edad, conforme a la normativa de protección de la niñez y adolescencia y al Código de Ética Profesional del Psicólogo.\n\n1. Autorización de atención: al aceptar este término, declaras ser el responsable legal (padre, madre, tutor(a) o responsable designado) del(la) paciente registrado(a) en esta plataforma y autorizas expresamente el inicio y la continuidad del acompañamiento psicológico.\n\n2. Participación del responsable: podrás ser convocado(a) a conversar con el profesional responsable sobre el progreso del acompañamiento, respetando los límites de confidencialidad apropiados a la edad y al juicio clínico del profesional.\n\n3. Confidencialidad respecto al paciente menor: el profesional puede, dentro de su juicio técnico y ético, preservar determinada información compartida por el(la) paciente en sesión, cuando considere que revelarla al responsable no atiende al mejor interés del adolescente.\n\n4. Revocación: puedes revocar esta autorización en cualquier momento, comunicándolo al profesional responsable, lo que pondrá fin al acompañamiento.\n\nAl aceptar este término, declaras haber leído y comprendido la información anterior y autorizas el acompañamiento psicológico del(la) paciente menor de edad en esta plataforma.\n\n[Este texto es un punto de partida técnico y no sustituye la revisión de un profesional de Psicología ni, si es necesario, de un abogado, antes de su publicación en producción.]"
+    }
+  },
+  "portalGateway": {
+    "eyebrow": "Sistema de Gestión",
+    "title": "¿Cuál es tu portal?",
+    "subtitle": "Elige tu perfil para acceder al área correspondiente.",
+    "viewPublicSite": "Ver sitio público",
+    "accessButton": "Acceder al portal",
+    "footer": "Acceso al sistema ConecPsi · Versión 1.0",
+    "portals": {
+      "admin": {
+        "label": "Administración",
+        "sub": "Gestión completa de la plataforma",
+        "description": "Aprueba psicólogos, gestiona clínicas, visualiza informes y supervisa toda la operación de ConecPsi.",
+        "items": [
+          "Aprobación de psicólogos",
+          "Gestión de pacientes",
+          "Informes y métricas",
+          "Clínicas asociadas"
+        ]
+      },
+      "psychologist": {
+        "label": "Portal Psicólogo",
+        "sub": "Tu espacio de trabajo",
+        "description": "Tu agenda, historiales, pacientes y perfil profesional — todo en un solo lugar.",
+        "items": [
+          "Agenda de sesiones",
+          "Historiales y notas",
+          "Lista de pacientes",
+          "Tu perfil público"
+        ]
+      },
+      "patient": {
+        "label": "Mi Espacio",
+        "sub": "Sigue tu proceso",
+        "description": "Visualiza tus sesiones, sigue tu evolución y mantén contacto con tu psicólogo.",
+        "items": [
+          "Próximas sesiones",
+          "Evolución de ánimo",
+          "Mi psicólogo",
+          "Historial de seguimiento"
+        ]
+      },
+      "clinic": {
+        "label": "Portal Clínica",
+        "sub": "Gestión institucional",
+        "description": "Gestiona tu equipo de psicólogos, sigue a los pacientes y visualiza las métricas de tu clínica.",
+        "items": [
+          "Equipo de psicólogos",
+          "Pacientes de la clínica",
+          "Agenda institucional",
+          "Informes"
+        ]
+      },
+      "secretary": {
+        "label": "Secretaría",
+        "sub": "Operación diaria",
+        "description": "Gestiona la agenda, confirma sesiones, realiza cobros y registra nuevos pacientes.",
+        "items": [
+          "Agenda y confirmaciones",
+          "Recordatorios automáticos",
+          "Registro de pacientes",
+          "Control financiero"
+        ]
+      }
     }
   }
 }

@@ -272,7 +272,22 @@
     "submitting": "Signing in...",
     "genericError": "Incorrect email or password.",
     "noAccount": "Don't have an account yet?",
-    "createAccount": "Create account"
+    "createAccount": "Create account",
+    "backToPortals": "Back to portals",
+    "portalTitles": {
+      "admin": "Admin Portal",
+      "psychologist": "Psychologist Portal",
+      "patient": "My Space",
+      "clinic": "Clinic Portal",
+      "secretary": "Secretary Portal"
+    },
+    "portalSubtitles": {
+      "admin": "Sign in with your administrator account",
+      "psychologist": "Sign in with your professional account",
+      "patient": "Sign in to follow your journey",
+      "clinic": "Sign in with your clinic account",
+      "secretary": "Sign in with your secretary account"
+    }
   },
   "signup": {
     "title": "Create a psychologist account",
@@ -353,7 +368,18 @@
       "secretaries": "Secretaries",
       "planBreakdown": "Clinics by plan",
       "errorLoading": "Couldn't load the overview. Please try again.",
-      "pendingLeads": "Pending leads"
+      "pendingLeads": "Pending leads",
+      "charts": {
+        "sessionsByDayTitle": "Sessions in the last 14 days",
+        "sessionsByMonthTitle": "Sessions in the last 6 months"
+      },
+      "alerts": {
+        "title": "Recent alerts",
+        "empty": "No alerts right now.",
+        "professionalPending": "{{name}} is awaiting profile approval",
+        "unnamed": "A psychologist",
+        "pendingLeads": "{{count}} website contact(s) awaiting follow-up"
+      }
     },
     "users": {
       "title": "Users",
@@ -1071,6 +1097,12 @@
       "currentLabel": "Current professional: {{name}}",
       "button": "Reassign",
       "error": "Couldn't reassign right now. Please try again."
+    },
+    "info": {
+      "title": "Clinic information",
+      "contact": "Contact",
+      "since": "Partner since",
+      "plan": "Current plan"
     }
   },
   "plans": {
@@ -1575,6 +1607,71 @@
     "guardian_authorization": {
       "title": "Legal Guardian Authorization",
       "text": "LEGAL GUARDIAN AUTHORIZATION\n\nThis term is addressed to the legal guardian of a minor patient, in accordance with applicable child and adolescent protection regulations and professional ethics standards for psychologists.\n\n1. Authorization of care: by accepting this term, you declare that you are the legal guardian (parent, tutor, or designated responsible party) of the patient registered on this platform and you expressly authorize the start and continuation of psychological care.\n\n2. Guardian involvement: you may be asked to take part in conversations with the responsible professional about the progress of care, respecting confidentiality boundaries appropriate to the minor's age and the professional's clinical judgment.\n\n3. Confidentiality toward the minor patient: the professional may, within their technical and ethical judgment, withhold certain information shared by the patient in session when disclosure to the guardian would not serve the adolescent's best interest.\n\n4. Revocation: you may revoke this authorization at any time by notifying the responsible professional, which will end the care relationship.\n\nBy accepting this term, you declare that you have read and understood the information above and authorize the psychological care of the minor patient on this platform.\n\n[This text is a technical starting point and does not replace review by a licensed Psychology professional and, if necessary, a lawyer, before going live in production.]"
+    }
+  },
+  "portalGateway": {
+    "eyebrow": "Management System",
+    "title": "Which is your portal?",
+    "subtitle": "Choose your profile to access the corresponding area.",
+    "viewPublicSite": "View public site",
+    "accessButton": "Access portal",
+    "footer": "ConecPsi system access · Version 1.0",
+    "portals": {
+      "admin": {
+        "label": "Administration",
+        "sub": "Complete platform management",
+        "description": "Approve psychologists, manage clinics, view reports and monitor the entire ConecPsi operation.",
+        "items": [
+          "Psychologist approval",
+          "Patient management",
+          "Reports and metrics",
+          "Partner clinics"
+        ]
+      },
+      "psychologist": {
+        "label": "Psychologist Portal",
+        "sub": "Your workspace",
+        "description": "Your schedule, records, patients and professional profile — all in one place.",
+        "items": [
+          "Session schedule",
+          "Records and notes",
+          "Patient list",
+          "Your public profile"
+        ]
+      },
+      "patient": {
+        "label": "My Space",
+        "sub": "Follow your journey",
+        "description": "View your sessions, track your progress and stay in touch with your psychologist.",
+        "items": [
+          "Upcoming sessions",
+          "Mood tracking",
+          "My psychologist",
+          "Follow-up history"
+        ]
+      },
+      "clinic": {
+        "label": "Clinic Portal",
+        "sub": "Institutional management",
+        "description": "Manage your team of psychologists, track patients and view your clinic's metrics.",
+        "items": [
+          "Psychologist team",
+          "Clinic patients",
+          "Institutional schedule",
+          "Reports"
+        ]
+      },
+      "secretary": {
+        "label": "Secretary",
+        "sub": "Daily operations",
+        "description": "Manage the schedule, confirm sessions, handle billing and register new patients.",
+        "items": [
+          "Schedule and confirmations",
+          "Automatic reminders",
+          "Patient registration",
+          "Financial control"
+        ]
+      }
     }
   }
 }

@@ -54,6 +54,9 @@ import {
   Smile,
   ClipboardCheck,
   FileSignature,
+  UserCheck,
+  ClipboardList,
+  Heart,
 } from "lucide-react";
 
 import {
@@ -519,7 +522,25 @@ const FLAGS = ["🇧🇷", "🇪🇸", "🇵🇹", "🇺🇸", "🇩🇪", "🇫
 
 // ─── Admin: Login ─────────────────────────────────────────────────────────────
 
-function LoginForm({ onLogin }: { onLogin: (user: AppUser) => void }) {
+// Fase 60 — `title`/`subtitle` opcionais permitem reaproveitar exatamente o
+// mesmo formulário (mesma chamada real de autenticação) como "porta de
+// entrada" rotulada por portal (`#login-psicologo`, `#login-paciente` etc.),
+// vindas da vitrine `PortalGatewayPage`. Sem esses props, continua idêntico
+// a antes (usado em `#admin` direto, convites, etc.) — a conta continua
+// caindo no painel do seu papel REAL depois de autenticar, não no que a
+// pessoa escolheu na vitrine (não existe seleção de papel de verdade, só
+// contexto visual de qual porta ela entrou).
+function LoginForm({
+  onLogin,
+  title,
+  subtitle,
+  backHash,
+}: {
+  onLogin: (user: AppUser) => void;
+  title?: string;
+  subtitle?: string;
+  backHash?: string;
+}) {
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -563,14 +584,22 @@ function LoginForm({ onLogin }: { onLogin: (user: AppUser) => void }) {
             {t("login.brand")}
           </span>
         </div>
+        {backHash && (
+          <a
+            href={backHash}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-6"
+          >
+            <ChevronLeft size={14} /> {t("login.backToPortals")}
+          </a>
+        )}
         <h2
           className="text-2xl font-light mb-2 text-foreground"
           style={{ fontFamily: "'Fraunces', serif" }}
         >
-          {t("login.title")}
+          {title || t("login.title")}
         </h2>
         <p className="text-muted-foreground text-sm mb-8">
-          {t("login.subtitle")}
+          {subtitle || t("login.subtitle")}
         </p>
         <form onSubmit={submit} className="flex flex-col gap-4">
           <input
@@ -610,6 +639,150 @@ function LoginForm({ onLogin }: { onLogin: (user: AppUser) => void }) {
             className="text-primary font-semibold hover:underline"
           >
             {t("login.createAccount")}
+          </a>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Vitrine "Qual é o seu portal?" (Fase 60) ──────────────────────────────
+// Página puramente de NAVEGAÇÃO: cada card leva a uma tela de login rotulada
+// (`#login-admin`, `#login-psicologo` etc.), reaproveitando o mesmo `LoginForm`
+// com a MESMA autenticação real (supabase.auth.signInWithPassword). Não existe
+// seleção de papel de verdade aqui — depois de autenticar, `renderRoleArea`
+// decide o painel pelo papel REAL da conta, não pelo card em que a pessoa
+// clicou. O card "Clínica" é só uma porta de entrada com rótulo diferente:
+// quem entra por ali é sempre um psicólogo (dono de clínica), então cai no
+// mesmo `ProfessionalDashboard` de sempre.
+const PORTAL_CARDS: Array<{
+  id: "admin" | "psychologist" | "patient" | "clinic" | "secretary";
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  tone: "primary" | "accent";
+  targetHash: string;
+}> = [
+  { id: "admin", icon: Shield, tone: "primary", targetHash: "#login-admin" },
+  { id: "psychologist", icon: UserCheck, tone: "primary", targetHash: "#login-psicologo" },
+  { id: "patient", icon: Heart, tone: "accent", targetHash: "#login-paciente" },
+  { id: "clinic", icon: Building2, tone: "primary", targetHash: "#login-clinica" },
+  { id: "secretary", icon: ClipboardList, tone: "primary", targetHash: "#login-secretaria" },
+];
+
+// Mapa inverso (hash → id do portal) usado pelo roteamento em `App()` para
+// resolver `#login-admin`, `#login-psicologo` etc. a partir de `PORTAL_CARDS`
+// — uma só fonte de verdade para os 5 hashes.
+const PORTAL_LOGIN_HASHES: Record<string, string> = Object.fromEntries(
+  PORTAL_CARDS.map((p) => [p.targetHash, p.id]),
+);
+
+function PortalGatewayPage() {
+  const { t } = useTranslation();
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <header className="px-8 py-6 border-b border-border flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <BrandMark size={20} />
+          <span
+            className="text-xl font-bold text-foreground"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            {t("nav.brand")}
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          <LanguageSwitcher compact />
+          <a
+            href="#"
+            onClick={() => {
+              window.location.hash = "";
+            }}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+          >
+            <Globe size={14} /> {t("portalGateway.viewPublicSite")}
+          </a>
+        </div>
+      </header>
+
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-16">
+        <div className="text-center mb-14">
+          <p className="text-xs font-semibold tracking-widest uppercase text-accent mb-4">
+            {t("portalGateway.eyebrow")}
+          </p>
+          <h1
+            className="text-4xl md:text-5xl font-light text-foreground mb-4"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            {t("portalGateway.title")}
+          </h1>
+          <p className="text-muted-foreground text-lg max-w-md mx-auto">
+            {t("portalGateway.subtitle")}
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-4 w-full max-w-6xl">
+          {PORTAL_CARDS.map((p) => {
+            const Icon = p.icon;
+            const items = t(`portalGateway.portals.${p.id}.items`, {
+              returnObjects: true,
+            }) as string[];
+            // Duas variantes só (primary/accent) — os 2 tokens reais do app,
+            // não os 5 hex distintos do Figma (mantendo a paleta existente).
+            const toneBg = p.tone === "accent" ? "bg-accent/15 text-accent" : "bg-primary/10 text-primary";
+            const toneText = p.tone === "accent" ? "text-accent" : "text-primary";
+            const toneDot = p.tone === "accent" ? "bg-accent" : "bg-primary";
+            const toneHover =
+              p.tone === "accent"
+                ? "hover:border-accent/50 hover:shadow-lg"
+                : "hover:border-primary/50 hover:shadow-lg";
+            return (
+              <a
+                key={p.id}
+                href={p.targetHash}
+                className={`group bg-card border border-border rounded-2xl p-6 text-left transition-all hover:-translate-y-0.5 ${toneHover}`}
+              >
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-5 ${toneBg}`}>
+                  <Icon size={20} />
+                </div>
+                <h3 className="font-semibold text-foreground text-base mb-0.5">
+                  {t(`portalGateway.portals.${p.id}.label`)}
+                </h3>
+                <p className="text-xs text-muted-foreground mb-4">
+                  {t(`portalGateway.portals.${p.id}.sub`)}
+                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-5">
+                  {t(`portalGateway.portals.${p.id}.description`)}
+                </p>
+                <ul className="space-y-1.5 mb-5">
+                  {Array.isArray(items) &&
+                    items.map((it, i) => (
+                      <li
+                        key={i}
+                        className="flex items-center gap-2 text-xs text-muted-foreground"
+                      >
+                        <span className={`w-1 h-1 rounded-full shrink-0 ${toneDot}`} />
+                        {it}
+                      </li>
+                    ))}
+                </ul>
+                <div className={`flex items-center gap-1.5 text-sm font-semibold transition-colors ${toneText}`}>
+                  {t("portalGateway.accessButton")}{" "}
+                  <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </a>
+            );
+          })}
+        </div>
+
+        <p className="text-xs text-muted-foreground mt-10">
+          {t("portalGateway.footer")} ·{" "}
+          <a
+            href="#"
+            onClick={() => {
+              window.location.hash = "";
+            }}
+            className="underline underline-offset-2 hover:text-foreground"
+          >
+            {t("portalGateway.viewPublicSite")}
           </a>
         </p>
       </div>
@@ -10276,6 +10449,7 @@ type ClinicRow = {
   business_hours: Record<string, ClinicHours>;
   plan: PlanTier;
   owner_id: string | null;
+  created_at: string;
 };
 
 const WEEK_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
@@ -10287,7 +10461,7 @@ const DEFAULT_HOURS: ClinicHours = {
 };
 
 function ClinicSettingsView({ user }: { user: AppUser }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [clinic, setClinic] = useState<ClinicRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -10318,7 +10492,7 @@ function ClinicSettingsView({ user }: { user: AppUser }) {
 
       const { data, error } = await supabase
         .from("clinics")
-        .select("id, name, logo_url, business_hours, plan, owner_id")
+        .select("id, name, logo_url, business_hours, plan, owner_id, created_at")
         .eq("id", user.clinicId)
         .maybeSingle();
 
@@ -10454,8 +10628,60 @@ function ClinicSettingsView({ user }: { user: AppUser }) {
     );
   }
 
+  // Fase 61 — box "Informações da clínica" (referência visual do Figma),
+  // só com campos que existem de verdade no schema: `created_at` (parceira
+  // desde), o e-mail de login de quem está editando (dono/único profissional
+  // da clínica hoje — não tem campo de "contato" separado) e o plano atual.
+  // "Localização" do Figma ficou de fora: `clinics` não tem cidade/país.
+  const clinicInfoFields: {
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+    label: string;
+    value: string;
+  }[] = [
+    {
+      icon: Mail,
+      label: t("clinicSettings.info.contact"),
+      value: user.email || "—",
+    },
+    {
+      icon: Calendar,
+      label: t("clinicSettings.info.since"),
+      value: new Intl.DateTimeFormat(i18n.language, {
+        month: "long",
+        year: "numeric",
+      }).format(new Date(clinic.created_at)),
+    },
+    {
+      icon: CreditCard,
+      label: t("clinicSettings.info.plan"),
+      value: t(`plans.${clinic.plan}.name`),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-8 max-w-2xl">
+    <div className="bg-card border border-border rounded-2xl p-6">
+      <h3 className="text-sm font-semibold text-foreground mb-4">
+        {t("clinicSettings.info.title")}
+      </h3>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+        {clinicInfoFields.map((f) => (
+          <div key={f.label} className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center shrink-0">
+              <f.icon size={14} className="text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+                {f.label}
+              </p>
+              <p className="text-sm text-foreground font-medium mt-0.5">
+                {f.value}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
     <form
       onSubmit={handleSave}
       className="bg-card border border-border rounded-2xl p-8 flex flex-col gap-8"
@@ -14375,10 +14601,20 @@ type AdminStats = {
   planProfessional: number;
   planClinic: number;
   pendingLeads: number;
+  // Fase 61 — gráficos e alertas reais da visão geral (mesmo padrão de
+  // bucket já usado em `ProfessionalDashboard`/`ClinicReportsView`, agora
+  // agregando a plataforma inteira em vez de 1 profissional/clínica).
+  sessionsByDay: { date: string; count: number }[];
+  sessionsByMonth: { month: string; count: number }[];
+  pendingProfessionalsList: {
+    id: string;
+    fullName: string | null;
+    createdAt: string;
+  }[];
 };
 
 function AdminOverview() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -14387,6 +14623,16 @@ function AdminOverview() {
     let cancelled = false;
     (async () => {
       setError(false);
+
+      // Fase 61 — mesma janela de 14 dias / 6 meses já usada em
+      // `ProfessionalDashboard`, só que agregando TODOS os agendamentos da
+      // plataforma (sem filtrar por `professional_id`) — é a mesma consulta
+      // que já alimenta os dois gráficos (dia e mês), sem duplicar.
+      const now = new Date();
+      const fourteenDaysAgo = new Date(now);
+      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 13);
+      const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
       const [
         clinicsRes,
         approvedRes,
@@ -14397,6 +14643,8 @@ function AdminOverview() {
         professionalPlanRes,
         clinicPlanRes,
         pendingLeadsRes,
+        sessionsWindowRes,
+        pendingProfessionalsListRes,
       ] = await Promise.all([
         supabase.from("clinics").select("id", { count: "exact", head: true }),
         supabase
@@ -14431,6 +14679,16 @@ function AdminOverview() {
           .from("quiz_leads")
           .select("id", { count: "exact", head: true })
           .eq("status", "pending"),
+        supabase
+          .from("appointments")
+          .select("starts_at")
+          .gte("starts_at", sixMonthsAgo.toISOString()),
+        supabase
+          .from("professionals")
+          .select("id, created_at, profiles(full_name)")
+          .eq("approved", false)
+          .order("created_at", { ascending: false })
+          .limit(5),
       ]);
 
       if (cancelled) return;
@@ -14448,6 +14706,8 @@ function AdminOverview() {
         professionalPlanRes,
         clinicPlanRes,
         pendingLeadsRes,
+        sessionsWindowRes,
+        pendingProfessionalsListRes,
       ];
       const failed = results.find((r) => r.error);
       if (failed) {
@@ -14456,6 +14716,45 @@ function AdminOverview() {
         setLoading(false);
         return;
       }
+
+      // Sessões por dia (últimos 14 dias) — mesmo bucket de
+      // `ProfessionalDashboard`, agora sem filtrar por profissional.
+      const dayBuckets = new Map<string, number>();
+      for (let i = 0; i < 14; i++) {
+        const d = new Date(fourteenDaysAgo);
+        d.setDate(d.getDate() + i);
+        dayBuckets.set(d.toISOString().slice(0, 10), 0);
+      }
+      // Sessões por mês (últimos 6 meses).
+      const monthBuckets = new Map<string, number>();
+      for (let i = 0; i < 6; i++) {
+        const d = new Date(
+          sixMonthsAgo.getFullYear(),
+          sixMonthsAgo.getMonth() + i,
+          1,
+        );
+        monthBuckets.set(`${d.getFullYear()}-${d.getMonth()}`, 0);
+      }
+      (sessionsWindowRes.data ?? []).forEach((a: any) => {
+        const dayKey = String(a.starts_at).slice(0, 10);
+        if (dayBuckets.has(dayKey)) {
+          dayBuckets.set(dayKey, (dayBuckets.get(dayKey) ?? 0) + 1);
+        }
+        const d = new Date(a.starts_at);
+        const monthKey = `${d.getFullYear()}-${d.getMonth()}`;
+        if (monthBuckets.has(monthKey)) {
+          monthBuckets.set(monthKey, (monthBuckets.get(monthKey) ?? 0) + 1);
+        }
+      });
+      const sessionsByDay = Array.from(dayBuckets.entries()).map(
+        ([date, count]) => ({ date, count }),
+      );
+      const sessionsByMonth = Array.from(monthBuckets.entries()).map(
+        ([key, count]) => {
+          const [y, m] = key.split("-").map(Number);
+          return { month: new Date(y, m, 1).toISOString(), count };
+        },
+      );
 
       setStats({
         clinics: clinicsRes.count ?? 0,
@@ -14467,6 +14766,15 @@ function AdminOverview() {
         planProfessional: professionalPlanRes.count ?? 0,
         planClinic: clinicPlanRes.count ?? 0,
         pendingLeads: pendingLeadsRes.count ?? 0,
+        sessionsByDay,
+        sessionsByMonth,
+        pendingProfessionalsList: (pendingProfessionalsListRes.data ?? []).map(
+          (p: any) => ({
+            id: p.id,
+            fullName: p.profiles?.full_name ?? null,
+            createdAt: p.created_at,
+          }),
+        ),
       });
       setLoading(false);
     })();
@@ -14536,6 +14844,17 @@ function AdminOverview() {
     },
   ];
 
+  const dayLabel = (iso: string) =>
+    new Intl.DateTimeFormat(i18n.language, {
+      day: "2-digit",
+      month: "2-digit",
+    }).format(new Date(`${iso}T00:00:00`));
+
+  const monthLabel = (iso: string) =>
+    new Intl.DateTimeFormat(i18n.language, { month: "short" }).format(
+      new Date(iso),
+    );
+
   return (
     <div className="flex flex-col gap-6">
       {/* Fase 59 — StatCard individual (ícone colorido), no lugar da grade
@@ -14550,6 +14869,147 @@ function AdminOverview() {
             tone={card.tone}
           />
         ))}
+      </div>
+
+      {/* Fase 61 — gráficos de sessões (dado real de `appointments`,
+          plataforma inteira), mesmo padrão visual já usado em
+          `ProfessionalDashboard`/`ClinicReportsView` (não é decoração nova,
+          é a mesma convenção de gráfico do resto do app). */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="bg-card border border-border rounded-2xl p-6">
+          <h3 className="text-sm font-semibold text-foreground mb-1">
+            {t("admin.overview.charts.sessionsByDayTitle")}
+          </h3>
+          {stats.sessionsByDay.every((d) => d.count === 0) && (
+            <p className="text-xs text-muted-foreground mb-2">
+              {t("dashboard.charts.noData")}
+            </p>
+          )}
+          <div className="h-56 mt-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats.sessionsByDay}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="var(--border)"
+                />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={dayLabel}
+                  tick={{ fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={28}
+                />
+                <RechartsTooltip labelFormatter={(v) => dayLabel(String(v))} />
+                <Bar
+                  dataKey="count"
+                  fill="var(--primary)"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-6">
+          <h3 className="text-sm font-semibold text-foreground mb-1">
+            {t("admin.overview.charts.sessionsByMonthTitle")}
+          </h3>
+          {stats.sessionsByMonth.every((m) => m.count === 0) && (
+            <p className="text-xs text-muted-foreground mb-2">
+              {t("dashboard.charts.noData")}
+            </p>
+          )}
+          <div className="h-56 mt-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={stats.sessionsByMonth}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="var(--border)"
+                />
+                <XAxis
+                  dataKey="month"
+                  tickFormatter={monthLabel}
+                  tick={{ fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={28}
+                />
+                <RechartsTooltip
+                  labelFormatter={(v) => monthLabel(String(v))}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  stroke="var(--primary)"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Fase 61 — alertas reais (nada de exemplo fixo): psicólogos
+          aguardando aprovação (mesma fonte da coluna de status de
+          `professionalsPending`, agora nome a nome) + leads pendentes do
+          quiz público, se houver algum. Sem esses dois, mostra vazio —
+          nunca inventa item. */}
+      <div className="bg-card border border-border rounded-2xl p-6">
+        <h3 className="text-sm font-semibold text-foreground mb-4">
+          {t("admin.overview.alerts.title")}
+        </h3>
+        {stats.pendingProfessionalsList.length === 0 &&
+        stats.pendingLeads === 0 ? (
+          <p className="text-muted-foreground text-sm">
+            {t("admin.overview.alerts.empty")}
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {stats.pendingProfessionalsList.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-start gap-3 p-3 rounded-lg bg-secondary border border-border"
+              >
+                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                  <UserCheck size={14} />
+                </div>
+                <p className="text-sm text-foreground">
+                  {t("admin.overview.alerts.professionalPending", {
+                    name: p.fullName || t("admin.overview.alerts.unnamed"),
+                  })}
+                </p>
+              </div>
+            ))}
+            {stats.pendingLeads > 0 && (
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary border border-border">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <MessageSquare size={14} />
+                </div>
+                <p className="text-sm text-foreground">
+                  {t("admin.overview.alerts.pendingLeads", {
+                    count: stats.pendingLeads,
+                  })}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="bg-card border border-border rounded-2xl p-6">
@@ -17596,7 +18056,7 @@ function Landing() {
             </a>
             <LanguageSwitcher compact />
             <a
-              href="#admin"
+              href="#portais"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               {t("signup.logIn")}
@@ -17647,7 +18107,7 @@ function Landing() {
             </a>
             <LanguageSwitcher />
             <a
-              href="#admin"
+              href="#portais"
               onClick={() => setMenuOpen(false)}
               className="text-muted-foreground"
             >
@@ -19966,7 +20426,7 @@ function PublicPlansPage() {
           <div className="flex items-center gap-4">
             <LanguageSwitcher compact />
             <a
-              href="#admin"
+              href="#portais"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               {t("signup.logIn")}
@@ -20065,6 +20525,7 @@ export default function App() {
     return type === "invite" || type === "recovery" ? type : null;
   });
   const [passwordFlowDone, setPasswordFlowDone] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const handler = () => setHash(window.location.hash);
@@ -20187,6 +20648,32 @@ export default function App() {
   if (hash === "#admin") {
     if (!authChecked) return null;
     if (!user) return <LoginForm onLogin={setUser} />;
+    return renderRoleArea(user);
+  }
+
+  // Vitrine "Qual é o seu portal?" (Fase 60) — só navegação, ver comentário
+  // acima de `PortalGatewayPage`.
+  if (hash === "#portais") {
+    return <PortalGatewayPage />;
+  }
+
+  // Portas de entrada rotuladas por portal (Fase 60) — mesmo `LoginForm`,
+  // mesma autenticação real; o rótulo é só contexto visual de qual card a
+  // pessoa clicou na vitrine. Depois de autenticar, `renderRoleArea` decide
+  // o painel pelo papel REAL da conta — não existe seleção de papel aqui.
+  if (hash in PORTAL_LOGIN_HASHES) {
+    const portalId = PORTAL_LOGIN_HASHES[hash];
+    if (!authChecked) return null;
+    if (!user) {
+      return (
+        <LoginForm
+          onLogin={setUser}
+          title={t(`login.portalTitles.${portalId}`)}
+          subtitle={t(`login.portalSubtitles.${portalId}`)}
+          backHash="#portais"
+        />
+      );
+    }
     return renderRoleArea(user);
   }
 
